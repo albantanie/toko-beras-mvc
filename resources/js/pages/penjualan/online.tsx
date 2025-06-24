@@ -4,6 +4,7 @@ import { PageProps, BreadcrumbItem, Penjualan } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatCurrency, formatDateTime, StatusBadge, Icons } from '@/utils/formatters';
 import { useState } from 'react';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface PenjualanOnlineProps extends PageProps {
     penjualans: PaginatedData<Penjualan & {
@@ -132,6 +133,26 @@ export default function PenjualanOnline({ auth, penjualans, filters = {} }: Penj
                 setShowModal(false);
                 setSelectedTransaction(null);
                 reset();
+
+                // Show appropriate success message
+                switch (actionType) {
+                    case 'confirm':
+                        RiceStoreAlerts.info.paymentConfirmed(selectedTransaction.nomor_transaksi, selectedTransaction.total);
+                        break;
+                    case 'ready':
+                        RiceStoreAlerts.info.orderReady(selectedTransaction.nomor_transaksi, 'Customer pickup');
+                        break;
+                    case 'complete':
+                        RiceStoreAlerts.order.completed(selectedTransaction.nomor_transaksi);
+                        break;
+                }
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                } else {
+                    SweetAlert.error.custom('Operation Failed', `Failed to ${actionType} the order. Please try again.`);
+                }
             },
         });
     };
@@ -399,7 +420,7 @@ export default function PenjualanOnline({ auth, penjualans, filters = {} }: Penj
                                         Catatan Kasir (Opsional)
                                     </label>
                                     <textarea
-                                        value={data.catatan_kasir}
+                                        value={data.catatan_kasir || ''}
                                         onChange={(e) => setData('catatan_kasir', e.target.value)}
                                         rows={3}
                                         className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"

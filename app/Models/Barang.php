@@ -25,6 +25,7 @@ class Barang extends Model
         'stok',
         'stok_minimum',
         'satuan',
+        'berat_per_unit',
         'kode_barang',
         'gambar',
         'is_active',
@@ -40,6 +41,7 @@ class Barang extends Model
         return [
             'harga_beli' => 'decimal:2',
             'harga_jual' => 'decimal:2',
+            'berat_per_unit' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

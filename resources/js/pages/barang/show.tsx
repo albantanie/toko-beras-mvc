@@ -13,6 +13,7 @@ interface Barang {
     stok: number;
     stok_minimum: number;
     satuan: string;
+    berat_per_unit: number;
     deskripsi?: string;
     gambar?: string;
     is_active: boolean;
@@ -145,6 +146,10 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                                 <p className="text-sm text-gray-900">{barang.satuan}</p>
                                             </div>
                                             <div>
+                                                <label className="block text-sm font-medium text-gray-600">Weight per Unit</label>
+                                                <p className="text-sm text-gray-900">{barang.berat_per_unit}kg per {barang.satuan}</p>
+                                            </div>
+                                            <div>
                                                 <label className="block text-sm font-medium text-gray-600">Status</label>
                                                 <div className="flex space-x-2">
                                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.color}`}>
@@ -194,10 +199,12 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Current Stock</label>
                                                 <p className="text-2xl font-bold text-gray-900">{barang.stok} {barang.satuan}</p>
+                                                <p className="text-sm text-gray-500">({(barang.stok * barang.berat_per_unit).toFixed(2)}kg total)</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Minimum Stock</label>
                                                 <p className="text-lg font-semibold text-orange-600">{barang.stok_minimum} {barang.satuan}</p>
+                                                <p className="text-sm text-gray-500">({(barang.stok_minimum * barang.berat_per_unit).toFixed(2)}kg min)</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Stock Value</label>

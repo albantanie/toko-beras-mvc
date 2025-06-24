@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Penjualan } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatCurrency, formatDateTime, StatusBadge, ActionButtons, Icons } from '@/utils/formatters';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface PenjualanIndexProps extends PageProps {
     penjualans: PaginatedData<Penjualan>;
@@ -25,10 +26,29 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function PenjualanIndex({ auth, penjualans, filters = {} }: PenjualanIndexProps) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this transaction?')) {
-            router.delete(route('penjualan.destroy', id));
-        }
+    const formatDateTime = (dateString: string) => {
+        return new Date(dateString).toLocaleString('id-ID', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    const handleDelete = (id: number, orderNumber: string) => {
+        RiceStoreAlerts.transaction.confirmDelete(orderNumber).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('penjualan.destroy', id), {
+                    onSuccess: () => {
+                        RiceStoreAlerts.transaction.deleted(orderNumber);
+                    },
+                    onError: () => {
+                        SweetAlert.error.delete(`transaction ${orderNumber}`);
+                    }
+                });
+            }
+        });
     };
 
     const getStatusVariant = (status: string) => {
@@ -100,18 +120,23 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
         },
         {
             key: 'total',
-            label: 'Total',
+            label: 'Total & Items',
             sortable: true,
-            render: (value, row) => (
-                <div>
-                    <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(value)}
+            render: (value, row) => {
+                const totalItems = row.detail_penjualans?.reduce((sum, item) => sum + item.jumlah, 0) || 0;
+                const itemTypes = row.detail_penjualans?.length || 0;
+
+                return (
+                    <div>
+                        <div className="text-sm font-medium text-gray-900">
+                            {formatCurrency(value)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                            {totalItems} karung • {itemTypes} jenis
+                        </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                        {row.detail_penjualans?.length || 0} items
-                    </div>
-                </div>
-            ),
+                );
+            },
         },
         {
             key: 'metode_pembayaran',
@@ -149,7 +174,7 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
                         }] : []),
                         {
                             label: 'Delete',
-                            onClick: () => handleDelete(row.id),
+                            onClick: () => handleDelete(row.id, row.nomor_transaksi),
                             variant: 'danger' as const,
                             icon: Icons.delete,
                         },

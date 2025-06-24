@@ -63,8 +63,20 @@ class DashboardController extends Controller
         // Comprehensive summary
         $comprehensiveSummary = $this->getComprehensiveSummary();
 
-        // Top performing products
+        // Top performing products (best sellers)
         $topProducts = $this->getTopProducts(10);
+
+        // Best selling products with detailed analytics
+        $bestSellingProducts = $this->getBestSellingProducts();
+
+        // Business recommendations
+        $recommendations = $this->getBusinessRecommendations();
+
+        // Low stock alerts
+        $lowStockItems = $this->getLowStockItems();
+
+        // Customer insights
+        $customerInsights = $this->getCustomerInsights();
 
         return Inertia::render('owner/dashboard', [
             'weeklySalesTrend' => $weeklySalesTrend,
@@ -73,6 +85,10 @@ class DashboardController extends Controller
             'salesByType' => $salesByType,
             'comprehensiveSummary' => $comprehensiveSummary,
             'topProducts' => $topProducts,
+            'bestSellingProducts' => $bestSellingProducts,
+            'recommendations' => $recommendations,
+            'lowStockItems' => $lowStockItems,
+            'customerInsights' => $customerInsights,
         ]);
     }
 
@@ -549,5 +565,218 @@ class DashboardController extends Controller
             'cash' => 'Tunai',
             default => ucfirst(str_replace('_', ' ', $method)),
         };
+    }
+
+    /**
+     * Get best selling products with detailed analytics
+     */
+    private function getBestSellingProducts(): array
+    {
+        $thirtyDaysAgo = Carbon::now()->subDays(30);
+
+        $bestSellers = DB::table('detail_penjualans')
+            ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
+            ->join('penjualans', 'detail_penjualans.penjualan_id', '=', 'penjualans.id')
+            ->where('penjualans.tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('penjualans.status', '!=', 'dibatalkan')
+            ->select(
+                'barangs.id',
+                'barangs.nama',
+                'barangs.kategori',
+                'barangs.harga_jual',
+                'barangs.stok',
+                'barangs.gambar',
+                DB::raw('SUM(detail_penjualans.jumlah) as total_terjual'),
+                DB::raw('SUM(detail_penjualans.jumlah * detail_penjualans.harga_satuan) as total_revenue'),
+                DB::raw('COUNT(DISTINCT penjualans.id) as total_transaksi'),
+                DB::raw('AVG(detail_penjualans.harga_satuan) as avg_price')
+            )
+            ->groupBy('barangs.id', 'barangs.nama', 'barangs.kategori', 'barangs.harga_jual', 'barangs.stok', 'barangs.gambar')
+            ->orderBy('total_terjual', 'desc')
+            ->limit(8)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'nama' => $item->nama,
+                    'kategori' => $item->kategori,
+                    'harga_jual' => (float) $item->harga_jual,
+                    'stok' => $item->stok,
+                    'gambar' => $item->gambar,
+                    'total_terjual' => (int) $item->total_terjual,
+                    'total_revenue' => (float) $item->total_revenue,
+                    'total_transaksi' => (int) $item->total_transaksi,
+                    'avg_price' => (float) $item->avg_price,
+                    'revenue_per_unit' => $item->total_terjual > 0 ? (float) $item->total_revenue / $item->total_terjual : 0,
+                ];
+            });
+
+        return $bestSellers->toArray();
+    }
+
+    /**
+     * Get business recommendations based on data analysis
+     */
+    private function getBusinessRecommendations(): array
+    {
+        $recommendations = [];
+        $thirtyDaysAgo = Carbon::now()->subDays(30);
+        $sevenDaysAgo = Carbon::now()->subDays(7);
+
+        // 1. Low stock recommendations
+        $lowStockCount = Barang::where('stok', '<=', DB::raw('stok_minimum'))->count();
+        if ($lowStockCount > 0) {
+            $recommendations[] = [
+                'type' => 'warning',
+                'icon' => 'alert-triangle',
+                'title' => 'Stok Rendah Terdeteksi',
+                'description' => "Ada {$lowStockCount} produk dengan stok di bawah minimum. Segera lakukan restocking.",
+                'action' => 'Lihat Produk',
+                'action_url' => route('barang.index'),
+                'priority' => 'high'
+            ];
+        }
+
+        // 2. Best seller out of stock
+        $bestSellerOutOfStock = DB::table('detail_penjualans')
+            ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
+            ->join('penjualans', 'detail_penjualans.penjualan_id', '=', 'penjualans.id')
+            ->where('penjualans.tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('penjualans.status', '!=', 'dibatalkan')
+            ->where('barangs.stok', '<=', 5)
+            ->select('barangs.nama', DB::raw('SUM(detail_penjualans.jumlah) as total_terjual'))
+            ->groupBy('barangs.id', 'barangs.nama')
+            ->orderBy('total_terjual', 'desc')
+            ->first();
+
+        if ($bestSellerOutOfStock) {
+            $recommendations[] = [
+                'type' => 'danger',
+                'icon' => 'trending-up',
+                'title' => 'Produk Terlaris Hampir Habis',
+                'description' => "Produk terlaris '{$bestSellerOutOfStock->nama}' hampir habis. Prioritaskan restocking.",
+                'action' => 'Restock Sekarang',
+                'action_url' => route('barang.index'),
+                'priority' => 'critical'
+            ];
+        }
+
+        // 3. Revenue growth opportunity
+        $thisWeekRevenue = Penjualan::where('tanggal_transaksi', '>=', $sevenDaysAgo)
+            ->where('status', '!=', 'dibatalkan')->sum('total');
+        $lastWeekRevenue = Penjualan::whereBetween('tanggal_transaksi', [
+            Carbon::now()->subDays(14), $sevenDaysAgo
+        ])->where('status', '!=', 'dibatalkan')->sum('total');
+
+        if ($lastWeekRevenue > 0) {
+            $growthRate = (($thisWeekRevenue - $lastWeekRevenue) / $lastWeekRevenue) * 100;
+            if ($growthRate > 10) {
+                $recommendations[] = [
+                    'type' => 'success',
+                    'icon' => 'trending-up',
+                    'title' => 'Pertumbuhan Penjualan Positif',
+                    'description' => sprintf('Penjualan minggu ini naik %.1f%%. Pertahankan momentum ini!', $growthRate),
+                    'action' => 'Lihat Laporan',
+                    'action_url' => route('laporan.penjualan'),
+                    'priority' => 'medium'
+                ];
+            } elseif ($growthRate < -10) {
+                $recommendations[] = [
+                    'type' => 'warning',
+                    'icon' => 'trending-down',
+                    'title' => 'Penjualan Menurun',
+                    'description' => sprintf('Penjualan turun %.1f%% minggu ini. Perlu strategi pemasaran.', abs($growthRate)),
+                    'action' => 'Analisis Penjualan',
+                    'action_url' => route('laporan.penjualan'),
+                    'priority' => 'high'
+                ];
+            }
+        }
+
+        // 4. Seasonal recommendations
+        $currentMonth = Carbon::now()->month;
+        if (in_array($currentMonth, [6, 7, 8])) { // Musim kemarau
+            $recommendations[] = [
+                'type' => 'info',
+                'icon' => 'sun',
+                'title' => 'Rekomendasi Musiman',
+                'description' => 'Musim kemarau: Stok beras premium dan organik biasanya meningkat permintaannya.',
+                'action' => 'Cek Stok Premium',
+                'action_url' => route('barang.index'),
+                'priority' => 'low'
+            ];
+        }
+
+        // Sort by priority
+        $priorityOrder = ['critical' => 1, 'high' => 2, 'medium' => 3, 'low' => 4];
+        usort($recommendations, function ($a, $b) use ($priorityOrder) {
+            return $priorityOrder[$a['priority']] <=> $priorityOrder[$b['priority']];
+        });
+
+        return array_slice($recommendations, 0, 5); // Return top 5 recommendations
+    }
+
+    /**
+     * Get customer insights for owner
+     */
+    private function getCustomerInsights(): array
+    {
+        $thirtyDaysAgo = Carbon::now()->subDays(30);
+
+        // Total customers
+        $totalCustomers = User::whereHas('roles', function ($query) {
+            $query->where('name', Role::PELANGGAN);
+        })->count();
+
+        // Active customers (made purchase in last 30 days)
+        $activeCustomers = Penjualan::where('tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->whereNotNull('pelanggan_id')
+            ->distinct('pelanggan_id')
+            ->count();
+
+        // New customers this month
+        $newCustomers = User::whereHas('roles', function ($query) {
+            $query->where('name', Role::PELANGGAN);
+        })->where('created_at', '>=', Carbon::now()->startOfMonth())->count();
+
+        // Average order value
+        $avgOrderValue = Penjualan::where('tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('status', '!=', 'dibatalkan')
+            ->avg('total') ?? 0;
+
+        // Top customers by revenue
+        $topCustomers = DB::table('penjualans')
+            ->join('users', 'penjualans.pelanggan_id', '=', 'users.id')
+            ->where('penjualans.tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('penjualans.status', '!=', 'dibatalkan')
+            ->whereNotNull('penjualans.pelanggan_id')
+            ->select(
+                'users.name',
+                'users.email',
+                DB::raw('SUM(penjualans.total) as total_spent'),
+                DB::raw('COUNT(penjualans.id) as total_orders')
+            )
+            ->groupBy('users.id', 'users.name', 'users.email')
+            ->orderBy('total_spent', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function ($customer) {
+                return [
+                    'name' => $customer->name,
+                    'email' => $customer->email,
+                    'total_spent' => (float) $customer->total_spent,
+                    'total_orders' => (int) $customer->total_orders,
+                    'avg_order_value' => $customer->total_orders > 0 ? (float) $customer->total_spent / $customer->total_orders : 0,
+                ];
+            });
+
+        return [
+            'total_customers' => $totalCustomers,
+            'active_customers' => $activeCustomers,
+            'new_customers' => $newCustomers,
+            'avg_order_value' => (float) $avgOrderValue,
+            'customer_retention_rate' => $totalCustomers > 0 ? ($activeCustomers / $totalCustomers) * 100 : 0,
+            'top_customers' => $topCustomers->toArray(),
+        ];
     }
 }

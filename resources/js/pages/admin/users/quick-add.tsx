@@ -2,6 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Role } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface QuickAddUserProps extends PageProps {
     roles: Role[];
@@ -50,8 +51,14 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
         e.preventDefault();
         post(route('admin.users.store'), {
             onSuccess: () => {
+                RiceStoreAlerts.user.created(data.name);
                 reset();
                 setSelectedRole('kasir');
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                }
             },
         });
     };

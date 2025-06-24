@@ -1,7 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Role, User } from '@/types';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
+import { Icons } from '@/utils/formatters';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface EditUserProps extends PageProps {
     user: User;
@@ -24,6 +26,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function EditUser({ auth, user, roles }: EditUserProps) {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+
     const { data, setData, put, processing, errors } = useForm({
         name: user.name || '',
         email: user.email || '',
@@ -34,7 +39,16 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        put(route('admin.users.update', user.id));
+        put(route('admin.users.update', user.id), {
+            onSuccess: () => {
+                RiceStoreAlerts.user.updated(data.name);
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                }
+            },
+        });
     };
 
     return (
@@ -109,13 +123,26 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
                                     <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                                         New Password (leave blank to keep current)
                                     </label>
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        value={data.password}
-                                        onChange={(e) => setData('password', e.target.value)}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={data.password}
+                                            onChange={(e) => setData('password', e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPassword ? (
+                                                <Icons.eyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Icons.eye className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                     {errors.password && (
                                         <p className="mt-1 text-sm text-red-600">{errors.password}</p>
                                     )}
@@ -125,13 +152,26 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
                                     <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
                                         Confirm New Password
                                     </label>
-                                    <input
-                                        id="password_confirmation"
-                                        type="password"
-                                        value={data.password_confirmation}
-                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            id="password_confirmation"
+                                            type={showPasswordConfirmation ? "text" : "password"}
+                                            value={data.password_confirmation}
+                                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPasswordConfirmation ? (
+                                                <Icons.eyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Icons.eye className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                     {errors.password_confirmation && (
                                         <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>
                                     )}

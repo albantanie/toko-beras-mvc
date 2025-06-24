@@ -2,6 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -25,7 +26,7 @@ const categories = [
 ];
 
 const units = [
-    'kg', 'gram', 'ton', 'karung', 'pcs', 'pack', 'box'
+    'karung', 'kg', 'gram', 'ton', 'pcs', 'pack', 'box'
 ];
 
 export default function CreateBarang({ auth }: PageProps) {
@@ -40,7 +41,8 @@ export default function CreateBarang({ auth }: PageProps) {
         harga_jual: '',
         stok: '',
         stok_minimum: '',
-        satuan: 'kg',
+        satuan: 'karung',
+        berat_per_unit: '',
         gambar: null as File | null,
     });
 
@@ -53,6 +55,11 @@ export default function CreateBarang({ auth }: PageProps) {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB. The image will be automatically compressed after upload.');
+            }
+
             setData('gambar', file);
             const reader = new FileReader();
             reader.onload = () => setPreviewImage(reader.result as string);
@@ -63,7 +70,16 @@ export default function CreateBarang({ auth }: PageProps) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('barang.store'), {
-            onSuccess: () => reset(),
+            forceFormData: true,
+            onSuccess: () => {
+                RiceStoreAlerts.product.created(data.nama);
+                reset();
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                }
+            },
         });
     };
 
@@ -256,26 +272,48 @@ export default function CreateBarang({ auth }: PageProps) {
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <label htmlFor="satuan" className="block text-sm font-medium text-gray-700">
-                                                Unit *
-                                            </label>
-                                            <select
-                                                id="satuan"
-                                                value={data.satuan}
-                                                onChange={(e) => setData('satuan', e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                required
-                                            >
-                                                {units.map((unit) => (
-                                                    <option key={unit} value={unit}>
-                                                        {unit}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.satuan && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.satuan}</p>
-                                            )}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label htmlFor="satuan" className="block text-sm font-medium text-gray-700">
+                                                    Unit *
+                                                </label>
+                                                <select
+                                                    id="satuan"
+                                                    value={data.satuan}
+                                                    onChange={(e) => setData('satuan', e.target.value)}
+                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                    required
+                                                >
+                                                    {units.map((unit) => (
+                                                        <option key={unit} value={unit}>
+                                                            {unit}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {errors.satuan && (
+                                                    <p className="mt-1 text-sm text-red-600">{errors.satuan}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">
+                                                    Weight per Unit (kg) *
+                                                </label>
+                                                <input
+                                                    id="berat_per_unit"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={data.berat_per_unit}
+                                                    onChange={(e) => setData('berat_per_unit', e.target.value)}
+                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                    required
+                                                    placeholder="25.00"
+                                                />
+                                                {errors.berat_per_unit && (
+                                                    <p className="mt-1 text-sm text-red-600">{errors.berat_per_unit}</p>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Image Upload */}
@@ -286,10 +324,13 @@ export default function CreateBarang({ auth }: PageProps) {
                                             <input
                                                 id="gambar"
                                                 type="file"
-                                                accept="image/*"
+                                                accept="image/jpeg,image/png,image/jpg,image/gif"
                                                 onChange={handleImageChange}
                                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                             />
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Max 2MB. Images will be automatically compressed to optimize loading speed.
+                                            </p>
                                             {errors.gambar && (
                                                 <p className="mt-1 text-sm text-red-600">{errors.gambar}</p>
                                             )}
@@ -300,6 +341,11 @@ export default function CreateBarang({ auth }: PageProps) {
                                                         alt="Preview"
                                                         className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                                                     />
+                                                    {data.gambar && (
+                                                        <p className="mt-1 text-xs text-gray-500">
+                                                            Size: {(data.gambar.size / 1024).toFixed(1)}KB
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

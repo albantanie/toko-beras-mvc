@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, User, Role } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatDateTime, RoleBadge, ActionButtons, Icons } from '@/utils/formatters';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface UsersIndexProps extends PageProps {
     users: PaginatedData<User>;
@@ -25,10 +26,19 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIndexProps) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this user?')) {
-            router.delete(route('admin.users.destroy', id));
-        }
+    const handleDelete = (id: number, userName: string) => {
+        RiceStoreAlerts.user.confirmDelete(userName).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('admin.users.destroy', id), {
+                    onSuccess: () => {
+                        RiceStoreAlerts.user.deleted(userName);
+                    },
+                    onError: () => {
+                        SweetAlert.error.delete(`user ${userName}`);
+                    }
+                });
+            }
+        });
     };
 
     const columns: Column[] = [
@@ -92,7 +102,7 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
                         },
                         {
                             label: 'Delete',
-                            onClick: () => handleDelete(row.id),
+                            onClick: () => handleDelete(row.id, row.name),
                             variant: 'danger',
                             icon: Icons.delete,
                         },

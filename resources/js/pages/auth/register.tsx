@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 import { Icons } from '@/utils/formatters';
+import { SweetAlert } from '@/utils/sweetalert';
 
 type RegisterForm = {
     name: string;
@@ -23,6 +24,14 @@ export default function Register() {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('register'), {
+            onSuccess: () => {
+                SweetAlert.success.custom('Registration Successful!', 'Your account has been created successfully. Welcome to Toko Beras!');
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                }
+            },
             onFinish: () => reset('password', 'password_confirmation'),
         });
     };
