@@ -4,7 +4,7 @@ import { PageProps, BreadcrumbItem } from '@/types';
 import LineChart from '@/components/Charts/LineChart';
 import DoughnutChart from '@/components/Charts/DoughnutChart';
 import BarChart from '@/components/Charts/BarChart';
-import { formatCurrency, Icons } from '@/utils/formatters';
+import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -143,10 +143,10 @@ export default function AdminDashboard({
                                     <div className="p-3 rounded-full bg-green-100">
                                         <Icons.money className="h-6 w-6 text-green-600" />
                                     </div>
-                                    <div className="ml-4">
+                                    <div className="ml-4 flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-600">Revenue Hari Ini</p>
-                                        <p className="text-2xl font-bold text-gray-900">
-                                            {formatCurrency(salesSummary?.today?.revenue || 0)}
+                                        <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(salesSummary?.today?.revenue || 0)}>
+                                            {formatCompactNumber(salesSummary?.today?.revenue || 0, 'currency')}
                                         </p>
                                     </div>
                                 </div>
@@ -159,10 +159,10 @@ export default function AdminDashboard({
                                     <div className="p-3 rounded-full bg-blue-100">
                                         <Icons.transactions className="h-6 w-6 text-blue-600" />
                                     </div>
-                                    <div className="ml-4">
+                                    <div className="ml-4 flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-600">Transaksi Hari Ini</p>
-                                        <p className="text-2xl font-bold text-gray-900">
-                                            {salesSummary?.today?.transactions || 0}
+                                        <p className="text-xl font-bold text-gray-900 truncate" title={(salesSummary?.today?.transactions || 0).toString()}>
+                                            {formatCompactNumber(salesSummary?.today?.transactions || 0)}
                                         </p>
                                     </div>
                                 </div>
@@ -175,10 +175,10 @@ export default function AdminDashboard({
                                     <div className="p-3 rounded-full bg-purple-100">
                                         <Icons.calendar className="h-6 w-6 text-purple-600" />
                                     </div>
-                                    <div className="ml-4">
+                                    <div className="ml-4 flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-600">Revenue Bulan Ini</p>
-                                        <p className="text-2xl font-bold text-gray-900">
-                                            {formatCurrency(salesSummary?.this_month?.revenue || 0)}
+                                        <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(salesSummary?.this_month?.revenue || 0)}>
+                                            {formatCompactNumber(salesSummary?.this_month?.revenue || 0, 'currency')}
                                         </p>
                                     </div>
                                 </div>
@@ -191,10 +191,10 @@ export default function AdminDashboard({
                                     <div className="p-3 rounded-full bg-orange-100">
                                         <Icons.package className="h-6 w-6 text-orange-600" />
                                     </div>
-                                    <div className="ml-4">
+                                    <div className="ml-4 flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-600">Transaksi Bulan Ini</p>
-                                        <p className="text-2xl font-bold text-gray-900">
-                                            {salesSummary?.this_month?.transactions || 0}
+                                        <p className="text-xl font-bold text-gray-900 truncate" title={(salesSummary?.this_month?.transactions || 0).toString()}>
+                                            {formatCompactNumber(salesSummary?.this_month?.transactions || 0)}
                                         </p>
                                     </div>
                                 </div>

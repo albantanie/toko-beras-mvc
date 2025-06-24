@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barang;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +12,12 @@ use Inertia\Response;
 
 class BarangController extends Controller
 {
+    protected $imageService;
+
+    public function __construct(ImageCompressionService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
 
 
     /**
@@ -112,6 +119,7 @@ class BarangController extends Controller
             'stok' => 'required|integer|min:0',
             'stok_minimum' => 'required|integer|min:0',
             'satuan' => 'required|string|max:50',
+            'berat_per_unit' => 'required|numeric|min:0.01',
             'kode_barang' => 'required|string|max:255|unique:barangs',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -121,7 +129,17 @@ class BarangController extends Controller
         $data['updated_by'] = auth()->id();
 
         if ($request->hasFile('gambar')) {
-            $data['gambar'] = $request->file('gambar')->store('barang', 'public');
+            // Compress and store image
+            $data['gambar'] = $this->imageService->compressAndStore(
+                $request->file('gambar'),
+                'barang',
+                800,  // max width
+                600,  // max height
+                80    // quality (80%)
+            );
+
+            // Also create thumbnail
+            $this->imageService->createThumbnail($request->file('gambar'));
         }
 
         Barang::create($data);
@@ -166,6 +184,7 @@ class BarangController extends Controller
             'stok' => 'required|integer|min:0',
             'stok_minimum' => 'required|integer|min:0',
             'satuan' => 'required|string|max:50',
+            'berat_per_unit' => 'required|numeric|min:0.01',
             'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_active' => 'boolean',
@@ -175,11 +194,22 @@ class BarangController extends Controller
         $data['updated_by'] = auth()->id();
 
         if ($request->hasFile('gambar')) {
-            // Delete old image
+            // Delete old image and thumbnail
             if ($barang->gambar) {
-                Storage::disk('public')->delete($barang->gambar);
+                $this->imageService->deleteImage($barang->gambar);
             }
-            $data['gambar'] = $request->file('gambar')->store('barang', 'public');
+
+            // Compress and store new image
+            $data['gambar'] = $this->imageService->compressAndStore(
+                $request->file('gambar'),
+                'barang',
+                800,  // max width
+                600,  // max height
+                80    // quality (80%)
+            );
+
+            // Also create thumbnail
+            $this->imageService->createThumbnail($request->file('gambar'));
         }
 
         $barang->update($data);
@@ -199,9 +229,9 @@ class BarangController extends Controller
                 ->with('error', 'Barang tidak dapat dihapus karena memiliki riwayat penjualan');
         }
 
-        // Delete image
+        // Delete image and thumbnail
         if ($barang->gambar) {
-            Storage::disk('public')->delete($barang->gambar);
+            $this->imageService->deleteImage($barang->gambar);
         }
 
         $barang->delete();

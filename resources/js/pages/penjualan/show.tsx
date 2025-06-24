@@ -30,6 +30,7 @@ interface PenjualanShowProps extends PageProps {
                 harga_beli: number;
                 harga_jual: number;
                 satuan: string;
+                berat_per_unit: number;
                 gambar?: string;
             };
         }>;
@@ -404,6 +405,11 @@ export default function PenjualanShow({ auth, penjualan }: PenjualanShowProps) {
                                                             <div className="text-sm text-gray-900">
                                                                 {item.jumlah} {item.barang.satuan}
                                                             </div>
+                                                            {item.barang.berat_per_unit && (
+                                                                <div className="text-xs text-gray-500">
+                                                                    {(item.jumlah * item.barang.berat_per_unit).toFixed(2)}kg total
+                                                                </div>
+                                                            )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className="text-sm font-medium text-gray-900">

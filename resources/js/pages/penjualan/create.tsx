@@ -1,10 +1,14 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem, Barang, User } from '@/types';
+import { Head, useForm, router } from '@inertiajs/react';
+import { BreadcrumbItem, Barang, User } from '@/types';
 import { formatCurrency, ProductImage, Icons } from '@/utils/formatters';
 import { useState, useEffect } from 'react';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
-interface PenjualanCreateProps extends PageProps {
+interface PenjualanCreateProps {
+    auth: {
+        user: User;
+    };
     barangs: Barang[];
     pelanggans: User[];
     nomor_transaksi: string;
@@ -37,8 +41,9 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
     const [quantity, setQuantity] = useState(1);
     const [customPrice, setCustomPrice] = useState('');
     const [showCustomerForm, setShowCustomerForm] = useState(false);
+    const [walkInCounter, setWalkInCounter] = useState(1);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, processing, errors, reset } = useForm({
         pelanggan_id: '',
         nama_pelanggan: '',
         telepon_pelanggan: '',
@@ -49,7 +54,6 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
         pajak: 0,
         bayar: 0,
         catatan: '',
-        items: [] as any[],
     });
 
     // Filter products based on search
@@ -65,14 +69,36 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
 
     // Add product to cart
     const addToCart = () => {
-        if (!selectedProduct || quantity <= 0) return;
+        console.log('=== ADD TO CART DEBUG ===');
+        console.log('Selected product:', selectedProduct);
+        console.log('Quantity:', quantity);
+        console.log('Custom price:', customPrice);
+        console.log('Current cart before add:', cart);
+
+        if (!selectedProduct || quantity <= 0) {
+            console.log('STOPPING: No product selected or invalid quantity');
+            return;
+        }
 
         const price = customPrice ? parseFloat(customPrice) : selectedProduct.harga_jual;
         if (price <= 0) return;
 
+        // Check stock availability
+        const existingCartItem = cart.find(item => item.barang_id === selectedProduct.id);
+        const currentCartQuantity = existingCartItem ? existingCartItem.jumlah : 0;
+        const totalQuantity = currentCartQuantity + quantity;
+
+        if (totalQuantity > selectedProduct.stok) {
+            SweetAlert.error.custom(
+                'Stok Tidak Mencukupi!',
+                `Stok tersedia: ${selectedProduct.stok} ${selectedProduct.satuan}. Sudah di keranjang: ${currentCartQuantity} ${selectedProduct.satuan}. Maksimal bisa ditambah: ${selectedProduct.stok - currentCartQuantity} ${selectedProduct.satuan}.`
+            );
+            return;
+        }
+
         // Check if product already in cart
         const existingIndex = cart.findIndex(item => item.barang_id === selectedProduct.id);
-        
+
         if (existingIndex >= 0) {
             // Update existing item
             const newCart = [...cart];
@@ -96,6 +122,8 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
         setQuantity(1);
         setCustomPrice('');
         setSearchProduct('');
+
+        console.log('Product added to cart. New cart length:', cart.length + 1);
     };
 
     // Remove item from cart
@@ -111,6 +139,17 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
             return;
         }
 
+        const item = cart[index];
+
+        // Check stock availability
+        if (newQuantity > item.barang.stok) {
+            SweetAlert.error.custom(
+                'Stok Tidak Mencukupi!',
+                `Stok tersedia: ${item.barang.stok} ${item.barang.satuan}. Jumlah yang diminta: ${newQuantity} ${item.barang.satuan}.`
+            );
+            return;
+        }
+
         const newCart = [...cart];
         newCart[index].jumlah = newQuantity;
         newCart[index].subtotal = newQuantity * newCart[index].harga_satuan;
@@ -121,40 +160,118 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        console.log('=== SUBMIT START ===');
+        console.log('Current cart state:', cart);
+        console.log('Cart length:', cart.length);
+
         if (cart.length === 0) {
-            alert('Keranjang masih kosong!');
+            console.log('STOPPING: Cart is empty');
+            SweetAlert.error.custom('Cart Empty!', 'Please add some products to the cart before proceeding.');
             return;
         }
 
         if (data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && data.bayar < total) {
-            alert('Jumlah bayar tidak mencukupi!');
+            SweetAlert.error.custom('Insufficient Payment!', `Payment amount (${formatCurrency(data.bayar)}) is less than total (${formatCurrency(total)}).`);
             return;
         }
 
-        // Prepare items data
-        const items = cart.map(item => ({
-            barang_id: item.barang_id,
-            jumlah: item.jumlah,
-            harga_satuan: item.harga_satuan,
-            catatan: item.catatan,
-        }));
+        // Prepare items data with explicit validation
+        const items = cart.map(item => {
+            console.log('Processing cart item:', item);
+            return {
+                barang_id: item.barang_id,
+                jumlah: item.jumlah,
+                harga_satuan: item.harga_satuan,
+                catatan: item.catatan || null,
+            };
+        });
 
-        // Set nama pelanggan for walk-in customers
+        console.log('Generated items array:', items);
+
+        // Validate items array
+        if (items.length === 0) {
+            console.log('ERROR: Items array is empty despite cart having items');
+            SweetAlert.error.custom('Error!', 'Terjadi kesalahan dalam memproses keranjang. Silakan refresh halaman dan coba lagi.');
+            return;
+        }
+
         const submitData = {
             ...data,
-            nama_pelanggan: showCustomerForm ? data.nama_pelanggan : 'Walk-in Customer',
+            catatan: data.catatan || '',
             items,
         };
 
-        post(route('penjualan.store'), submitData);
+        console.log('=== FINAL SUBMIT DATA ===');
+        console.log('Submit data:', submitData);
+        console.log('Items count:', items.length);
+        console.log('Customer name:', data.nama_pelanggan);
+
+        // Submit using router.post
+        router.post(route('penjualan.store'), submitData, {
+            onSuccess: (page: any) => {
+                console.log('=== SUCCESS RESPONSE ===');
+                console.log('Page:', page);
+                const orderNumber = page.props?.flash?.order_number || 'New Order';
+                RiceStoreAlerts.transaction.created(orderNumber);
+                // Reset form and cart
+                reset();
+                setCart([]);
+            },
+            onError: (errors: any) => {
+                console.log('=== ERROR RESPONSE ===');
+                console.log('Errors:', errors);
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                } else {
+                    SweetAlert.error.create('transaction');
+                }
+            },
+        });
     };
 
-    // Auto-calculate bayar for non-cash payments and online transactions
+    // Auto-calculate bayar for all transactions
     useEffect(() => {
-        if (data.jenis_transaksi === 'online' || data.metode_pembayaran !== 'tunai') {
-            setData('bayar', total);
+        // Always set payment amount to total for easier processing
+        setData('bayar', total);
+    }, [total]);
+
+    // Auto-set walk-in customer data when not using customer form
+    useEffect(() => {
+        if (!showCustomerForm && !data.nama_pelanggan) {
+            // Find walk-in user from pelanggans list
+            const walkinUser = pelanggans.find(p => p.email === 'walkin@tokoberas.internal');
+
+            if (walkinUser) {
+                const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+                const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+                const timestamp = Date.now().toString().slice(-3);
+
+                console.log('Setting walk-in customer data:', {
+                    id: walkinUser.id,
+                    email: walkinUser.email,
+                    name: `Pelanggan ${randomLetter}${timestamp} (Walk-in Sales)`
+                });
+
+                setData('pelanggan_id', walkinUser.id.toString());
+                setData('nama_pelanggan', `Pelanggan ${randomLetter}${timestamp} (Walk-in Sales)`);
+                setData('telepon_pelanggan', '000000000000');
+                setData('alamat_pelanggan', 'In-Store Transaction');
+            } else {
+                console.error('Walk-in user not found in pelanggans list');
+                // Fallback: use first pelanggan if walk-in user not found
+                if (pelanggans.length > 0) {
+                    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+                    const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+                    const timestamp = Date.now().toString().slice(-3);
+
+                    setData('pelanggan_id', pelanggans[0].id.toString());
+                    setData('nama_pelanggan', `Pelanggan ${randomLetter}${timestamp} (Walk-in Sales)`);
+                    setData('telepon_pelanggan', '000000000000');
+                    setData('alamat_pelanggan', 'In-Store Transaction');
+                }
+            }
         }
-    }, [data.metode_pembayaran, data.jenis_transaksi, total]);
+    }, [showCustomerForm, data.nama_pelanggan, pelanggans]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -207,7 +324,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                             >
                                                 <div className="flex items-center space-x-3">
                                                     <ProductImage
-                                                        src={barang.gambar}
+                                                        src={barang.gambar || ''}
                                                         alt={barang.nama}
                                                         className="h-12 w-12 rounded-lg object-cover"
                                                     />
@@ -221,8 +338,11 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                         <p className="text-sm font-semibold text-green-600">
                                                             {formatCurrency(barang.harga_jual)}
                                                         </p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className={`text-xs ${barang.stok <= barang.stok_minimum ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
                                                             Stok: {barang.stok} {barang.satuan}
+                                                            {barang.stok <= barang.stok_minimum && (
+                                                                <span className="ml-1 text-red-600">⚠️ Rendah</span>
+                                                            )}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -246,9 +366,32 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                         min="1"
                                                         max={selectedProduct.stok}
                                                         value={quantity}
-                                                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                                        onChange={(e) => {
+                                                            const newQuantity = parseInt(e.target.value) || 1;
+                                                            const existingCartItem = cart.find(item => item.barang_id === selectedProduct.id);
+                                                            const currentCartQuantity = existingCartItem ? existingCartItem.jumlah : 0;
+                                                            const maxAllowed = selectedProduct.stok - currentCartQuantity;
+
+                                                            if (newQuantity > maxAllowed) {
+                                                                SweetAlert.error.custom(
+                                                                    'Jumlah Melebihi Stok!',
+                                                                    `Maksimal yang bisa ditambah: ${maxAllowed} ${selectedProduct.satuan}`
+                                                                );
+                                                                setQuantity(maxAllowed > 0 ? maxAllowed : 1);
+                                                            } else {
+                                                                setQuantity(newQuantity);
+                                                            }
+                                                        }}
                                                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                                     />
+                                                    <p className="mt-1 text-xs text-gray-500">
+                                                        Stok tersedia: {selectedProduct.stok} {selectedProduct.satuan}
+                                                        {cart.find(item => item.barang_id === selectedProduct.id) && (
+                                                            <span className="text-orange-600">
+                                                                {' '}(Di keranjang: {cart.find(item => item.barang_id === selectedProduct.id)?.jumlah} {selectedProduct.satuan})
+                                                            </span>
+                                                        )}
+                                                    </p>
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700">

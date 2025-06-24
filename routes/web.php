@@ -90,7 +90,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Barang routes (admin, owner, karyawan)
     Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
-        Route::get('barang/quick-add', [BarangController::class, 'quickAdd'])->name('barang.quick-add');
         Route::resource('barang', BarangController::class);
         Route::patch('barang/{barang}/stock', [BarangController::class, 'updateStock'])->name('barang.update-stock');
     });

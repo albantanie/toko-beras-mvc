@@ -1,10 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
+import { BreadcrumbItem } from '@/types';
 import BarChart from '@/components/Charts/BarChart';
 import DoughnutChart from '@/components/Charts/DoughnutChart';
 import LineChart from '@/components/Charts/LineChart';
-import { formatCurrency, Icons } from '@/utils/formatters';
+import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -13,7 +13,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface KaryawanDashboardProps extends PageProps {
+interface KaryawanDashboardProps {
     stockLevels: Array<{
         category: string;
         total_products: number;
@@ -49,7 +49,6 @@ interface KaryawanDashboardProps extends PageProps {
 }
 
 export default function KaryawanDashboard({
-    auth,
     stockLevels,
     lowStockItems,
     categoriesDistribution,
@@ -147,10 +146,10 @@ export default function KaryawanDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-blue-600">Total Items</p>
-                                            <p className="text-2xl font-bold text-blue-900">
-                                                {inventorySummary?.total_products || 0}
+                                            <p className="text-xl font-bold text-blue-900 truncate" title={(inventorySummary?.total_products || 0).toString()}>
+                                                {formatCompactNumber(inventorySummary?.total_products || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -163,10 +162,10 @@ export default function KaryawanDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-green-600">In Stock</p>
-                                            <p className="text-2xl font-bold text-green-900">
-                                                {inStockCount || 0}
+                                            <p className="text-xl font-bold text-green-900 truncate" title={(inStockCount || 0).toString()}>
+                                                {formatCompactNumber(inStockCount || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -179,10 +178,10 @@ export default function KaryawanDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-yellow-600">Low Stock</p>
-                                            <p className="text-2xl font-bold text-yellow-900">
-                                                {inventorySummary?.low_stock_items || 0}
+                                            <p className="text-xl font-bold text-yellow-900 truncate" title={(inventorySummary?.low_stock_items || 0).toString()}>
+                                                {formatCompactNumber(inventorySummary?.low_stock_items || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -195,10 +194,10 @@ export default function KaryawanDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-red-600">Out of Stock</p>
-                                            <p className="text-2xl font-bold text-red-900">
-                                                {inventorySummary?.out_of_stock_items || 0}
+                                            <p className="text-xl font-bold text-red-900 truncate" title={(inventorySummary?.out_of_stock_items || 0).toString()}>
+                                                {formatCompactNumber(inventorySummary?.out_of_stock_items || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -286,19 +285,19 @@ export default function KaryawanDashboard({
                                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Inventory Value Summary</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="text-center p-4 bg-green-50 rounded-lg">
-                                        <p className="text-3xl font-bold text-green-600">
-                                            {formatCurrency(inventorySummary?.total_stock_value || 0)}
+                                        <p className="text-2xl font-bold text-green-600 truncate" title={formatCurrency(inventorySummary?.total_stock_value || 0)}>
+                                            {formatCompactNumber(inventorySummary?.total_stock_value || 0, 'currency')}
                                         </p>
                                         <p className="text-sm text-green-700 mt-1">Total Stock Value</p>
                                     </div>
                                     <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                        <p className="text-3xl font-bold text-blue-600">
-                                            {inventorySummary?.categories_count || 0}
+                                        <p className="text-2xl font-bold text-blue-600 truncate" title={(inventorySummary?.categories_count || 0).toString()}>
+                                            {formatCompactNumber(inventorySummary?.categories_count || 0)}
                                         </p>
                                         <p className="text-sm text-blue-700 mt-1">Product Categories</p>
                                     </div>
                                     <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                        <p className="text-3xl font-bold text-purple-600">
+                                        <p className="text-2xl font-bold text-purple-600 truncate" title={`${((inventorySummary?.low_stock_items || 0) / (inventorySummary?.total_products || 1) * 100).toFixed(1)}%`}>
                                             {((inventorySummary?.low_stock_items || 0) / (inventorySummary?.total_products || 1) * 100).toFixed(1)}%
                                         </p>
                                         <p className="text-sm text-purple-700 mt-1">Low Stock Ratio</p>

@@ -1,9 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
+import { Head } from '@inertiajs/react';
+import { BreadcrumbItem } from '@/types';
 import LineChart from '@/components/Charts/LineChart';
 import DoughnutChart from '@/components/Charts/DoughnutChart';
-import { formatCurrency, formatDateTime, Icons } from '@/utils/formatters';
+import { formatCurrency, formatCompactNumber, formatDateTime, Icons } from '@/utils/formatters';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -12,7 +12,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface KasirDashboardProps extends PageProps {
+interface KasirDashboardProps {
     todaysSalesTrend: Array<{
         hour: string;
         transactions: number;
@@ -33,7 +33,6 @@ interface KasirDashboardProps extends PageProps {
 }
 
 export default function KasirDashboard({
-    auth,
     todaysSalesTrend,
     todaysTransactionTypes,
     pendingOrders,
@@ -92,10 +91,10 @@ export default function KasirDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-green-600">Today's Sales</p>
-                                            <p className="text-2xl font-bold text-green-900">
-                                                {formatCurrency(todaysSummary?.total_revenue || 0)}
+                                            <p className="text-xl font-bold text-green-900 truncate" title={formatCurrency(todaysSummary?.total_revenue || 0)}>
+                                                {formatCompactNumber(todaysSummary?.total_revenue || 0, 'currency')}
                                             </p>
                                         </div>
                                     </div>
@@ -108,10 +107,10 @@ export default function KasirDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-blue-600">Transactions</p>
-                                            <p className="text-2xl font-bold text-blue-900">
-                                                {todaysSummary?.total_transactions || 0}
+                                            <p className="text-xl font-bold text-blue-900 truncate" title={(todaysSummary?.total_transactions || 0).toString()}>
+                                                {formatCompactNumber(todaysSummary?.total_transactions || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -124,10 +123,10 @@ export default function KasirDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-purple-600">Online Orders</p>
-                                            <p className="text-2xl font-bold text-purple-900">
-                                                {todaysSummary?.online_orders || 0}
+                                            <p className="text-xl font-bold text-purple-900 truncate" title={(todaysSummary?.online_orders || 0).toString()}>
+                                                {formatCompactNumber(todaysSummary?.online_orders || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -140,10 +139,10 @@ export default function KasirDashboard({
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                             </svg>
                                         </div>
-                                        <div className="ml-4">
+                                        <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-orange-600">Walk-in Sales</p>
-                                            <p className="text-2xl font-bold text-orange-900">
-                                                {todaysSummary?.walk_in_sales || 0}
+                                            <p className="text-xl font-bold text-orange-900 truncate" title={(todaysSummary?.walk_in_sales || 0).toString()}>
+                                                {formatCompactNumber(todaysSummary?.walk_in_sales || 0)}
                                             </p>
                                         </div>
                                     </div>

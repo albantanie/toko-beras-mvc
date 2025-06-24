@@ -1,7 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Role } from '@/types';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
+import { Icons } from '@/utils/formatters';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface CreateUserProps extends PageProps {
     roles: Role[];
@@ -23,6 +25,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function CreateUser({ auth, roles }: CreateUserProps) {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -34,7 +39,15 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('admin.users.store'), {
-            onSuccess: () => reset(),
+            onSuccess: () => {
+                RiceStoreAlerts.user.created(data.name);
+                reset();
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                }
+            },
         });
     };
 
@@ -110,14 +123,27 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                     <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                                         Password
                                     </label>
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        value={data.password}
-                                        onChange={(e) => setData('password', e.target.value)}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={data.password}
+                                            onChange={(e) => setData('password', e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPassword ? (
+                                                <Icons.eyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Icons.eye className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                     {errors.password && (
                                         <p className="mt-1 text-sm text-red-600">{errors.password}</p>
                                     )}
@@ -127,14 +153,27 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                     <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
                                         Confirm Password
                                     </label>
-                                    <input
-                                        id="password_confirmation"
-                                        type="password"
-                                        value={data.password_confirmation}
-                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            id="password_confirmation"
+                                            type={showPasswordConfirmation ? "text" : "password"}
+                                            value={data.password_confirmation}
+                                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                                            className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPasswordConfirmation ? (
+                                                <Icons.eyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Icons.eye className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                     {errors.password_confirmation && (
                                         <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>
                                     )}

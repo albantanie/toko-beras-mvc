@@ -183,6 +183,37 @@ export const formatPercentage = (num: number): string => {
     }).format(num / 100);
 };
 
+// Compact number formatter for dashboard cards
+export const formatCompactNumber = (num: number, type: 'number' | 'currency' = 'number'): string => {
+    if (num === 0) return type === 'currency' ? 'Rp 0' : '0';
+
+    const absNum = Math.abs(num);
+
+    if (type === 'currency') {
+        if (absNum >= 1000000000) {
+            return `Rp ${(num / 1000000000).toFixed(1)}M`;
+        } else if (absNum >= 1000000) {
+            return `Rp ${(num / 1000000).toFixed(1)}Jt`;
+        } else if (absNum >= 1000) {
+            return `Rp ${(num / 1000).toFixed(0)}rb`;
+        } else {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                maximumFractionDigits: 0,
+            }).format(num);
+        }
+    } else {
+        if (absNum >= 1000000) {
+            return `${(num / 1000000).toFixed(1)}Jt`;
+        } else if (absNum >= 1000) {
+            return `${(num / 1000).toFixed(0)}rb`;
+        } else {
+            return num.toLocaleString('id-ID');
+        }
+    }
+};
+
 // Common icons
 export const Icons = {
     view: (props: React.SVGProps<SVGSVGElement>) => (
@@ -332,9 +363,39 @@ export const Icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25A2.25 2.25 0 0 1 5.25 3h13.5A2.25 2.25 0 0 1 21 5.25Z" />
         </svg>
     ),
-    check: (props: React.SVGProps<SVGSVGElement>) => (
+    checkmark: (props: React.SVGProps<SVGSVGElement>) => (
         <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        </svg>
+    ),
+    shoppingCart: (props: React.SVGProps<SVGSVGElement>) => (
+        <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+        </svg>
+    ),
+    alertTriangle: (props: React.SVGProps<SVGSVGElement>) => (
+        <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+    ),
+    trendingUp: (props: React.SVGProps<SVGSVGElement>) => (
+        <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+        </svg>
+    ),
+    trendingDown: (props: React.SVGProps<SVGSVGElement>) => (
+        <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.511-5.511-3.182" />
+        </svg>
+    ),
+    users: (props: React.SVGProps<SVGSVGElement>) => (
+        <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+        </svg>
+    ),
+    info: (props: React.SVGProps<SVGSVGElement>) => (
+        <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
         </svg>
     ),
 };

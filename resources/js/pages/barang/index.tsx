@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatCurrency, getStockStatus, StatusBadge, ActionButtons, ProductImage, Icons } from '@/utils/formatters';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface Barang {
     id: number;
@@ -14,6 +15,7 @@ interface Barang {
     stok: number;
     stok_minimum: number;
     satuan: string;
+    berat_per_unit: number;
     deskripsi?: string;
     gambar?: string;
     is_active: boolean;
@@ -37,10 +39,19 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndexProps) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this item?')) {
-            router.delete(route('barang.destroy', id));
-        }
+    const handleDelete = (id: number, productName: string) => {
+        RiceStoreAlerts.product.confirmDelete(productName).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('barang.destroy', id), {
+                    onSuccess: () => {
+                        RiceStoreAlerts.product.deleted(productName);
+                    },
+                    onError: () => {
+                        SweetAlert.error.delete(productName);
+                    }
+                });
+            }
+        });
     };
 
     const columns: Column[] = [
@@ -96,7 +107,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                         {value} {row.satuan}
                     </div>
                     <div className="text-xs text-gray-500">
-                        Min: {row.stok_minimum}
+                        Min: {row.stok_minimum} | {row.berat_per_unit}kg per {row.satuan}
                     </div>
                 </div>
             ),
@@ -136,7 +147,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                         },
                         {
                             label: 'Delete',
-                            onClick: () => handleDelete(row.id),
+                            onClick: () => handleDelete(row.id, row.nama),
                             variant: 'danger',
                             icon: Icons.delete,
                         },
@@ -160,12 +171,6 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
     ];
 
     const actions = [
-        {
-            label: 'Quick Add Rice',
-            href: route('barang.quick-add'),
-            className: 'inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
-            icon: Icons.add,
-        },
         {
             label: 'Add New Product',
             href: route('barang.create'),

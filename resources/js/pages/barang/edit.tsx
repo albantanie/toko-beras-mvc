@@ -2,6 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { FormEventHandler, useState } from 'react';
+import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 
 interface Barang {
     id: number;
@@ -13,6 +14,7 @@ interface Barang {
     stok: number;
     stok_minimum: number;
     satuan: string;
+    berat_per_unit: number;
     deskripsi?: string;
     gambar?: string;
     is_active: boolean;
@@ -56,7 +58,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
         },
     ];
     
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         nama: barang.nama || '',
         kode_barang: barang.kode_barang || '',
         kategori: barang.kategori || '',
@@ -65,14 +67,21 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
         harga_jual: barang.harga_jual?.toString() || '',
         stok: barang.stok?.toString() || '',
         stok_minimum: barang.stok_minimum?.toString() || '',
-        satuan: barang.satuan || 'kg',
+        satuan: barang.satuan || 'karung',
+        berat_per_unit: barang.berat_per_unit?.toString() || '',
         is_active: barang.is_active ?? true,
         gambar: null as File | null,
+        _method: 'PUT',
     });
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB. The image will be automatically compressed after upload.');
+            }
+
             setData('gambar', file);
             const reader = new FileReader();
             reader.onload = () => setPreviewImage(reader.result as string);
@@ -82,7 +91,17 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        put(route('barang.update', barang.id));
+        post(route('barang.update', barang.id), {
+            forceFormData: true,
+            onSuccess: () => {
+                RiceStoreAlerts.product.updated(data.nama);
+            },
+            onError: (errors) => {
+                if (Object.keys(errors).length > 0) {
+                    SweetAlert.error.validation(errors);
+                }
+            },
+        });
     };
 
     return (
@@ -269,26 +288,48 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <label htmlFor="satuan" className="block text-sm font-medium text-gray-700">
-                                                Unit *
-                                            </label>
-                                            <select
-                                                id="satuan"
-                                                value={data.satuan}
-                                                onChange={(e) => setData('satuan', e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                required
-                                            >
-                                                {units.map((unit) => (
-                                                    <option key={unit} value={unit}>
-                                                        {unit}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.satuan && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.satuan}</p>
-                                            )}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label htmlFor="satuan" className="block text-sm font-medium text-gray-700">
+                                                    Unit *
+                                                </label>
+                                                <select
+                                                    id="satuan"
+                                                    value={data.satuan}
+                                                    onChange={(e) => setData('satuan', e.target.value)}
+                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                    required
+                                                >
+                                                    {units.map((unit) => (
+                                                        <option key={unit} value={unit}>
+                                                            {unit}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {errors.satuan && (
+                                                    <p className="mt-1 text-sm text-red-600">{errors.satuan}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">
+                                                    Weight per Unit (kg) *
+                                                </label>
+                                                <input
+                                                    id="berat_per_unit"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={data.berat_per_unit}
+                                                    onChange={(e) => setData('berat_per_unit', e.target.value)}
+                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                    required
+                                                    placeholder="25.00"
+                                                />
+                                                {errors.berat_per_unit && (
+                                                    <p className="mt-1 text-sm text-red-600">{errors.berat_per_unit}</p>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Image Upload */}
@@ -296,23 +337,45 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                             <label htmlFor="gambar" className="block text-sm font-medium text-gray-700">
                                                 Product Image
                                             </label>
+
+                                            {/* Current Image */}
+                                            {barang.gambar && !previewImage && (
+                                                <div className="mt-2 mb-3">
+                                                    <img
+                                                        src={`/storage/${barang.gambar}`}
+                                                        alt={barang.nama}
+                                                        className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                                                    />
+                                                    <p className="mt-1 text-xs text-gray-500">Current image</p>
+                                                </div>
+                                            )}
+
                                             <input
                                                 id="gambar"
                                                 type="file"
-                                                accept="image/*"
+                                                accept="image/jpeg,image/png,image/jpg,image/gif"
                                                 onChange={handleImageChange}
                                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                             />
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Max 2MB. Images will be automatically compressed to optimize loading speed.
+                                            </p>
                                             {errors.gambar && (
                                                 <p className="mt-1 text-sm text-red-600">{errors.gambar}</p>
                                             )}
+
+                                            {/* New Image Preview */}
                                             {previewImage && (
                                                 <div className="mt-2">
                                                     <img
                                                         src={previewImage}
-                                                        alt="Preview"
+                                                        alt="New Preview"
                                                         className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                                                     />
+                                                    <p className="mt-1 text-xs text-gray-500">
+                                                        New image preview
+                                                        {data.gambar && ` - Size: ${(data.gambar.size / 1024).toFixed(1)}KB`}
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>

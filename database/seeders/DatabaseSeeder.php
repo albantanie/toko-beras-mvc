@@ -82,6 +82,16 @@ class DatabaseSeeder extends Seeder
             $kasir->roles()->attach($kasirRole->id);
         }
 
+        // Create dedicated walk-in sales user
+        $walkinUser = User::firstOrCreate(
+            ['email' => 'walkin@tokoberas.internal'],
+            [
+                'name' => 'Walk-in Customer',
+                'password' => Hash::make('walkin123'),
+                'email_verified_at' => now(),
+            ]
+        );
+
         // Create more pelanggan users for testing
         $pelanggan1 = User::firstOrCreate(
             ['email' => 'pelanggan1@example.com'],
@@ -110,8 +120,11 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Assign pelanggan role to all pelanggan users
+        // Assign pelanggan role to all pelanggan users including walk-in
         if ($pelangganRole) {
+            if (!$walkinUser->hasRole(Role::PELANGGAN)) {
+                $walkinUser->roles()->attach($pelangganRole->id);
+            }
             if (!$pelanggan1->hasRole(Role::PELANGGAN)) {
                 $pelanggan1->roles()->attach($pelangganRole->id);
             }
