@@ -1,0 +1,80 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# Development files
+.env.local
+.env.development
+.env.testing
+docker-compose.dev.yml
+docker-compose.override.yml
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# Build artifacts
+/public/build
+/public/hot
+/public/storage
+
+# Laravel
+/storage/app/*
+!/storage/app/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Database
+/database/database.sqlite
+/database/*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+/coverage
+.phpunit.result.cache
+.phpunit.cache
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Composer
+/vendor/
+composer.phar
+
+# Environment
+.env
+.env.backup
+.env.production
+
+# Cache
+.cache/

@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: php-base
+    container_name: toko-beras-dev
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=base64:your-app-key-here
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+      - CACHE_DRIVER=file
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=sync
+      - MAIL_MAILER=log
+      - VITE_DEV_SERVER_URL=http://localhost:5173
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/node_modules
+      - /var/www/html/vendor
+    networks:
+      - toko-beras-dev
+    depends_on:
+      - redis
+    command: >
+      sh -c "
+        php artisan key:generate --force &&
+        php artisan migrate --force &&
+        php artisan db:seed --force &&
+        php artisan storage:link &&
+        /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+      "
+
+  # Vite development server
+  vite:
+    image: node:18-alpine
+    container_name: toko-beras-vite
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - toko-beras-dev
+    command: >
+      sh -c "
+        npm install &&
+        npm run dev -- --host 0.0.0.0
+      "
+
+  redis:
+    image: redis:7-alpine
+    container_name: toko-beras-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - toko-beras-dev
+
+networks:
+  toko-beras-dev:
+    driver: bridge
