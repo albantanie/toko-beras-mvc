@@ -11,15 +11,19 @@ interface LaporanStokProps extends PageProps {
         low_stock_items: number;
         out_of_stock_items: number;
         in_stock_items: number;
-        total_stock_value_buy: number;
         total_stock_value_sell: number;
-        potential_profit: number;
+        total_stock_value_buy?: number;
+        potential_profit?: number;
     };
     filters?: {
         search?: string;
         filter?: string;
         sort?: string;
         direction?: string;
+    };
+    user_role?: {
+        is_karyawan: boolean;
+        is_admin_or_owner: boolean;
     };
 }
 
@@ -34,7 +38,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function LaporanStok({ auth, barangs, summary, filters = {} }: LaporanStokProps) {
+export default function LaporanStok({ auth, barangs, summary, filters = {}, user_role }: LaporanStokProps) {
     const getStockStatus = (stok: number, stokMinimum: number) => {
         if (stok <= 0) {
             return { label: 'Out of Stock', variant: 'danger' as const };
@@ -89,7 +93,8 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
                 );
             },
         },
-        {
+        // Only show purchase price for admin/owner
+        ...(user_role?.is_admin_or_owner ? [{
             key: 'harga_beli',
             label: 'Buy Price',
             sortable: true,
@@ -98,7 +103,7 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
                     {formatCurrency(value)}
                 </div>
             ),
-        },
+        }] : []),
         {
             key: 'harga_jual',
             label: 'Sell Price',
@@ -109,7 +114,8 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
                 </div>
             ),
         },
-        {
+        // Only show profit per unit for admin/owner
+        ...(user_role?.is_admin_or_owner ? [{
             key: 'profit_per_unit',
             label: 'Profit/Unit',
             render: (value) => (
@@ -117,8 +123,9 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
                     {formatCurrency(value)}
                 </div>
             ),
-        },
-        {
+        }] : []),
+        // Only show stock value buy for admin/owner
+        ...(user_role?.is_admin_or_owner ? [{
             key: 'nilai_stok_beli',
             label: 'Stock Value (Buy)',
             render: (value) => (
@@ -126,7 +133,7 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
                     {formatCurrency(value)}
                 </div>
             ),
-        },
+        }] : []),
         {
             key: 'nilai_stok_jual',
             label: 'Stock Value (Sell)',
@@ -249,25 +256,28 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
 
                     {/* Value Summary Cards */}
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-6">
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="p-5">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <Icons.money className="h-6 w-6 text-blue-400" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Stock Value (Buy)
-                                            </dt>
-                                            <dd className="text-lg font-medium text-blue-600">
-                                                {formatCurrency(summary.total_stock_value_buy)}
-                                            </dd>
-                                        </dl>
+                        {/* Only show stock value buy for admin/owner */}
+                        {user_role?.is_admin_or_owner && summary.total_stock_value_buy !== undefined && (
+                            <div className="bg-white overflow-hidden shadow rounded-lg">
+                                <div className="p-5">
+                                    <div className="flex items-center">
+                                        <div className="flex-shrink-0">
+                                            <Icons.money className="h-6 w-6 text-blue-400" />
+                                        </div>
+                                        <div className="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt className="text-sm font-medium text-gray-500 truncate">
+                                                    Stock Value (Buy)
+                                                </dt>
+                                                <dd className="text-lg font-medium text-blue-600">
+                                                    {formatCurrency(summary.total_stock_value_buy)}
+                                                </dd>
+                                            </dl>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="bg-white overflow-hidden shadow rounded-lg">
                             <div className="p-5">
@@ -289,25 +299,28 @@ export default function LaporanStok({ auth, barangs, summary, filters = {} }: La
                             </div>
                         </div>
 
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="p-5">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <Icons.profit className="h-6 w-6 text-green-400" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Potential Profit
-                                            </dt>
-                                            <dd className="text-lg font-medium text-green-600">
-                                                {formatCurrency(summary.potential_profit)}
-                                            </dd>
-                                        </dl>
+                        {/* Only show potential profit for admin/owner */}
+                        {user_role?.is_admin_or_owner && summary.potential_profit !== undefined && (
+                            <div className="bg-white overflow-hidden shadow rounded-lg">
+                                <div className="p-5">
+                                    <div className="flex items-center">
+                                        <div className="flex-shrink-0">
+                                            <Icons.profit className="h-6 w-6 text-green-400" />
+                                        </div>
+                                        <div className="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt className="text-sm font-medium text-gray-500 truncate">
+                                                    Potential Profit
+                                                </dt>
+                                                <dd className="text-lg font-medium text-green-600">
+                                                    {formatCurrency(summary.potential_profit)}
+                                                </dd>
+                                            </dl>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Stock Table */}

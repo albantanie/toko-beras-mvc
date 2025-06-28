@@ -1,9 +1,16 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
+import { BreadcrumbItem } from '@/types';
 import { formatCurrency, formatDateTime, StatusBadge, Icons } from '@/utils/formatters';
 
-interface LaporanIndexProps extends PageProps {
+interface LaporanIndexProps {
+    auth: {
+        user: {
+            roles: Array<{
+                name: string;
+            }>;
+        };
+    };
     summary: {
         today_sales: number;
         month_sales: number;
@@ -281,6 +288,35 @@ export default function LaporanIndex({ auth, summary, top_products, sales_chart 
                                 <Icons.externalLink className="h-6 w-6" />
                             </span>
                         </Link>
+
+                        {/* History Transaction Report - Only for Admin/Owner */}
+                        {(auth.user.roles.some((role: any) => role.name === 'admin' || role.name === 'owner')) && (
+                            <Link
+                                href={route('laporan.history-transaction')}
+                                className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow"
+                            >
+                                <div>
+                                    <span className="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 ring-4 ring-white">
+                                        <Icons.history className="h-6 w-6" />
+                                    </span>
+                                </div>
+                                <div className="mt-8">
+                                    <h3 className="text-lg font-medium">
+                                        <span className="absolute inset-0" aria-hidden="true" />
+                                        Laporan Riwayat Transaksi
+                                    </h3>
+                                    <p className="mt-2 text-sm text-gray-500">
+                                        Laporan komprehensif riwayat semua transaksi dengan analisis detail.
+                                    </p>
+                                </div>
+                                <span
+                                    className="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                                    aria-hidden="true"
+                                >
+                                    <Icons.externalLink className="h-6 w-6" />
+                                </span>
+                            </Link>
+                        )}
 
                         <Link
                             href={route('penjualan.index')}

@@ -21,6 +21,9 @@ class UserController extends Controller
 
         $query = User::with('roles');
 
+        // Exclude walk-in system user from admin list
+        $query->where('email', '!=', 'walkin@tokoberas.internal');
+
         // Search functionality
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -79,29 +82,51 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role_id' => 'required|exists:roles,id',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'role_id' => 'required|exists:roles,id',
+            ], [
+                'name.required' => 'Nama harus diisi.',
+                'email.required' => 'Email harus diisi.',
+                'email.email' => 'Format email tidak valid.',
+                'email.unique' => 'Email sudah digunakan.',
+                'password.required' => 'Password harus diisi.',
+                'password.confirmed' => 'Konfirmasi password tidak cocok.',
+                'role_id.required' => 'Role harus dipilih.',
+                'role_id.exists' => 'Role yang dipilih tidak valid.',
+            ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'email_verified_at' => now(),
-        ]);
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'email_verified_at' => now(),
+            ]);
 
-        // Attach role to user
-        $user->roles()->attach($request->role_id);
+            // Attach role to user
+            $user->roles()->attach($request->role_id);
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User created successfully.');
+            return redirect()->route('admin.users.index')
+                ->with('success', 'User berhasil dibuat.');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal membuat user: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function show(User $user)
     {
+        // Prevent viewing walk-in system user
+        if ($user->email === 'walkin@tokoberas.internal') {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'User sistem walk-in tidak dapat dilihat.');
+        }
+
         $user->load('roles');
 
         return Inertia::render('admin/users/show', [
@@ -111,6 +136,12 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        // Prevent editing walk-in system user
+        if ($user->email === 'walkin@tokoberas.internal') {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'User sistem walk-in tidak dapat diedit.');
+        }
+
         $user->load('roles');
         $roles = Role::all();
 
@@ -122,44 +153,83 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'role_id' => 'required|exists:roles,id',
-        ]);
-
-        $updateData = [
-            'name' => $request->name,
-            'email' => $request->email,
-        ];
-
-        if ($request->password) {
-            $updateData['password'] = Hash::make($request->password);
+        // Prevent updating walk-in system user
+        if ($user->email === 'walkin@tokoberas.internal') {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'User sistem walk-in tidak dapat diupdate.');
         }
 
-        $user->update($updateData);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+                'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+                'role_id' => 'required|exists:roles,id',
+            ], [
+                'name.required' => 'Nama harus diisi.',
+                'email.required' => 'Email harus diisi.',
+                'email.email' => 'Format email tidak valid.',
+                'email.unique' => 'Email sudah digunakan.',
+                'password.confirmed' => 'Konfirmasi password tidak cocok.',
+                'role_id.required' => 'Role harus dipilih.',
+                'role_id.exists' => 'Role yang dipilih tidak valid.',
+            ]);
 
-        // Update user role
-        $user->roles()->sync([$request->role_id]);
+            $updateData = [
+                'name' => $request->name,
+                'email' => $request->email,
+            ];
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User updated successfully.');
+            if ($request->password) {
+                $updateData['password'] = Hash::make($request->password);
+            }
+
+            $user->update($updateData);
+
+            // Update user role
+            $user->roles()->sync([$request->role_id]);
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'User berhasil diupdate.');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengupdate user: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function destroy(User $user)
     {
-        // Prevent deleting the current user
-        if ($user->id === auth()->id()) {
+        try {
+            // Prevent deleting the current user
+            if ($user->id === auth()->id()) {
+                return redirect()->route('admin.users.index')
+                    ->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+            }
+
+            // Prevent deleting walk-in system user
+            if ($user->email === 'walkin@tokoberas.internal') {
+                return redirect()->route('admin.users.index')
+                    ->with('error', 'User sistem walk-in tidak dapat dihapus.');
+            }
+
+            // Check if user has any sales records
+            if ($user->penjualans()->exists()) {
+                return redirect()->route('admin.users.index')
+                    ->with('error', 'User tidak dapat dihapus karena memiliki riwayat transaksi.');
+            }
+
+            // Detach roles before deleting
+            $user->roles()->detach();
+            $user->delete();
+
             return redirect()->route('admin.users.index')
-                ->with('error', 'You cannot delete your own account.');
+                ->with('success', 'User berhasil dihapus.');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Gagal menghapus user: ' . $e->getMessage());
         }
-
-        // Detach roles before deleting
-        $user->roles()->detach();
-        $user->delete();
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User deleted successfully.');
     }
 }

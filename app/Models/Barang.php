@@ -204,4 +204,170 @@ class Barang extends Model
               ->orWhere('kategori', 'like', "%{$search}%");
         });
     }
+
+    /**
+     * Filter data barang untuk kasir (hide harga_beli)
+     *
+     * Mengembalikan data barang tanpa informasi sensitif seperti harga beli
+     * untuk mencegah kasir mengetahui margin keuntungan
+     */
+    public function toArrayForKasir(): array
+    {
+        $data = $this->toArray();
+        
+        // Remove sensitive fields for kasir
+        unset($data['harga_beli']);
+        
+        // Also remove profit-related computed values
+        $data['profit_margin'] = null;
+        $data['profit_per_unit'] = null;
+        
+        return $data;
+    }
+
+    /**
+     * Filter collection untuk kasir
+     *
+     * Memfilter collection barang untuk menghilangkan data sensitif
+     */
+    public static function filterForKasir($barangs)
+    {
+        if ($barangs instanceof \Illuminate\Database\Eloquent\Collection) {
+            return $barangs->map(function ($barang) {
+                return $barang->toArrayForKasir();
+            });
+        }
+        
+        if (is_array($barangs)) {
+            return array_map(function ($barang) {
+                if (is_object($barang) && method_exists($barang, 'toArrayForKasir')) {
+                    return $barang->toArrayForKasir();
+                }
+                return $barang;
+            }, $barangs);
+        }
+        
+        return $barangs;
+    }
+
+    /**
+     * Get the stock movements for this barang
+     */
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * Get recent stock movements
+     */
+    public function recentStockMovements($limit = 10)
+    {
+        return $this->stockMovements()
+            ->with(['user'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit);
+    }
+
+    /**
+     * Record stock movement
+     */
+    public function recordStockMovement($type, $quantity, $description, $userId = null, $referenceType = null, $referenceId = null, $unitPrice = null, $metadata = [])
+    {
+        $userId = $userId ?? auth()->id();
+        $stockBefore = $this->stok;
+        
+        // Calculate new stock based on type
+        $newStock = match($type) {
+            'in', 'return', 'adjustment', 'correction', 'initial' => $stockBefore + $quantity,
+            'out', 'damage' => $stockBefore - abs($quantity),
+            'transfer' => $stockBefore + $quantity, // transfer bisa positif/negatif
+            default => $stockBefore,
+        };
+
+        // Create stock movement record
+        $movement = $this->stockMovements()->create([
+            'user_id' => $userId,
+            'type' => $type,
+            'quantity' => $quantity,
+            'stock_before' => $stockBefore,
+            'stock_after' => $newStock,
+            'unit_price' => $unitPrice,
+            'description' => $description,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'metadata' => $metadata,
+        ]);
+
+        // Update barang stock
+        $this->update(['stok' => $newStock]);
+
+        return $movement;
+    }
+
+    /**
+     * Get stock movement summary
+     */
+    public function getStockMovementSummary($startDate = null, $endDate = null)
+    {
+        $query = $this->stockMovements();
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        return [
+            'total_in' => $query->clone()->ofType('in')->sum('quantity'),
+            'total_out' => $query->clone()->ofType('out')->sum('quantity'),
+            'total_adjustment' => $query->clone()->ofType('adjustment')->sum('quantity'),
+            'total_return' => $query->clone()->ofType('return')->sum('quantity'),
+            'total_damage' => $query->clone()->ofType('damage')->sum('quantity'),
+            'movements_count' => $query->clone()->count(),
+        ];
+    }
+
+    /**
+     * Get stock movement chart data
+     */
+    public function getStockMovementChartData($days = 30)
+    {
+        $startDate = now()->subDays($days);
+        
+        return $this->stockMovements()
+            ->where('created_at', '>=', $startDate)
+            ->selectRaw('DATE(created_at) as date, SUM(CASE WHEN type IN ("in", "return", "adjustment", "correction", "initial") THEN quantity ELSE -quantity END) as net_change')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'net_change' => $item->net_change,
+                ];
+            });
+    }
+
+    /**
+     * Get formatted created date
+     */
+    public function getFormattedCreatedDateAttribute(): string
+    {
+        return $this->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i');
+    }
+
+    /**
+     * Get formatted updated date
+     */
+    public function getFormattedUpdatedDateAttribute(): string
+    {
+        return $this->updated_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i');
+    }
+
+    /**
+     * Get time ago for created date
+     */
+    public function getCreatedTimeAgoAttribute(): string
+    {
+        return $this->created_at->setTimezone('Asia/Jakarta')->diffForHumans();
+    }
 }

@@ -46,6 +46,12 @@ class Penjualan extends Model
         'receipt_code',
         'status',
         'metode_pembayaran',
+        'payment_proof',
+        'payment_confirmed_at',
+        'payment_confirmed_by',
+        'payment_rejected_at',
+        'payment_rejected_by',
+        'payment_rejection_reason',
         'subtotal',
         'diskon',
         'pajak',
@@ -330,5 +336,29 @@ class Penjualan extends Model
     public function scopeOffline($query)
     {
         return $query->where('jenis_transaksi', 'offline');
+    }
+
+    /**
+     * Get formatted transaction date
+     */
+    public function getFormattedTransactionDateAttribute(): string
+    {
+        return $this->tanggal_transaksi->setTimezone('Asia/Jakarta')->format('d/m/Y H:i');
+    }
+
+    /**
+     * Get formatted created date
+     */
+    public function getFormattedCreatedDateAttribute(): string
+    {
+        return $this->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i');
+    }
+
+    /**
+     * Get time ago for transaction
+     */
+    public function getTransactionTimeAgoAttribute(): string
+    {
+        return $this->tanggal_transaksi->setTimezone('Asia/Jakarta')->diffForHumans();
     }
 }

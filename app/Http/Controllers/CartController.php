@@ -55,6 +55,7 @@ class CartController extends Controller
         return Inertia::render('home/cart', [
             'cartItems' => $cartItems,
             'total' => $total,
+            'cartCount' => $this->getCartCount(), // Jumlah item di keranjang
         ]);
     }
 
@@ -229,12 +230,31 @@ class CartController extends Controller
             'telepon_pelanggan' => 'required|string|max:20',
             'alamat_pelanggan' => 'required|string',
             'metode_pembayaran' => 'required|in:transfer,kartu_debit,kartu_kredit',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'pickup_method' => 'required|in:self,grab,gojek,other',
-            'pickup_person_name' => 'required_unless:pickup_method,self|string|max:255',
-            'pickup_person_phone' => 'required_unless:pickup_method,self|string|max:20',
+            'pickup_person_name' => 'nullable|string|max:255',
+            'pickup_person_phone' => 'nullable|string|max:20',
             'pickup_notes' => 'nullable|string|max:500',
             'catatan' => 'nullable|string|max:500',
+        ], [
+            'payment_proof.file' => 'File bukti pembayaran tidak valid',
+            'payment_proof.mimes' => 'Format file harus JPG, PNG, atau PDF',
+            'payment_proof.max' => 'Ukuran file maksimal 5MB',
         ]);
+
+        // Validasi tambahan untuk pickup person jika bukan self
+        if ($request->pickup_method !== 'self') {
+            if (empty($request->pickup_person_name)) {
+                return redirect()->back()
+                    ->withErrors(['pickup_person_name' => 'Nama pengambil wajib diisi jika tidak mengambil sendiri'])
+                    ->withInput();
+            }
+            if (empty($request->pickup_person_phone)) {
+                return redirect()->back()
+                    ->withErrors(['pickup_person_phone' => 'Nomor HP pengambil wajib diisi jika tidak mengambil sendiri'])
+                    ->withInput();
+            }
+        }
 
         // Ambil cart dari session
         $cart = session()->get('cart', []);
@@ -275,6 +295,14 @@ class CartController extends Controller
             // Hitung total (saat ini tanpa diskon atau pajak)
             $total = $subtotal;
 
+            // Handle upload payment proof jika ada
+            $paymentProofPath = null;
+            if ($request->hasFile('payment_proof')) {
+                $file = $request->file('payment_proof');
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $paymentProofPath = $file->storeAs('payment-proofs', $fileName, 'public');
+            }
+
             // Buat transaksi penjualan baru
             $penjualan = Penjualan::create([
                 'nomor_transaksi' => Penjualan::generateNomorTransaksi(),
@@ -285,18 +313,19 @@ class CartController extends Controller
                 'alamat_pelanggan' => $request->alamat_pelanggan,
                 'jenis_transaksi' => 'online',
                 'pickup_method' => $request->pickup_method,
-                'pickup_person_name' => $request->pickup_person_name,
-                'pickup_person_phone' => $request->pickup_person_phone,
-                'pickup_notes' => $request->pickup_notes,
+                'pickup_person_name' => $request->pickup_person_name ?: null,
+                'pickup_person_phone' => $request->pickup_person_phone ?: null,
+                'pickup_notes' => $request->pickup_notes ?: null,
                 'status' => 'pending', // Status awal pending
                 'metode_pembayaran' => $request->metode_pembayaran,
+                'payment_proof' => $paymentProofPath,
                 'subtotal' => $subtotal,
                 'diskon' => 0,
                 'pajak' => 0,
                 'total' => $total,
                 'bayar' => null, // Akan diset ketika kasir konfirmasi pembayaran
                 'kembalian' => null,
-                'catatan' => $request->catatan,
+                'catatan' => $request->catatan ?: null,
                 'tanggal_transaksi' => now(),
             ]);
 
@@ -345,5 +374,21 @@ class CartController extends Controller
         // Redirect dengan pesan sukses
         return redirect()->back()
             ->with('success', 'Keranjang berhasil dikosongkan');
+    }
+
+    /**
+     * ===================================================================
+     * GET CART COUNT
+     * ===================================================================
+     *
+     * Menghitung jumlah item di keranjang belanja
+     * Digunakan untuk menampilkan badge di header
+     *
+     * @return int Jumlah item di keranjang
+     */
+    private function getCartCount(): int
+    {
+        $cart = session()->get('cart', []);
+        return array_sum(array_column($cart, 'quantity'));
     }
 }

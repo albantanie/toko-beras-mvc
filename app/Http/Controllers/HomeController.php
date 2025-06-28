@@ -132,6 +132,7 @@ class HomeController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
             ],
+            'cartCount' => $this->getCartCount(), // Jumlah item di keranjang
         ]);
     }
 
@@ -305,5 +306,102 @@ class HomeController extends Controller
         return Inertia::render('home/order-detail', [
             'order' => $order,      // Data order lengkap dengan relasi
         ]);
+    }
+
+    /**
+     * ===================================================================
+     * UPLOAD ULANG BUKTI PEMBAYARAN
+     * ===================================================================
+     *
+     * Menangani upload ulang bukti pembayaran untuk orders yang ditolak
+     * - Validasi file upload
+     * - Security check untuk memastikan order milik user
+     * - Update status order kembali ke pending
+     * - Clear rejection reason
+     *
+     * @param Request $request - Request dengan file bukti pembayaran
+     * @param Penjualan $order - Model order yang akan diupdate
+     * @return \Illuminate\Http\RedirectResponse - Redirect dengan flash message
+     */
+    public function uploadPaymentProof(Request $request, Penjualan $order): \Illuminate\Http\RedirectResponse
+    {
+        /**
+         * SECURITY CHECK
+         * Pastikan order yang diakses adalah milik user yang sedang login
+         */
+        if ($order->pelanggan_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Unauthorized access to this order');
+        }
+
+        /**
+         * VALIDASI REQUEST
+         * Pastikan file bukti pembayaran diupload dengan benar
+         */
+        $request->validate([
+            'payment_proof' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
+        ], [
+            'payment_proof.required' => 'Bukti pembayaran harus diupload',
+            'payment_proof.file' => 'File yang diupload tidak valid',
+            'payment_proof.mimes' => 'Format file harus JPEG, JPG, PNG, atau PDF',
+            'payment_proof.max' => 'Ukuran file maksimal 2MB',
+        ]);
+
+        try {
+            /**
+             * UPLOAD FILE
+             * Simpan file bukti pembayaran ke storage
+             */
+            $file = $request->file('payment_proof');
+            $fileName = 'payment_proof_' . $order->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filePath = $file->storeAs('payment_proofs', $fileName, 'public');
+
+            /**
+             * UPDATE ORDER
+             * Update status order dan clear rejection reason
+             */
+            $order->update([
+                'payment_proof' => $filePath,
+                'status' => 'pending',
+                'payment_rejection_reason' => null,
+                'payment_rejected_at' => null,
+                'payment_rejected_by' => null,
+            ]);
+
+            /**
+             * LOG UNTUK AUDIT TRAIL
+             */
+            \Log::info('Payment proof re-uploaded', [
+                'order_id' => $order->id,
+                'user_id' => auth()->id(),
+                'file_path' => $filePath,
+            ]);
+
+            return redirect()->route('user.orders')->with('success', 'Bukti pembayaran berhasil diupload ulang. Pesanan akan direview oleh kasir.');
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to upload payment proof', [
+                'order_id' => $order->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Gagal mengupload bukti pembayaran: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ===================================================================
+     * GET CART COUNT
+     * ===================================================================
+     *
+     * Menghitung jumlah item di keranjang belanja
+     * Digunakan untuk menampilkan badge di header
+     *
+     * @return int Jumlah item di keranjang
+     */
+    private function getCartCount(): int
+    {
+        $cart = session()->get('cart', []);
+        return array_sum(array_column($cart, 'quantity'));
     }
 }

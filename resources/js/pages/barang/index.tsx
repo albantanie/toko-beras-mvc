@@ -1,9 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
+import { BreadcrumbItem } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatCurrency, getStockStatus, StatusBadge, ActionButtons, ProductImage, Icons } from '@/utils/formatters';
 import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
+import { Link } from '@inertiajs/react';
 
 interface Barang {
     id: number;
@@ -23,11 +24,21 @@ interface Barang {
     updated_at: string;
 }
 
-interface BarangIndexProps extends PageProps {
+interface BarangIndexProps {
+    auth: {
+        user: {
+            id: number;
+            name: string;
+            email: string;
+            roles: Array<{ name: string }>;
+        };
+    };
     barangs: PaginatedData<Barang>;
     filters?: {
         search?: string;
         filter?: string;
+        sort?: string;
+        direction?: string;
     };
 }
 
@@ -53,6 +64,8 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
             }
         });
     };
+
+    const isAdminOrOwner = auth.user.roles.some((role: any) => role.name === 'admin' || role.name === 'owner');
 
     const columns: Column[] = [
         {
@@ -131,28 +144,15 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
             key: 'actions',
             label: 'Actions',
             render: (_, row) => (
-                <ActionButtons
-                    actions={[
-                        {
-                            label: 'View',
-                            href: route('barang.show', row.id),
-                            variant: 'secondary',
-                            icon: Icons.view,
-                        },
-                        {
-                            label: 'Edit',
-                            href: route('barang.edit', row.id),
-                            variant: 'primary',
-                            icon: Icons.edit,
-                        },
-                        {
-                            label: 'Delete',
-                            onClick: () => handleDelete(row.id, row.nama),
-                            variant: 'danger',
-                            icon: Icons.delete,
-                        },
-                    ]}
-                />
+                <div className="whitespace-nowrap text-sm text-gray-500 flex gap-2">
+                    <Link href={route('barang.show', row.id)} className="text-blue-600 hover:underline">View</Link>
+                    {isAdminOrOwner && (
+                        <>
+                            <Link href={route('barang.edit', row.id)} className="text-green-600 hover:underline">Edit</Link>
+                            <button onClick={() => handleDelete(row.id, row.nama)} className="text-red-600 hover:underline">Delete</button>
+                        </>
+                    )}
+                </div>
             ),
         },
     ];
@@ -170,53 +170,53 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
         },
     ];
 
-    const actions = [
+    const actions = isAdminOrOwner ? [
         {
             label: 'Add New Product',
             href: route('barang.create'),
             className: 'inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
-            icon: Icons.add,
+            icon: <Icons.add />,
         },
-    ];
-
-
+    ] : [];
 
     return (
         <>
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Manage Products" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="mb-6">
-                        <h3 className="text-lg font-medium text-gray-900">Manage Products</h3>
-                        <p className="mt-1 text-sm text-gray-600">
-                            Manage your product inventory, pricing, and stock levels.
-                        </p>
-                    </div>
+                <div className="py-12">
+                    <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div className="mb-6">
+                            <h3 className="text-lg font-medium text-gray-900">Manage Products</h3>
+                            <p className="mt-1 text-sm text-gray-600">
+                                Manage your product inventory, pricing, and stock levels.
+                            </p>
+                        </div>
 
-                    <DataTable
-                        data={barangs}
-                        columns={columns}
-                        searchPlaceholder="Search products by name or code..."
-                        filters={tableFilters}
-                        actions={actions}
-                        routeName="barang.index"
-                        currentSearch={filters?.search}
-                        currentFilters={{ filter: filters?.filter }}
-                        currentSort={filters?.sort}
-                        currentDirection={filters?.direction}
-                        emptyState={{
-                            title: 'No products found',
-                            description: 'Get started by creating a new product for your store.',
-                            action: {
-                                label: 'Add New Product',
-                                href: route('barang.create'),
-                            },
-                        }}
-                    />
+                        <DataTable
+                            data={barangs}
+                            columns={columns}
+                            filters={tableFilters}
+                            actions={actions}
+                            searchPlaceholder="Search products..."
+                            routeName="barang.index"
+                            currentSearch={filters?.search || ''}
+                            currentFilters={{ filter: filters?.filter || 'all' }}
+                            currentSort={filters?.sort || 'nama'}
+                            currentDirection={filters?.direction as 'asc' | 'desc' || 'asc'}
+                            emptyState={{
+                                title: 'No products found',
+                                description: 'Get started by creating a new product for your store.',
+                                ...(isAdminOrOwner && {
+                                    action: {
+                                        label: 'Add New Product',
+                                        href: route('barang.create'),
+                                    },
+                                }),
+                            }}
+                        />
+                    </div>
                 </div>
-            </div>
             </AppLayout>
         </>
     );

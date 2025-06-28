@@ -103,9 +103,17 @@ class BarangController extends Controller
 
         /**
          * SORTING PRODUK
-         * Urutkan berdasarkan field yang diizinkan dengan validasi
+         * Urutkan berdasarkan field yang diizinkan dengan validasi role-based
+         * Karyawan tidak boleh sort berdasarkan harga_beli (data finansial)
          */
-        $allowedSorts = ['nama', 'kode_barang', 'kategori', 'harga_beli', 'harga_jual', 'stok', 'created_at'];
+        $currentUser = auth()->user();
+        $isKaryawan = $currentUser && $currentUser->roles()->where('name', 'karyawan')->exists();
+
+        $allowedSorts = ['nama', 'kode_barang', 'kategori', 'harga_jual', 'stok', 'created_at'];
+        if (!$isKaryawan) {
+            $allowedSorts[] = 'harga_beli'; // Hanya admin/owner yang bisa sort berdasarkan harga_beli
+        }
+
         if (in_array($sort, $allowedSorts)) {
             $query->orderBy($sort, $direction);
         } else {
@@ -128,12 +136,28 @@ class BarangController extends Controller
         $barangsArray = $barangs->toArray();
 
         /**
+         * FILTER DATA BERDASARKAN ROLE
+         * Sembunyikan data finansial dari karyawan untuk melindungi informasi sensitif
+         */
+        $currentUser = auth()->user();
+        $isKaryawan = $currentUser && $currentUser->roles()->where('name', 'karyawan')->exists();
+
+        if ($isKaryawan) {
+            // Filter data produk untuk karyawan - hilangkan data finansial
+            $barangsArray['data'] = array_map(function ($barang) {
+                unset($barang['harga_beli']);  // Hapus harga beli
+                // Harga jual tetap ditampilkan untuk referensi customer service
+                return $barang;
+            }, $barangsArray['data']);
+        }
+
+        /**
          * RENDER HALAMAN INDEX PRODUK
          * Kirim data produk dan filter state ke frontend
          */
         return Inertia::render('barang/index', [
             'barangs' => [
-                'data' => $barangsArray['data'],        // Data produk
+                'data' => $barangsArray['data'],        // Data produk (filtered untuk karyawan)
                 'links' => $barangsArray['links'],      // Pagination links
                 'meta' => [                             // Metadata pagination
                     'current_page' => $barangsArray['current_page'],
@@ -174,42 +198,55 @@ class BarangController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'nama' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'kategori' => 'required|string|max:255',
-            'harga_beli' => 'required|numeric|min:0',
-            'harga_jual' => 'required|numeric|min:0',
-            'stok' => 'required|integer|min:0',
-            'stok_minimum' => 'required|integer|min:0',
-            'satuan' => 'required|string|max:50',
-            'berat_per_unit' => 'required|numeric|min:0.01',
-            'kode_barang' => 'required|string|max:255|unique:barangs',
-            'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        try {
+            $request->validate([
+                'nama' => 'required|string|max:255',
+                'deskripsi' => 'nullable|string',
+                'kategori' => 'required|string|max:255',
+                'harga_beli' => 'required|numeric|min:0',
+                'harga_jual' => 'required|numeric|min:0|gt:harga_beli',
+                'stok' => 'required|integer|min:0',
+                'stok_minimum' => 'required|integer|min:0',
+                'satuan' => 'required|string|max:50',
+                'berat_per_unit' => 'required|numeric|min:0.01',
+                'kode_barang' => 'required|string|max:255|unique:barangs',
+                'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            ], [
+                'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
+                'kode_barang.unique' => 'Kode barang sudah digunakan.',
+                'gambar.image' => 'File harus berupa gambar.',
+                'gambar.max' => 'Ukuran gambar maksimal 2MB.',
+            ]);
 
-        $data = $request->all();
-        $data['created_by'] = auth()->id();
-        $data['updated_by'] = auth()->id();
+            $data = $request->all();
+            $data['created_by'] = auth()->id();
+            $data['updated_by'] = auth()->id();
+            $data['is_active'] = $request->boolean('is_active', true);
 
-        if ($request->hasFile('gambar')) {
-            // Compress and store image
-            $data['gambar'] = $this->imageService->compressAndStore(
-                $request->file('gambar'),
-                'barang',
-                800,  // max width
-                600,  // max height
-                80    // quality (80%)
-            );
+            if ($request->hasFile('gambar')) {
+                // Compress and store image
+                $data['gambar'] = $this->imageService->compressAndStore(
+                    $request->file('gambar'),
+                    'barang',
+                    800,  // max width
+                    600,  // max height
+                    80    // quality (80%)
+                );
 
-            // Also create thumbnail
-            $this->imageService->createThumbnail($request->file('gambar'));
+                // Also create thumbnail
+                $this->imageService->createThumbnail($request->file('gambar'));
+            }
+
+            Barang::create($data);
+
+            return redirect()->route('barang.index')
+                ->with('success', 'Barang berhasil ditambahkan');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menambahkan barang: ' . $e->getMessage())
+                ->withInput();
         }
-
-        Barang::create($data);
-
-        return redirect()->route('barang.index')
-            ->with('success', 'Barang berhasil ditambahkan');
     }
 
     /**
@@ -217,7 +254,11 @@ class BarangController extends Controller
      */
     public function show(Barang $barang): Response
     {
-        $barang->load(['creator', 'updater', 'detailPenjualans.penjualan']);
+        $barang->load(['creator', 'updater']);
+
+        // Add formatted dates
+        $barang->formatted_created_date = $barang->formatted_created_date;
+        $barang->formatted_updated_date = $barang->formatted_updated_date;
 
         return Inertia::render('barang/show', [
             'barang' => $barang,
@@ -229,6 +270,9 @@ class BarangController extends Controller
      */
     public function edit(Barang $barang): Response
     {
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('owner')) {
+            abort(403, 'Hanya admin atau owner yang dapat mengedit produk');
+        }
         return Inertia::render('barang/edit', [
             'barang' => $barang,
         ]);
@@ -239,47 +283,62 @@ class BarangController extends Controller
      */
     public function update(Request $request, Barang $barang): RedirectResponse
     {
-        $request->validate([
-            'nama' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'kategori' => 'required|string|max:255',
-            'harga_beli' => 'required|numeric|min:0',
-            'harga_jual' => 'required|numeric|min:0',
-            'stok' => 'required|integer|min:0',
-            'stok_minimum' => 'required|integer|min:0',
-            'satuan' => 'required|string|max:50',
-            'berat_per_unit' => 'required|numeric|min:0.01',
-            'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
-            'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'is_active' => 'boolean',
-        ]);
+        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('owner')) {
+            abort(403, 'Hanya admin atau owner yang dapat mengupdate produk');
+        }
+        try {
+            $request->validate([
+                'nama' => 'required|string|max:255',
+                'deskripsi' => 'nullable|string',
+                'kategori' => 'required|string|max:255',
+                'harga_beli' => 'required|numeric|min:0',
+                'harga_jual' => 'required|numeric|min:0|gt:harga_beli',
+                'stok' => 'required|integer|min:0',
+                'stok_minimum' => 'required|integer|min:0',
+                'satuan' => 'required|string|max:50',
+                'berat_per_unit' => 'required|numeric|min:0.01',
+                'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
+                'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                'is_active' => 'boolean',
+            ], [
+                'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
+                'kode_barang.unique' => 'Kode barang sudah digunakan.',
+                'gambar.image' => 'File harus berupa gambar.',
+                'gambar.max' => 'Ukuran gambar maksimal 2MB.',
+            ]);
 
-        $data = $request->all();
-        $data['updated_by'] = auth()->id();
+            $data = $request->all();
+            $data['updated_by'] = auth()->id();
 
-        if ($request->hasFile('gambar')) {
-            // Delete old image and thumbnail
-            if ($barang->gambar) {
-                $this->imageService->deleteImage($barang->gambar);
+            if ($request->hasFile('gambar')) {
+                // Delete old image and thumbnail
+                if ($barang->gambar) {
+                    $this->imageService->deleteImage($barang->gambar);
+                }
+
+                // Compress and store new image
+                $data['gambar'] = $this->imageService->compressAndStore(
+                    $request->file('gambar'),
+                    'barang',
+                    800,  // max width
+                    600,  // max height
+                    80    // quality (80%)
+                );
+
+                // Also create thumbnail
+                $this->imageService->createThumbnail($request->file('gambar'));
             }
 
-            // Compress and store new image
-            $data['gambar'] = $this->imageService->compressAndStore(
-                $request->file('gambar'),
-                'barang',
-                800,  // max width
-                600,  // max height
-                80    // quality (80%)
-            );
+            $barang->update($data);
 
-            // Also create thumbnail
-            $this->imageService->createThumbnail($request->file('gambar'));
+            return redirect()->route('barang.index')
+                ->with('success', 'Barang berhasil diupdate');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengupdate barang: ' . $e->getMessage())
+                ->withInput();
         }
-
-        $barang->update($data);
-
-        return redirect()->route('barang.index')
-            ->with('success', 'Barang berhasil diupdate');
     }
 
     /**
@@ -287,39 +346,180 @@ class BarangController extends Controller
      */
     public function destroy(Barang $barang): RedirectResponse
     {
-        // Check if barang has sales history
-        if ($barang->detailPenjualans()->exists()) {
+        try {
+            // Check if barang has sales history
+            if ($barang->detailPenjualans()->exists()) {
+                return redirect()->route('barang.index')
+                    ->with('error', 'Barang tidak dapat dihapus karena memiliki riwayat penjualan');
+            }
+
+            // Delete image and thumbnail
+            if ($barang->gambar) {
+                $this->imageService->deleteImage($barang->gambar);
+            }
+
+            $barang->delete();
+
             return redirect()->route('barang.index')
-                ->with('error', 'Barang tidak dapat dihapus karena memiliki riwayat penjualan');
+                ->with('success', 'Barang berhasil dihapus');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('barang.index')
+                ->with('error', 'Gagal menghapus barang: ' . $e->getMessage());
         }
-
-        // Delete image and thumbnail
-        if ($barang->gambar) {
-            $this->imageService->deleteImage($barang->gambar);
-        }
-
-        $barang->delete();
-
-        return redirect()->route('barang.index')
-            ->with('success', 'Barang berhasil dihapus');
     }
 
     /**
-     * Update stock
+     * Update stock barang
      */
-    public function updateStock(Request $request, Barang $barang): RedirectResponse
+    public function updateStock(Request $request, Barang $barang)
     {
         $request->validate([
             'stok' => 'required|integer|min:0',
-            'catatan' => 'nullable|string',
+            'reason' => 'required|string|max:255',
+            'type' => 'required|in:adjustment,correction,initial,in,return',
         ]);
 
-        $barang->update([
-            'stok' => $request->stok,
-            'updated_by' => auth()->id(),
-        ]);
+        $oldStock = $barang->stok;
+        $newStock = $request->stok;
+        $difference = $newStock - $oldStock;
 
-        return redirect()->route('barang.show', $barang)
-            ->with('success', 'Stok berhasil diupdate');
+        if ($difference == 0) {
+            return redirect()->back()->with('error', 'Tidak ada perubahan stok');
+        }
+
+        // Validate based on movement type
+        switch ($request->type) {
+            case 'initial':
+                if ($oldStock > 0) {
+                    return redirect()->back()->with('error', 'Stock awal hanya bisa diset untuk produk yang belum memiliki stok');
+                }
+                break;
+            case 'in':
+                if ($difference <= 0) {
+                    return redirect()->back()->with('error', 'Stock masuk harus menambah stok (nilai positif)');
+                }
+                break;
+            case 'return':
+                if ($difference <= 0) {
+                    return redirect()->back()->with('error', 'Retur barang harus menambah stok (nilai positif)');
+                }
+                break;
+        }
+
+        // Record stock movement
+        $barang->recordStockMovement(
+            type: $request->type,
+            quantity: $difference,
+            description: $request->reason,
+            userId: auth()->id(),
+            referenceType: null,
+            referenceId: null,
+            unitPrice: $barang->harga_jual,
+            metadata: [
+                'old_stock' => $oldStock,
+                'new_stock' => $newStock,
+                'reason' => $request->reason,
+                'type' => $request->type,
+                'manual_update' => true,
+            ]
+        );
+
+        $typeLabels = [
+            'adjustment' => 'Penyesuaian Stok',
+            'correction' => 'Koreksi Sistem',
+            'initial' => 'Stock Awal',
+            'in' => 'Stock Masuk',
+            'return' => 'Retur Barang',
+        ];
+
+        $typeLabel = $typeLabels[$request->type] ?? $request->type;
+
+        return redirect()->back()->with('success', "Stok berhasil diperbarui dengan {$typeLabel} dan movement dicatat");
+    }
+
+    /**
+     * Show stock movements for a specific barang
+     */
+    public function stockMovements(Request $request, Barang $barang): Response
+    {
+        $query = $barang->stockMovements()
+            ->with(['user'])
+            ->orderBy('created_at', 'desc');
+
+        // Apply filters
+        if ($request->filled('type')) {
+            $query->ofType($request->type);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('description', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $query->inPeriod($request->date_from, $request->date_to);
+        }
+
+        $movements = $query->paginate(20)->withQueryString();
+
+        // Check if user can see price information (owner or admin only)
+        $user = auth()->user();
+        $canSeePrice = $user->hasRole('owner') || $user->hasRole('admin');
+        $isKaryawan = $user->hasRole('karyawan');
+
+        // Transform movements data based on user role
+        $movements->getCollection()->transform(function ($movement) use ($canSeePrice, $isKaryawan) {
+            $data = [
+                'id' => $movement->id,
+                'type' => $movement->type,
+                'type_label' => $movement->type_label,
+                'type_color' => $movement->type_color,
+                'quantity' => $movement->quantity,
+                'formatted_quantity' => $movement->formatted_quantity,
+                'stock_before' => $movement->stock_before,
+                'stock_after' => $movement->stock_after,
+                'description' => $movement->description,
+                'reference_description' => $movement->reference_description,
+                'formatted_date' => $movement->formatted_date,
+                'time_ago' => $movement->time_ago,
+                'is_positive' => $movement->is_positive,
+                'is_negative' => $movement->is_negative,
+                'user' => [
+                    'id' => $movement->user->id,
+                    'name' => $movement->user->name,
+                    'email' => $movement->user->email,
+                ],
+                'barang' => [
+                    'id' => $movement->barang->id,
+                    'nama' => $movement->barang->nama,
+                    'kategori' => $movement->barang->kategori,
+                    'satuan' => $movement->barang->satuan,
+                ],
+            ];
+
+            // Only include price data for owner and admin
+            if ($canSeePrice) {
+                $data['unit_price'] = $movement->unit_price;
+                $data['formatted_unit_price'] = $movement->formatted_unit_price;
+                $data['total_value'] = $movement->total_value;
+                $data['formatted_total_value'] = $movement->formatted_total_value;
+            }
+
+            return $data;
+        });
+
+        // Get summary
+        $summary = $barang->getStockMovementSummary();
+
+        return Inertia::render('barang/stock-movements', [
+            'barang' => $barang,
+            'movements' => $movements,
+            'summary' => $summary,
+            'filters' => $request->only(['type', 'search', 'date_from', 'date_to']),
+            'user_role' => [
+                'can_see_price' => $canSeePrice,
+                'is_karyawan' => $isKaryawan,
+            ],
+        ]);
     }
 }

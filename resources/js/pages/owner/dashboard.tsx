@@ -1,7 +1,13 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { formatCurrency, formatCompactNumber, ProductImage, Icons } from '@/utils/formatters';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, TrendingUp, TrendingDown, DollarSign, BarChart3, FileText, Calendar } from 'lucide-react';
+import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -18,7 +24,16 @@ interface OwnerDashboardProps extends PageProps {
         today_orders: number;
         pending_orders: number;
         month_revenue: number;
+        month_profit: number;
+        month_expenses: number;
+        profit_margin: number;
     };
+    profitChart: Array<{
+        date: string;
+        revenue: number;
+        profit: number;
+        expenses: number;
+    }>;
     bestSellingProducts: Array<{
         id: number;
         nama: string;
@@ -63,15 +78,24 @@ interface OwnerDashboardProps extends PageProps {
             avg_order_value: number;
         }>;
     };
+    pendingReports: number;
+    filters: {
+        period: string;
+        date_from?: string;
+        date_to?: string;
+    };
 }
 
 export default function OwnerDashboard({ 
     auth, 
     comprehensiveSummary, 
+    profitChart,
     bestSellingProducts, 
     recommendations, 
     lowStockItems, 
-    customerInsights 
+    customerInsights,
+    pendingReports,
+    filters
 }: OwnerDashboardProps) {
     const getRecommendationIcon = (iconName: string) => {
         switch (iconName) {
@@ -94,6 +118,55 @@ export default function OwnerDashboard({
         }
     };
 
+    const handlePeriodChange = (period: string) => {
+        let dateFrom, dateTo;
+        
+        switch (period) {
+            case 'today':
+                dateFrom = format(new Date(), 'yyyy-MM-dd');
+                dateTo = format(new Date(), 'yyyy-MM-dd');
+                break;
+            case 'week':
+                dateFrom = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+                dateTo = format(new Date(), 'yyyy-MM-dd');
+                break;
+            case 'month':
+                dateFrom = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+                dateTo = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+                break;
+            case 'quarter':
+                dateFrom = format(subDays(new Date(), 90), 'yyyy-MM-dd');
+                dateTo = format(new Date(), 'yyyy-MM-dd');
+                break;
+            default:
+                dateFrom = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+                dateTo = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+        }
+
+        router.get(route('owner.dashboard'), {
+            period,
+            date_from: dateFrom,
+            date_to: dateTo,
+        }, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const downloadReport = (type: string) => {
+        const params = new URLSearchParams({
+            type,
+            period: filters.period,
+            ...(filters.date_from && { date_from: filters.date_from }),
+            ...(filters.date_to && { date_to: filters.date_to }),
+        });
+
+        window.open(`/owner/download-report?${params.toString()}`, '_blank');
+    };
+
+    const maxProfit = Math.max(...profitChart.map(item => item.profit));
+    const maxRevenue = Math.max(...profitChart.map(item => item.revenue));
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Owner Dashboard" />
@@ -103,17 +176,81 @@ export default function OwnerDashboard({
                     {/* Header */}
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
-                            <h3 className="text-lg font-medium mb-2">Dashboard Owner - Business Overview</h3>
-                            <p className="text-gray-600">Kelola bisnis toko beras dengan analitik lengkap dan rekomendasi cerdas</p>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-medium mb-2">Dashboard Owner - Business Overview</h3>
+                                    <p className="text-gray-600">Kelola bisnis toko beras dengan analitik lengkap dan rekomendasi cerdas</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Link href={route('laporan.approvals')}>
+                                        <Button variant="outline" className="relative">
+                                            <FileText className="w-4 h-4 mr-2" />
+                                            Approval Laporan
+                                            {pendingReports > 0 && (
+                                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                                    {pendingReports}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    </Link>
+                                    <Link href={route('laporan.index')}>
+                                        <Button variant="outline">
+                                            <BarChart3 className="w-4 h-4 mr-2" />
+                                            Laporan
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Period Filter */}
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm font-medium text-gray-700">Periode:</span>
+                                </div>
+                                <Select value={filters.period} onValueChange={handlePeriodChange}>
+                                    <SelectTrigger className="w-40">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="today">Hari Ini</SelectItem>
+                                        <SelectItem value="week">7 Hari Terakhir</SelectItem>
+                                        <SelectItem value="month">Bulan Ini</SelectItem>
+                                        <SelectItem value="quarter">3 Bulan Terakhir</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <div className="flex items-center gap-2 ml-auto">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => downloadReport('penjualan')}
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        Download Laporan Penjualan
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => downloadReport('keuangan')}
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        Download Laporan Keuangan
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Business Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="bg-green-50 p-6 rounded-lg border border-green-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-green-100 rounded-lg">
-                                    <Icons.money className="w-6 h-6 text-green-600" />
+                                    <DollarSign className="w-6 h-6 text-green-600" />
                                 </div>
                                 <div className="ml-4 flex-1 min-w-0">
                                     <p className="text-sm font-medium text-green-600">Revenue Bulan Ini</p>
@@ -127,12 +264,15 @@ export default function OwnerDashboard({
                         <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-blue-100 rounded-lg">
-                                    <Icons.shoppingCart className="w-6 h-6 text-blue-600" />
+                                    <TrendingUp className="w-6 h-6 text-blue-600" />
                                 </div>
                                 <div className="ml-4 flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-blue-600">Pesanan Hari Ini</p>
-                                    <p className="text-xl font-bold text-blue-900 truncate" title={comprehensiveSummary.today_orders.toString()}>
-                                        {formatCompactNumber(comprehensiveSummary.today_orders)}
+                                    <p className="text-sm font-medium text-blue-600">Keuntungan Bulan Ini</p>
+                                    <p className="text-xl font-bold text-blue-900 truncate" title={formatCurrency(comprehensiveSummary.month_profit)}>
+                                        {formatCompactNumber(comprehensiveSummary.month_profit, 'currency')}
+                                    </p>
+                                    <p className="text-sm text-blue-600">
+                                        Margin: {comprehensiveSummary.profit_margin.toFixed(1)}%
                                     </p>
                                 </div>
                             </div>
@@ -141,12 +281,15 @@ export default function OwnerDashboard({
                         <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-purple-100 rounded-lg">
-                                    <Icons.package className="w-6 h-6 text-purple-600" />
+                                    <Icons.shoppingCart className="w-6 h-6 text-purple-600" />
                                 </div>
                                 <div className="ml-4 flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-purple-600">Total Produk</p>
-                                    <p className="text-xl font-bold text-purple-900 truncate" title={comprehensiveSummary.total_products.toString()}>
-                                        {formatCompactNumber(comprehensiveSummary.total_products)}
+                                    <p className="text-sm font-medium text-purple-600">Pesanan Hari Ini</p>
+                                    <p className="text-xl font-bold text-purple-900 truncate" title={comprehensiveSummary.today_orders.toString()}>
+                                        {formatCompactNumber(comprehensiveSummary.today_orders)}
+                                    </p>
+                                    <p className="text-sm text-purple-600">
+                                        {comprehensiveSummary.pending_orders} pending
                                     </p>
                                 </div>
                             </div>
@@ -167,146 +310,197 @@ export default function OwnerDashboard({
                         </div>
                     </div>
 
-                    {/* Best Selling Products */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h4 className="text-lg font-semibold text-gray-900">🏆 Produk Terlaris (30 Hari Terakhir)</h4>
-                                <a 
-                                    href={route('barang.index')} 
-                                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                                >
-                                    Lihat Semua →
-                                </a>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {bestSellingProducts && bestSellingProducts.length > 0 ? (
-                                    bestSellingProducts.slice(0, 4).map((product) => (
-                                        <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                            <div className="flex items-center space-x-3 mb-3">
+                    {/* Profit Chart */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-green-600" />
+                                    Chart Keuntungan
+                                </CardTitle>
+                                <CardDescription>
+                                    Tren keuntungan dan revenue berdasarkan periode yang dipilih
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {profitChart.map((item, index) => (
+                                        <div key={index} className="space-y-2">
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-gray-600">
+                                                    {format(new Date(item.date), 'dd MMM', { locale: id })}
+                                                </span>
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-green-600 font-medium">
+                                                        Profit: {formatCurrency(item.profit)}
+                                                    </span>
+                                                    <span className="text-blue-600 font-medium">
+                                                        Revenue: {formatCurrency(item.revenue)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center">
+                                                    <div className="w-16 text-xs text-gray-500">Profit</div>
+                                                    <div className="flex-1 mx-2">
+                                                        <div className="bg-gray-200 rounded-full h-2">
+                                                            <div
+                                                                className="bg-green-600 h-2 rounded-full"
+                                                                style={{
+                                                                    width: `${maxProfit > 0 ? (item.profit / maxProfit) * 100 : 0}%`
+                                                                }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <div className="w-16 text-xs text-gray-500">Revenue</div>
+                                                    <div className="flex-1 mx-2">
+                                                        <div className="bg-gray-200 rounded-full h-2">
+                                                            <div
+                                                                className="bg-blue-600 h-2 rounded-full"
+                                                                style={{
+                                                                    width: `${maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0}%`
+                                                                }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Best Selling Products */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Icons.trophy className="w-5 h-5 text-yellow-600" />
+                                    Produk Terlaris
+                                </CardTitle>
+                                <CardDescription>
+                                    Produk dengan penjualan tertinggi dalam periode ini
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {bestSellingProducts && bestSellingProducts.length > 0 ? (
+                                        bestSellingProducts.slice(0, 5).map((product, index) => (
+                                            <div key={product.id} className="flex items-center space-x-3">
+                                                <div className="flex-shrink-0 w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                                    <span className="text-sm font-medium text-yellow-600">
+                                                        {index + 1}
+                                                    </span>
+                                                </div>
                                                 <ProductImage
                                                     src={product.gambar || ''}
                                                     alt={product.nama}
-                                                    className="h-12 w-12 rounded-lg object-cover"
+                                                    className="h-10 w-10 rounded-lg object-cover"
                                                 />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-gray-900 truncate">{product.nama}</p>
                                                     <p className="text-xs text-gray-500">{product.kategori}</p>
                                                 </div>
-                                            </div>
-                                            
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-600">Terjual:</span>
-                                                    <span className="font-medium text-green-600 truncate" title={`${product.total_terjual} unit`}>
-                                                        {formatCompactNumber(product.total_terjual)} unit
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-600">Revenue:</span>
-                                                    <span className="font-medium text-green-600 truncate" title={formatCurrency(product.total_revenue)}>
-                                                        {formatCompactNumber(product.total_revenue, 'currency')}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-600">Transaksi:</span>
-                                                    <span className="font-medium truncate" title={`${product.total_transaksi} transaksi`}>
-                                                        {formatCompactNumber(product.total_transaksi)}x
-                                                    </span>
-                                                </div>
-                                                <div className="pt-2 border-t">
-                                                    <div className="flex justify-between text-xs">
-                                                        <span className="text-gray-500">Stok:</span>
-                                                        <span className={`font-medium truncate ${product.stok <= 10 ? 'text-red-600' : 'text-gray-700'}`} title={`${product.stok} unit`}>
-                                                            {formatCompactNumber(product.stok)} unit
-                                                        </span>
-                                                    </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {formatCurrency(product.total_revenue)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {product.total_terjual} terjual
+                                                    </p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="col-span-4 text-center py-8 text-gray-500">
-                                        <Icons.package className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                                        <p>Belum ada data penjualan dalam 30 hari terakhir</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 text-center py-4">Belum ada data penjualan</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Recommendations */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            <h4 className="text-lg font-semibold text-gray-900 mb-6">💡 Rekomendasi Bisnis</h4>
-                            
-                            <div className="space-y-4">
-                                {recommendations && recommendations.length > 0 ? (
-                                    recommendations.map((rec, index) => (
-                                        <div key={index} className={`p-4 rounded-lg border ${getRecommendationColor(rec.type)}`}>
-                                            <div className="flex items-start space-x-3">
-                                                <div className="flex-shrink-0">
-                                                    {getRecommendationIcon(rec.icon)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h5 className="text-sm font-medium">{rec.title}</h5>
-                                                    <p className="text-sm mt-1 opacity-90">{rec.description}</p>
-                                                    <a 
-                                                        href={rec.action_url}
-                                                        className="inline-flex items-center mt-2 text-sm font-medium hover:underline"
-                                                    >
-                                                        {rec.action} →
-                                                    </a>
+                    {recommendations && recommendations.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Rekomendasi Bisnis</CardTitle>
+                                <CardDescription>
+                                    Saran dan rekomendasi untuk meningkatkan performa bisnis
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {recommendations.map((rec, index) => (
+                                        <div
+                                            key={index}
+                                            className={`p-4 rounded-lg border ${getRecommendationColor(rec.type)}`}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                {getRecommendationIcon(rec.icon)}
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium mb-1">{rec.title}</h4>
+                                                    <p className="text-sm mb-2">{rec.description}</p>
+                                                    <Link href={rec.action_url}>
+                                                        <Button variant="outline" size="sm">
+                                                            {rec.action}
+                                                        </Button>
+                                                    </Link>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-gray-500">
-                                        <Icons.checkmark className="w-12 h-12 mx-auto mb-3 text-green-500" />
-                                        <p>Semua berjalan lancar! Tidak ada rekomendasi khusus saat ini.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                    {/* Quick Actions */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <h4 className="font-semibold text-gray-800 mb-2">📊 Laporan Bisnis</h4>
-                            <p className="text-gray-600 mb-4">Analisis mendalam performa bisnis</p>
-                            <a 
-                                href={route('laporan.index')} 
-                                className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 transition"
-                            >
-                                Lihat Laporan
-                            </a>
-                        </div>
-                        
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <h4 className="font-semibold text-gray-800 mb-2">📦 Kelola Inventori</h4>
-                            <p className="text-gray-600 mb-4">Manajemen produk dan stok</p>
-                            <a 
-                                href={route('barang.index')} 
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition"
-                            >
-                                Kelola Barang
-                            </a>
-                        </div>
-                        
-                        <div className="bg-white p-6 rounded-lg border border-gray-200">
-                            <h4 className="font-semibold text-gray-800 mb-2">💰 Monitor Penjualan</h4>
-                            <p className="text-gray-600 mb-4">Pantau transaksi dan revenue</p>
-                            <a 
-                                href={route('penjualan.index')} 
-                                className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 transition"
-                            >
-                                Lihat Penjualan
-                            </a>
-                        </div>
-                    </div>
+                    {/* Low Stock Alerts */}
+                    {lowStockItems && lowStockItems.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Icons.alertTriangle className="w-5 h-5 text-orange-600" />
+                                    Alert Stok Rendah
+                                </CardTitle>
+                                <CardDescription>
+                                    Produk yang perlu restock segera
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {lowStockItems.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className={`p-3 rounded-lg border ${
+                                                item.status === 'critical' 
+                                                    ? 'bg-red-50 border-red-200' 
+                                                    : 'bg-orange-50 border-orange-200'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-medium text-gray-900">{item.nama}</p>
+                                                    <p className="text-sm text-gray-600">{item.kategori}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`font-bold ${
+                                                        item.status === 'critical' ? 'text-red-600' : 'text-orange-600'
+                                                    }`}>
+                                                        {item.stok} {item.satuan}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {item.status === 'critical' ? 'KRITIS' : 'RENDAH'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
         </AppLayout>

@@ -5,6 +5,7 @@ import BarChart from '@/components/Charts/BarChart';
 import DoughnutChart from '@/components/Charts/DoughnutChart';
 import LineChart from '@/components/Charts/LineChart';
 import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
+import { Badge } from '@/components/ui/badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -46,6 +47,31 @@ interface KaryawanDashboardProps {
         stock_out: number;
         net_movement: number;
     }>;
+    recentMovements: Array<{
+        id: number;
+        type: string;
+        type_label: string;
+        type_color: string;
+        quantity: number;
+        formatted_quantity: string;
+        stock_before: number;
+        stock_after: number;
+        description: string;
+        formatted_date: string;
+        time_ago: string;
+        user: {
+            name: string;
+        };
+        barang: {
+            nama: string;
+            satuan: string;
+        };
+    }>;
+    todayMovements: {
+        in: number;
+        out: number;
+        adjustments: number;
+    };
 }
 
 export default function KaryawanDashboard({
@@ -53,8 +79,27 @@ export default function KaryawanDashboard({
     lowStockItems,
     categoriesDistribution,
     inventorySummary,
-    stockMovementTrend
+    stockMovementTrend,
+    recentMovements,
+    todayMovements
 }: KaryawanDashboardProps) {
+    // Helper function to get badge variant based on movement type
+    const getTypeBadgeVariant = (type: string) => {
+        switch (type) {
+            case 'in':
+            case 'return':
+                return 'default';
+            case 'out':
+            case 'damage':
+                return 'destructive';
+            case 'adjustment':
+            case 'correction':
+                return 'secondary';
+            default:
+                return 'outline';
+        }
+    };
+
     // Prepare chart data
     const stockLevelsData = {
         labels: stockLevels?.map(item => item.category) || [],
@@ -125,6 +170,9 @@ export default function KaryawanDashboard({
     };
 
     const inStockCount = inventorySummary?.total_products - inventorySummary?.low_stock_items - inventorySummary?.out_of_stock_items;
+
+    // Add error handling for empty data
+    const hasChartData = stockLevels && stockLevels.length > 0;
 
     return (
         <>
@@ -208,19 +256,40 @@ export default function KaryawanDashboard({
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                                     <h4 className="text-lg font-semibold mb-4">Stock Level Distribution</h4>
-                                    <BarChart data={stockLevelsData} height={250} />
+                                    {hasChartData ? <BarChart data={stockLevelsData} height={250} /> : (
+                                        <div className="text-center py-8">
+                                            <div className="text-red-600 mb-2">
+                                                <Icons.warning className="w-12 h-12 mx-auto" />
+                                            </div>
+                                            <p className="text-red-600 font-semibold">No data available for this chart</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                                     <h4 className="text-lg font-semibold mb-4">Product Categories</h4>
-                                    <DoughnutChart data={categoriesData} height={250} />
+                                    {hasChartData ? <DoughnutChart data={categoriesData} height={250} /> : (
+                                        <div className="text-center py-8">
+                                            <div className="text-red-600 mb-2">
+                                                <Icons.warning className="w-12 h-12 mx-auto" />
+                                            </div>
+                                            <p className="text-red-600 font-semibold">No data available for this chart</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Stock Movement Chart */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
                                 <h4 className="text-lg font-semibold mb-4">Stock Movement Trend</h4>
-                                <LineChart data={stockMovementData} height={250} />
+                                {hasChartData ? <LineChart data={stockMovementData} height={250} /> : (
+                                    <div className="text-center py-8">
+                                        <div className="text-red-600 mb-2">
+                                            <Icons.warning className="w-12 h-12 mx-auto" />
+                                        </div>
+                                        <p className="text-red-600 font-semibold">No data available for this chart</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Low Stock Alerts */}
@@ -306,39 +375,103 @@ export default function KaryawanDashboard({
                             </div>
 
                             {/* Quick Actions */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                                     <h4 className="font-semibold text-gray-800 mb-2">Manage Inventory</h4>
                                     <p className="text-gray-600 mb-4">Add, edit, or update product information</p>
-                                    <a 
+                                    <Link 
                                         href={route('barang.index')} 
                                         className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         Manage Products
-                                    </a>
-                                </div>
-                                
-                                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-2">Process Sales</h4>
-                                    <p className="text-gray-600 mb-4">Handle customer transactions</p>
-                                    <a 
-                                        href={route('penjualan.index')} 
-                                        className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                                    >
-                                        View Transactions
-                                    </a>
+                                    </Link>
                                 </div>
                                 
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                                     <h4 className="font-semibold text-gray-800 mb-2">Stock Reports</h4>
-                                    <p className="text-gray-600 mb-4">View detailed stock reports</p>
-                                    <a 
+                                    <p className="text-gray-600 mb-4">Generate and view detailed stock reports</p>
+                                    <Link 
                                         href={route('laporan.stok')} 
                                         className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         View Reports
-                                    </a>
+                                    </Link>
                                 </div>
+                            </div>
+
+                            {/* Recent Movements */}
+                            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="text-lg font-semibold text-gray-900">Recent Stock Movements</h4>
+                                </div>
+
+                                {recentMovements && recentMovements.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {recentMovements.slice(0, 6).map((movement) => (
+                                            <div key={movement.id} className="p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <Badge variant={getTypeBadgeVariant(movement.type)}>
+                                                        {movement.type_label}
+                                                    </Badge>
+                                                    <span className={`text-sm font-medium ${
+                                                        movement.quantity >= 0 ? 'text-green-600' : 'text-red-600'
+                                                    }`}>
+                                                        {movement.formatted_quantity}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-700 mb-1 font-medium">
+                                                    {movement.barang.nama}
+                                                </p>
+                                                <p className="text-sm text-gray-600 mb-2">
+                                                    {movement.description}
+                                                </p>
+                                                <div className="flex justify-between items-center text-xs text-gray-500">
+                                                    <span>{movement.user.name}</span>
+                                                    <span>{movement.time_ago}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <div className="text-gray-400 mb-2">
+                                            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-gray-500 font-medium">No recent movements found</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Today's Movements */}
+                            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="text-lg font-semibold text-gray-900">Today's Stock Movements</h4>
+                                </div>
+
+                                {todayMovements && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                                            <p className="text-2xl font-bold text-green-600">
+                                                +{todayMovements.in}
+                                            </p>
+                                            <p className="text-sm text-green-700 mt-1">Stock In</p>
+                                        </div>
+                                        <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                                            <p className="text-2xl font-bold text-red-600">
+                                                -{todayMovements.out}
+                                            </p>
+                                            <p className="text-sm text-red-700 mt-1">Stock Out</p>
+                                        </div>
+                                        <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <p className="text-2xl font-bold text-blue-600">
+                                                {todayMovements.adjustments}
+                                            </p>
+                                            <p className="text-sm text-blue-700 mt-1">Adjustments</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
