@@ -12,10 +12,28 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * PenjualanController - Controller untuk mengelola transaksi penjualan
+ *
+ * Controller ini menangani semua operasi terkait transaksi penjualan:
+ * - Listing transaksi dengan filter dan pencarian
+ * - Pembuatan transaksi baru (offline dan online)
+ * - Update status transaksi dan pembayaran
+ * - Manajemen pickup dan receipt
+ * - Validasi stok dan perhitungan total
+ *
+ * @package App\Http\Controllers
+ */
 class PenjualanController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Menampilkan daftar transaksi penjualan
+     *
+     * Menampilkan listing transaksi dengan fitur:
+     * - Pencarian berdasarkan nomor transaksi, nama pelanggan, atau kasir
+     * - Filter berdasarkan status, metode pembayaran, dan tanggal
+     * - Sorting berdasarkan berbagai field
+     * - Pagination untuk performa yang optimal
      */
     public function index(Request $request): Response
     {

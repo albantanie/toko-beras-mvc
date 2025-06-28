@@ -14,6 +14,17 @@ use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * RegisteredUserController - Controller untuk mengelola registrasi pengguna baru
+ *
+ * Controller ini menangani:
+ * - Menampilkan halaman registrasi
+ * - Proses registrasi pengguna baru dengan role 'pelanggan'
+ * - Validasi data registrasi
+ * - Auto-login setelah registrasi berhasil
+ *
+ * @package App\Http\Controllers\Auth
+ */
 class RegisteredUserController extends Controller
 {
     /**

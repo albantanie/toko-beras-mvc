@@ -7,12 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Model Penjualan - Mengelola data transaksi penjualan dalam sistem toko beras
+ *
+ * Model ini menangani semua operasi terkait transaksi penjualan termasuk:
+ * - Transaksi offline (walk-in customer) dan online (e-commerce)
+ * - Manajemen status pembayaran dan pickup
+ * - Generasi nomor transaksi dan kode receipt
+ * - Perhitungan total dan keuntungan
+ * - Tracking metode pickup dan informasi pelanggan
+ *
+ * @package App\Models
+ */
 class Penjualan extends Model
 {
     use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
+     * Atribut yang dapat diisi secara massal
+     *
+     * Daftar field yang diizinkan untuk mass assignment saat membuat atau mengupdate penjualan
      *
      * @var array<int, string>
      */
@@ -43,7 +57,9 @@ class Penjualan extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Atribut yang harus di-cast ke tipe data tertentu
+     *
+     * Mengkonversi tipe data field tertentu untuk konsistensi perhitungan dan tampilan
      */
     protected function casts(): array
     {
@@ -59,7 +75,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Get the user (kasir/karyawan) who handled this sale.
+     * Relasi dengan User yang menangani penjualan ini
+     *
+     * Mengacu pada kasir, karyawan, atau admin yang memproses transaksi
      */
     public function user(): BelongsTo
     {
@@ -67,7 +85,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Get the pelanggan for this sale.
+     * Relasi dengan User sebagai pelanggan
+     *
+     * Mengacu pada user dengan role pelanggan yang melakukan pembelian
      */
     public function pelanggan(): BelongsTo
     {
@@ -75,7 +95,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Get the detail penjualans for this sale.
+     * Relasi one-to-many dengan DetailPenjualan
+     *
+     * Satu penjualan dapat memiliki banyak detail item yang dibeli
      */
     public function detailPenjualans(): HasMany
     {
@@ -83,7 +105,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Generate nomor transaksi
+     * Generate nomor transaksi otomatis
+     *
+     * Membuat nomor transaksi unik dengan format TRX + tanggal + sequence 4 digit
      */
     public static function generateNomorTransaksi(): string
     {
@@ -99,7 +123,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Check if transaction is completed
+     * Mengecek apakah transaksi sudah selesai
+     *
+     * Memeriksa status transaksi apakah sudah dalam status 'selesai'
      */
     public function isCompleted(): bool
     {
@@ -107,7 +133,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Check if transaction is pending
+     * Mengecek apakah transaksi masih pending
+     *
+     * Memeriksa status transaksi apakah masih menunggu pembayaran
      */
     public function isPending(): bool
     {
@@ -115,7 +143,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Check if transaction is cancelled
+     * Mengecek apakah transaksi dibatalkan
+     *
+     * Memeriksa status transaksi apakah sudah dibatalkan
      */
     public function isCancelled(): bool
     {
@@ -123,7 +153,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Check if transaction is paid (for online orders)
+     * Mengecek apakah transaksi sudah dibayar (untuk pesanan online)
+     *
+     * Memeriksa status pembayaran untuk transaksi online
      */
     public function isPaid(): bool
     {
@@ -131,7 +163,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Check if transaction is ready for pickup
+     * Mengecek apakah transaksi siap untuk pickup
+     *
+     * Memeriksa apakah pesanan sudah siap diambil pelanggan
      */
     public function isReadyPickup(): bool
     {
@@ -139,7 +173,9 @@ class Penjualan extends Model
     }
 
     /**
-     * Get status label in Indonesian
+     * Mendapatkan label status dalam bahasa Indonesia
+     *
+     * Mengkonversi status kode menjadi label yang mudah dibaca
      */
     public function getStatusLabel(): string
     {

@@ -1,0 +1,106 @@
+# ===================================================================
+# DOCKER COMPOSE UNTUK APLIKASI TOKO BERAS - PRODUCTION
+# ===================================================================
+#
+# File ini mendefinisikan konfigurasi deployment production untuk
+# aplikasi Toko Beras menggunakan Docker Compose
+#
+# Fitur yang dikonfigurasi:
+# - Single service container dengan semua dependencies
+# - Persistent volumes untuk data dan storage
+# - Health check monitoring
+# - Network isolation
+# - Environment variables untuk production
+#
+# Cara penggunaan:
+# docker-compose -f docker-compose.production.yml up -d
+# ===================================================================
+
+version: '3.8'
+
+# ===================================================================
+# SERVICES DEFINITION
+# ===================================================================
+services:
+  # ===================================================================
+  # APLIKASI TOKO BERAS
+  # ===================================================================
+  toko-beras:
+    # Image yang akan digunakan (harus sudah di-build sebelumnya)
+    image: toko-beras:latest
+
+    # Nama container yang akan dibuat
+    container_name: toko-beras-app
+
+    # Port mapping: host:container
+    # Aplikasi dapat diakses di http://localhost:8080
+    ports:
+      - "8080:80"
+
+    # ===================================================================
+    # ENVIRONMENT VARIABLES
+    # ===================================================================
+    # Konfigurasi environment untuk production
+    environment:
+      - APP_ENV=production              # Environment Laravel
+      - APP_DEBUG=false                 # Disable debug untuk security
+      - APP_URL=http://localhost:8080   # URL aplikasi
+      - DB_CONNECTION=sqlite            # Database driver
+      - DB_DATABASE=/var/www/html/database/database.sqlite  # Path database
+      - CACHE_DRIVER=file              # Cache driver
+      - SESSION_DRIVER=file            # Session driver
+      - QUEUE_CONNECTION=database      # Queue driver
+
+    # ===================================================================
+    # PERSISTENT VOLUMES
+    # ===================================================================
+    # Volume untuk menyimpan data persistent
+    volumes:
+      - toko_beras_storage:/var/www/html/storage    # Storage Laravel (uploads, logs, cache)
+      - toko_beras_database:/var/www/html/database  # Database SQLite
+
+    # ===================================================================
+    # RESTART POLICY
+    # ===================================================================
+    # Restart otomatis kecuali jika di-stop manual
+    restart: unless-stopped
+
+    # ===================================================================
+    # HEALTH CHECK
+    # ===================================================================
+    # Monitoring kesehatan container
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]  # Command untuk cek health
+      interval: 30s          # Cek setiap 30 detik
+      timeout: 10s           # Timeout setelah 10 detik
+      retries: 3             # Retry 3 kali sebelum dianggap unhealthy
+      start_period: 40s      # Tunggu 40 detik sebelum mulai health check
+
+    # ===================================================================
+    # NETWORK
+    # ===================================================================
+    # Gunakan custom network untuk isolasi
+    networks:
+      - toko_beras_network
+
+# ===================================================================
+# VOLUMES DEFINITION
+# ===================================================================
+# Definisi persistent volumes
+volumes:
+  # Volume untuk storage Laravel (uploads, cache, logs)
+  toko_beras_storage:
+    driver: local
+
+  # Volume untuk database SQLite
+  toko_beras_database:
+    driver: local
+
+# ===================================================================
+# NETWORKS DEFINITION
+# ===================================================================
+# Definisi custom network
+networks:
+  # Network untuk isolasi aplikasi
+  toko_beras_network:
+    driver: bridge

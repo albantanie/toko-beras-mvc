@@ -7,12 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Model Barang - Mengelola data produk/barang dalam sistem toko beras
+ *
+ * Model ini menangani semua operasi terkait produk beras termasuk:
+ * - Manajemen stok dan inventori
+ * - Perhitungan harga dan profit
+ * - Tracking perubahan data oleh user
+ * - Validasi stok minimum dan ketersediaan
+ *
+ * @package App\Models
+ */
 class Barang extends Model
 {
     use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
+     * Atribut yang dapat diisi secara massal
+     *
+     * Daftar field yang diizinkan untuk mass assignment saat membuat atau mengupdate barang
      *
      * @var array<int, string>
      */
@@ -34,7 +47,9 @@ class Barang extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Atribut yang harus di-cast ke tipe data tertentu
+     *
+     * Mengkonversi tipe data field tertentu untuk konsistensi dan perhitungan
      */
     protected function casts(): array
     {
@@ -47,7 +62,9 @@ class Barang extends Model
     }
 
     /**
-     * Get the user who created this barang.
+     * Relasi dengan User yang membuat barang ini
+     *
+     * Tracking user yang pertama kali menambahkan barang ke sistem
      */
     public function creator(): BelongsTo
     {
@@ -55,7 +72,9 @@ class Barang extends Model
     }
 
     /**
-     * Get the user who last updated this barang.
+     * Relasi dengan User yang terakhir mengupdate barang ini
+     *
+     * Tracking user yang terakhir melakukan perubahan pada data barang
      */
     public function updater(): BelongsTo
     {
@@ -63,7 +82,9 @@ class Barang extends Model
     }
 
     /**
-     * Get the detail penjualans for this barang.
+     * Relasi one-to-many dengan DetailPenjualan
+     *
+     * Satu barang dapat muncul di banyak detail penjualan
      */
     public function detailPenjualans(): HasMany
     {
@@ -71,7 +92,9 @@ class Barang extends Model
     }
 
     /**
-     * Check if barang is low stock
+     * Mengecek apakah stok barang rendah
+     *
+     * Membandingkan stok saat ini dengan stok minimum yang ditetapkan
      */
     public function isLowStock(): bool
     {
@@ -79,7 +102,9 @@ class Barang extends Model
     }
 
     /**
-     * Check if barang is out of stock
+     * Mengecek apakah barang habis stok
+     *
+     * Memeriksa apakah stok barang sudah habis atau kurang dari sama dengan 0
      */
     public function isOutOfStock(): bool
     {
@@ -87,7 +112,9 @@ class Barang extends Model
     }
 
     /**
-     * Get profit margin
+     * Menghitung margin keuntungan dalam persen
+     *
+     * Menghitung persentase keuntungan berdasarkan selisih harga jual dan harga beli
      */
     public function getProfitMargin(): float
     {
@@ -99,7 +126,9 @@ class Barang extends Model
     }
 
     /**
-     * Get profit per unit
+     * Menghitung keuntungan per unit
+     *
+     * Menghitung selisih antara harga jual dan harga beli per unit barang
      */
     public function getProfitPerUnit(): float
     {
@@ -107,7 +136,9 @@ class Barang extends Model
     }
 
     /**
-     * Reduce stock
+     * Mengurangi stok barang
+     *
+     * Mengurangi stok barang dengan jumlah tertentu jika stok mencukupi
      */
     public function reduceStock(int $quantity): bool
     {
@@ -120,7 +151,9 @@ class Barang extends Model
     }
 
     /**
-     * Add stock
+     * Menambah stok barang
+     *
+     * Menambahkan stok barang dengan jumlah tertentu
      */
     public function addStock(int $quantity): bool
     {
@@ -129,7 +162,9 @@ class Barang extends Model
     }
 
     /**
-     * Scope for active barangs
+     * Scope untuk barang yang aktif
+     *
+     * Filter query untuk menampilkan hanya barang yang statusnya aktif
      */
     public function scopeActive($query)
     {
@@ -137,7 +172,9 @@ class Barang extends Model
     }
 
     /**
-     * Scope for low stock barangs
+     * Scope untuk barang dengan stok rendah
+     *
+     * Filter query untuk menampilkan barang yang stoknya di bawah atau sama dengan stok minimum
      */
     public function scopeLowStock($query)
     {
@@ -145,7 +182,9 @@ class Barang extends Model
     }
 
     /**
-     * Scope for out of stock barangs
+     * Scope untuk barang yang habis stok
+     *
+     * Filter query untuk menampilkan barang yang stoknya habis atau kurang dari sama dengan 0
      */
     public function scopeOutOfStock($query)
     {
@@ -153,7 +192,9 @@ class Barang extends Model
     }
 
     /**
-     * Scope for search
+     * Scope untuk pencarian barang
+     *
+     * Filter query untuk mencari barang berdasarkan nama, kode barang, atau kategori
      */
     public function scopeSearch($query, $search)
     {

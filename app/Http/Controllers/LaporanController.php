@@ -12,29 +12,48 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Controller untuk mengelola laporan dan analytics toko beras
+ * Menyediakan berbagai jenis laporan untuk analisis bisnis
+ *
+ * Fitur laporan:
+ * - Dashboard laporan dengan summary cards
+ * - Laporan penjualan harian, bulanan, tahunan
+ * - Laporan stok dan inventory
+ * - Chart penjualan dan trend analysis
+ * - Top selling products
+ * - Profit analysis
+ *
+ * Akses: Admin, Owner
+ */
 class LaporanController extends Controller
 {
     /**
-     * Dashboard laporan
+     * Dashboard laporan utama dengan ringkasan analytics
+     *
+     * @return Response Halaman dashboard laporan dengan berbagai metrics
      */
     public function index(): Response
     {
+        // Setup tanggal untuk filtering data
         $today = Carbon::today();
         $thisMonth = Carbon::now()->startOfMonth();
         $thisYear = Carbon::now()->startOfYear();
 
-        // Summary cards
+        // Summary cards - ringkasan penjualan
         $todaySales = Penjualan::completed()->today()->sum('total');
         $monthSales = Penjualan::completed()->thisMonth()->sum('total');
         $yearSales = Penjualan::completed()->whereYear('tanggal_transaksi', now()->year)->sum('total');
 
+        // Summary cards - jumlah transaksi
         $todayTransactions = Penjualan::completed()->today()->count();
         $monthTransactions = Penjualan::completed()->thisMonth()->count();
 
+        // Summary cards - status inventory
         $lowStockItems = Barang::lowStock()->count();
         $outOfStockItems = Barang::outOfStock()->count();
 
-        // Top selling products this month
+        // Produk terlaris bulan ini (top 5)
         $topProducts = DetailPenjualan::select('barang_id', DB::raw('SUM(jumlah) as total_sold'))
             ->whereHas('penjualan', function ($q) {
                 $q->completed()->thisMonth();
@@ -45,7 +64,7 @@ class LaporanController extends Controller
             ->limit(5)
             ->get();
 
-        // Sales chart data (last 7 days)
+        // Data chart penjualan 7 hari terakhir
         $salesChart = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);

@@ -7,10 +7,26 @@ use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Penjualan;
 
+/**
+ * ReceiptController - Controller untuk mengelola receipt/struk pickup
+ *
+ * Controller ini menangani pembuatan dan manajemen receipt untuk:
+ * - Pickup oleh driver Grab/Gojek
+ * - Pickup oleh orang lain selain pelanggan
+ * - Validasi kode receipt untuk pengambilan barang
+ *
+ * @package App\Http\Controllers
+ */
 class ReceiptController extends Controller
 {
     /**
-     * Generate pickup receipt for orders that require it
+     * Generate pickup receipt untuk pesanan yang memerlukan struk pickup
+     *
+     * Membuat struk pickup untuk pesanan yang diambil oleh:
+     * - Driver Grab/Gojek
+     * - Orang lain selain pelanggan
+     *
+     * Struk berisi kode receipt yang harus ditunjukkan saat pengambilan
      */
     public function generatePickupReceipt(Penjualan $penjualan): Response
     {

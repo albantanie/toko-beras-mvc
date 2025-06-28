@@ -8,13 +8,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * Model User - Mengelola data pengguna sistem toko beras
+ *
+ * Model ini menangani autentikasi pengguna dan sistem role-based access control.
+ * Setiap pengguna memiliki satu role yang menentukan hak akses mereka dalam sistem.
+ *
+ * @package App\Models
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Atribut yang dapat diisi secara massal
+     *
+     * Daftar field yang diizinkan untuk mass assignment saat membuat atau mengupdate user
      *
      * @var list<string>
      */
@@ -27,7 +37,9 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Atribut yang disembunyikan saat serialisasi
+     *
+     * Field-field sensitif yang tidak boleh ditampilkan dalam response JSON
      *
      * @var list<string>
      */
@@ -37,7 +49,9 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Mendapatkan atribut yang harus di-cast ke tipe data tertentu
+     *
+     * Mengkonversi tipe data field tertentu untuk konsistensi
      *
      * @return array<string, string>
      */
@@ -50,7 +64,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the roles that belong to the user.
+     * Relasi many-to-many dengan model Role
+     *
+     * Satu user dapat memiliki banyak role (meskipun dalam sistem ini dibatasi satu role per user)
      */
     public function roles(): BelongsToMany
     {
@@ -58,7 +74,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's primary role (first role)
+     * Mendapatkan role utama pengguna (role pertama)
+     *
+     * Mengambil role pertama dari user karena sistem menggunakan satu role per user
      */
     public function getRole(): ?Role
     {
@@ -66,7 +84,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's role name
+     * Mendapatkan nama role pengguna
+     *
+     * Mengembalikan string nama role atau null jika user tidak memiliki role
      */
     public function getRoleName(): ?string
     {
@@ -75,7 +95,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has a specific role
+     * Mengecek apakah user memiliki role tertentu
+     *
+     * Memeriksa keberadaan role spesifik pada user
      */
     public function hasRole(string $roleName): bool
     {
@@ -83,7 +105,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Assign a role to the user
+     * Menambahkan role ke user
+     *
+     * Memberikan role baru kepada user jika belum memiliki role tersebut
      */
     public function assignRole(string $roleName): void
     {
@@ -94,7 +118,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Remove a role from the user
+     * Menghapus role dari user
+     *
+     * Mencabut role tertentu dari user
      */
     public function removeRole(string $roleName): void
     {
@@ -105,7 +131,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is admin
+     * Mengecek apakah user adalah admin
+     *
+     * Admin memiliki akses penuh ke sistem termasuk manajemen user dan laporan
      */
     public function isAdmin(): bool
     {
@@ -113,7 +141,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is karyawan
+     * Mengecek apakah user adalah karyawan
+     *
+     * Karyawan dapat mengelola inventori dan melihat dashboard inventori
      */
     public function isKaryawan(): bool
     {
@@ -121,7 +151,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is kasir
+     * Mengecek apakah user adalah kasir
+     *
+     * Kasir dapat memproses transaksi penjualan dan mengelola pembayaran
      */
     public function isKasir(): bool
     {
@@ -129,7 +161,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is pelanggan
+     * Mengecek apakah user adalah pelanggan
+     *
+     * Pelanggan dapat melihat katalog produk dan melakukan pembelian
      */
     public function isPelanggan(): bool
     {
@@ -137,7 +171,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is owner
+     * Mengecek apakah user adalah owner
+     *
+     * Owner memiliki akses lengkap termasuk laporan dan rekomendasi produk
      */
     public function isOwner(): bool
     {
@@ -145,7 +181,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can manage other users (admin and owner)
+     * Mengecek apakah user dapat mengelola user lain
+     *
+     * Hanya admin dan owner yang dapat membuat, mengubah, dan menghapus user
      */
     public function canManageUsers(): bool
     {
@@ -153,7 +191,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can manage inventory (admin, owner, karyawan)
+     * Mengecek apakah user dapat mengelola inventori
+     *
+     * Admin, owner, dan karyawan dapat mengelola stok barang dan produk
      */
     public function canManageInventory(): bool
     {
@@ -161,7 +201,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can process sales (admin, owner, karyawan, kasir)
+     * Mengecek apakah user dapat memproses penjualan
+     *
+     * Admin, owner, karyawan, dan kasir dapat melakukan transaksi penjualan
      */
     public function canProcessSales(): bool
     {
@@ -169,7 +211,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can view reports (admin, owner)
+     * Mengecek apakah user dapat melihat laporan
+     *
+     * Hanya admin dan owner yang dapat mengakses laporan penjualan dan analitik
      */
     public function canViewReports(): bool
     {

@@ -12,28 +12,41 @@ use App\Models\Role;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controller untuk mengelola dashboard berbagai role
+ * Menyediakan data analytics dan statistik untuk setiap role pengguna
+ *
+ * Dashboard yang tersedia:
+ * - Admin: Analytics penjualan dan manajemen user
+ * - Owner: Comprehensive analytics dan business insights
+ * - Karyawan: Inventory analytics dan stock management
+ * - Kasir: Transaction processing dan daily sales
+ */
 class DashboardController extends Controller
 {
     /**
-     * Admin Dashboard with analytics
+     * Dashboard Admin dengan analytics penjualan dan manajemen
+     *
+     * @return Response Halaman dashboard admin dengan data analytics
      */
     public function adminDashboard(): Response
     {
-        // Today's sales trend (hourly data)
+        // Trend penjualan hari ini (data per jam)
         $todaysSalesTrend = $this->getTodaysSalesTrend();
 
-        // Payment methods distribution
+        // Distribusi metode pembayaran
         $paymentMethods = $this->getPaymentMethodsData();
 
-        // Sales summary
+        // Ringkasan penjualan
         $salesSummary = $this->getSalesSummary();
 
-        // Top products
+        // Produk terlaris
         $topProducts = $this->getTopProducts();
 
-        // Recent transactions
+        // Transaksi terbaru
         $recentTransactions = $this->getRecentTransactions();
 
+        // Render dashboard admin dengan semua data analytics
         return Inertia::render('admin/dashboard', [
             'todaysSalesTrend' => $todaysSalesTrend,
             'paymentMethods' => $paymentMethods,
@@ -44,7 +57,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * Owner Dashboard with comprehensive analytics
+     * Dashboard Owner dengan comprehensive analytics dan business insights
+     *
+     * @return Response Halaman dashboard owner dengan data lengkap
      */
     public function ownerDashboard(): Response
     {
