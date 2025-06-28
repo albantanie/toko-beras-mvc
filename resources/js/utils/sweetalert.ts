@@ -300,6 +300,8 @@ export const RiceStoreAlerts = {
             SweetAlert.info.orderReady(orderNumber, pickupMethod),
         completed: (orderNumber: string) => 
             SweetAlert.success.custom('Order Completed!', `Order #${orderNumber} has been completed successfully.`),
+        paymentRejected: (orderNumber: string) => 
+            SweetAlert.success.custom('Payment Rejected!', `Payment proof for order #${orderNumber} has been rejected. Customer will be notified to upload new proof.`),
     }
 };
 

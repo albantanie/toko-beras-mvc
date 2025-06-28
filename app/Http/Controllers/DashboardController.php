@@ -12,28 +12,41 @@ use App\Models\Role;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controller untuk mengelola dashboard berbagai role
+ * Menyediakan data analytics dan statistik untuk setiap role pengguna
+ *
+ * Dashboard yang tersedia:
+ * - Admin: Analytics penjualan dan manajemen user
+ * - Owner: Comprehensive analytics dan business insights
+ * - Karyawan: Inventory analytics dan stock management
+ * - Kasir: Transaction processing dan daily sales
+ */
 class DashboardController extends Controller
 {
     /**
-     * Admin Dashboard with analytics
+     * Dashboard Admin dengan analytics penjualan dan manajemen
+     *
+     * @return Response Halaman dashboard admin dengan data analytics
      */
     public function adminDashboard(): Response
     {
-        // Today's sales trend (hourly data)
+        // Trend penjualan hari ini (data per jam)
         $todaysSalesTrend = $this->getTodaysSalesTrend();
 
-        // Payment methods distribution
+        // Distribusi metode pembayaran
         $paymentMethods = $this->getPaymentMethodsData();
 
-        // Sales summary
+        // Ringkasan penjualan
         $salesSummary = $this->getSalesSummary();
 
-        // Top products
+        // Produk terlaris
         $topProducts = $this->getTopProducts();
 
-        // Recent transactions
+        // Transaksi terbaru
         $recentTransactions = $this->getRecentTransactions();
 
+        // Render dashboard admin dengan semua data analytics
         return Inertia::render('admin/dashboard', [
             'todaysSalesTrend' => $todaysSalesTrend,
             'paymentMethods' => $paymentMethods,
@@ -44,10 +57,40 @@ class DashboardController extends Controller
     }
 
     /**
-     * Owner Dashboard with comprehensive analytics
+     * Dashboard Owner dengan comprehensive analytics dan business insights
+     *
+     * @param Request $request Request dengan filter periode
+     * @return Response Halaman dashboard owner dengan data lengkap
      */
-    public function ownerDashboard(): Response
+    public function ownerDashboard(Request $request): Response
     {
+        // Get filter parameters
+        $period = $request->get('period', 'month');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        // Set default dates based on period
+        if (!$dateFrom || !$dateTo) {
+            switch ($period) {
+                case 'today':
+                    $dateFrom = Carbon::today()->format('Y-m-d');
+                    $dateTo = Carbon::today()->format('Y-m-d');
+                    break;
+                case 'week':
+                    $dateFrom = Carbon::now()->subDays(7)->format('Y-m-d');
+                    $dateTo = Carbon::today()->format('Y-m-d');
+                    break;
+                case 'quarter':
+                    $dateFrom = Carbon::now()->subDays(90)->format('Y-m-d');
+                    $dateTo = Carbon::today()->format('Y-m-d');
+                    break;
+                default: // month
+                    $dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
+                    $dateTo = Carbon::now()->endOfMonth()->format('Y-m-d');
+                    break;
+            }
+        }
+
         // Weekly sales trend
         $weeklySalesTrend = $this->getWeeklySalesTrend();
 
@@ -60,14 +103,14 @@ class DashboardController extends Controller
         // Sales by transaction type
         $salesByType = $this->getSalesByTransactionType();
 
-        // Comprehensive summary
-        $comprehensiveSummary = $this->getComprehensiveSummary();
+        // Comprehensive summary with profit data
+        $comprehensiveSummary = $this->getComprehensiveSummary($dateFrom, $dateTo);
 
         // Top performing products (best sellers)
         $topProducts = $this->getTopProducts(10);
 
         // Best selling products with detailed analytics
-        $bestSellingProducts = $this->getBestSellingProducts();
+        $bestSellingProducts = $this->getBestSellingProducts($dateFrom, $dateTo);
 
         // Business recommendations
         $recommendations = $this->getBusinessRecommendations();
@@ -77,6 +120,12 @@ class DashboardController extends Controller
 
         // Customer insights
         $customerInsights = $this->getCustomerInsights();
+
+        // Profit chart data
+        $profitChart = $this->getProfitChart($dateFrom, $dateTo);
+
+        // Pending reports count
+        $pendingReports = \App\Models\Report::pendingApproval()->count();
 
         return Inertia::render('owner/dashboard', [
             'weeklySalesTrend' => $weeklySalesTrend,
@@ -89,6 +138,13 @@ class DashboardController extends Controller
             'recommendations' => $recommendations,
             'lowStockItems' => $lowStockItems,
             'customerInsights' => $customerInsights,
+            'profitChart' => $profitChart,
+            'pendingReports' => $pendingReports,
+            'filters' => [
+                'period' => $period,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
         ]);
     }
 
@@ -137,12 +193,30 @@ class DashboardController extends Controller
         // Stock movement trend
         $stockMovementTrend = $this->getStockMovementTrend();
 
+        // Get recent stock movements
+        $recentMovements = \App\Models\StockMovement::with(['barang', 'user'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Get stock movement summary for today
+        $todayMovements = \App\Models\StockMovement::whereDate('created_at', today());
+        $todayIn = $todayMovements->clone()->ofType('in')->sum('quantity');
+        $todayOut = $todayMovements->clone()->ofType('out')->sum('quantity');
+        $todayAdjustments = $todayMovements->clone()->ofType('adjustment')->sum('quantity');
+
         return Inertia::render('karyawan/dashboard', [
             'stockLevels' => $stockLevels,
             'lowStockItems' => $lowStockItems,
             'categoriesDistribution' => $categoriesDistribution,
             'inventorySummary' => $inventorySummary,
             'stockMovementTrend' => $stockMovementTrend,
+            'recentMovements' => $recentMovements,
+            'todayMovements' => [
+                'in' => $todayIn,
+                'out' => $todayOut,
+                'adjustments' => $todayAdjustments,
+            ],
         ]);
     }
 
@@ -355,12 +429,27 @@ class DashboardController extends Controller
     /**
      * Get comprehensive summary for owner
      */
-    private function getComprehensiveSummary(): array
+    private function getComprehensiveSummary(string $dateFrom, string $dateTo): array
     {
         $today = Carbon::today();
-        $thisMonth = Carbon::now()->startOfMonth();
+        $startDate = Carbon::parse($dateFrom);
+        $endDate = Carbon::parse($dateTo);
 
-        return [
+        // Get sales data for the period
+        $sales = Penjualan::with(['detailPenjualans.barang'])
+            ->where('status', 'selesai')
+            ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
+            ->get();
+
+        $monthRevenue = $sales->sum('total');
+        
+        // Check user role for profit calculation
+        $user = auth()->user();
+        $isKasir = $user->hasRole('kasir');
+        $isKaryawan = $user->hasRole('karyawan');
+        $isAdminOrOwner = $user->hasRole('admin') || $user->hasRole('owner');
+
+        $data = [
             'total_customers' => User::whereHas('roles', function ($query) {
                 $query->where('name', Role::PELANGGAN);
             })->count(),
@@ -368,9 +457,25 @@ class DashboardController extends Controller
             'low_stock_items' => Barang::where('stok', '<=', 10)->count(),
             'today_orders' => Penjualan::whereDate('tanggal_transaksi', $today)->count(),
             'pending_orders' => Penjualan::where('status', 'pending')->count(),
-            'month_revenue' => (float) Penjualan::whereDate('tanggal_transaksi', '>=', $thisMonth)
-                ->where('status', '!=', 'dibatalkan')->sum('total'),
+            'month_revenue' => (float) $monthRevenue,
         ];
+
+        // Only include profit data for admin/owner
+        if ($isAdminOrOwner) {
+            $monthProfit = $sales->sum(function ($sale) {
+                return $sale->detailPenjualans->sum(function ($detail) {
+                    return ($detail->harga_satuan - $detail->barang->harga_beli) * $detail->jumlah;
+                });
+            });
+
+            $profitMargin = $monthRevenue > 0 ? ($monthProfit / $monthRevenue) * 100 : 0;
+
+            $data['month_profit'] = (float) $monthProfit;
+            $data['month_expenses'] = (float) ($monthRevenue - $monthProfit);
+            $data['profit_margin'] = (float) $profitMargin;
+        }
+
+        return $data;
     }
 
     /**
@@ -396,27 +501,54 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get pending online orders for kasir
+     * Mendapatkan data online orders yang pending dengan breakdown detail
+     * Termasuk status breakdown dan orders yang urgent (≥1 jam)
      */
     private function getPendingOnlineOrders(): array
     {
-        return Penjualan::where('jenis_transaksi', 'online')
+        // Ambil semua online orders dengan status yang perlu ditindak
+        $onlineOrders = Penjualan::where('jenis_transaksi', 'online')
             ->whereIn('status', ['pending', 'dibayar', 'siap_pickup'])
             ->with(['detailPenjualans.barang'])
             ->orderBy('tanggal_transaksi', 'asc')
-            ->limit(10)
-            ->get()
-            ->toArray();
+            ->get();
+
+        // Kelompokkan berdasarkan status untuk summary
+        $statusBreakdown = [
+            'pending' => 0,
+            'dibayar' => 0,
+            'siap_pickup' => 0,
+        ];
+
+        foreach ($onlineOrders as $order) {
+            $statusBreakdown[$order->status]++;
+        }
+
+        // Ambil orders yang urgent (pending lebih dari 1 jam)
+        $urgentOrders = $onlineOrders->filter(function ($order) {
+            return $order->status === 'pending' && 
+                   Carbon::parse($order->tanggal_transaksi)->diffInHours(now()) >= 1;
+        });
+
+        return [
+            'orders' => $onlineOrders->toArray(),
+            'status_breakdown' => $statusBreakdown,
+            'urgent_count' => $urgentOrders->count(),
+            'total_pending' => $statusBreakdown['pending'],
+            'total_paid' => $statusBreakdown['dibayar'],
+            'total_ready' => $statusBreakdown['siap_pickup'],
+        ];
     }
 
     /**
-     * Get today's summary for kasir
+     * Mendapatkan summary hari ini untuk kasir dengan info online orders yang detail
+     * Termasuk breakdown status orders dan orders yang urgent
      */
     private function getTodaysSummary(): array
     {
         $today = Carbon::today();
 
-        // Get basic totals
+        // Ambil total dasar
         $totalTransactions = Penjualan::whereDate('tanggal_transaksi', $today)
             ->where('status', '!=', 'dibatalkan')
             ->count();
@@ -425,20 +557,45 @@ class DashboardController extends Controller
             ->where('status', '!=', 'dibatalkan')
             ->sum('total');
 
-        $onlineOrders = Penjualan::whereDate('tanggal_transaksi', $today)
-            ->where('status', '!=', 'dibatalkan')
+        // Breakdown online orders berdasarkan status
+        $onlineOrdersPending = Penjualan::whereDate('tanggal_transaksi', $today)
             ->where('jenis_transaksi', 'online')
+            ->where('status', 'pending')
             ->count();
+
+        $onlineOrdersPaid = Penjualan::whereDate('tanggal_transaksi', $today)
+            ->where('jenis_transaksi', 'online')
+            ->where('status', 'dibayar')
+            ->count();
+
+        $onlineOrdersReady = Penjualan::whereDate('tanggal_transaksi', $today)
+            ->where('jenis_transaksi', 'online')
+            ->where('status', 'siap_pickup')
+            ->count();
+
+        $totalOnlineOrders = $onlineOrdersPending + $onlineOrdersPaid + $onlineOrdersReady;
 
         $walkInSales = Penjualan::whereDate('tanggal_transaksi', $today)
             ->where('status', '!=', 'dibatalkan')
             ->where('jenis_transaksi', 'walk_in')
             ->count();
 
+        // Ambil orders yang urgent (pending lebih dari 1 jam)
+        $urgentOrders = Penjualan::where('jenis_transaksi', 'online')
+            ->where('status', 'pending')
+            ->where('tanggal_transaksi', '<=', now()->subHour())
+            ->count();
+
         return [
             'total_transactions' => $totalTransactions,
             'total_revenue' => (float) $totalRevenue,
-            'online_orders' => $onlineOrders,
+            'online_orders' => [
+                'total' => $totalOnlineOrders,
+                'pending' => $onlineOrdersPending,
+                'paid' => $onlineOrdersPaid,
+                'ready' => $onlineOrdersReady,
+                'urgent' => $urgentOrders,
+            ],
             'walk_in_sales' => $walkInSales,
         ];
     }
@@ -570,9 +727,9 @@ class DashboardController extends Controller
     /**
      * Get best selling products with detailed analytics
      */
-    private function getBestSellingProducts(): array
+    private function getBestSellingProducts(string $dateFrom, string $dateTo): array
     {
-        $thirtyDaysAgo = Carbon::now()->subDays(30);
+        $thirtyDaysAgo = Carbon::parse($dateFrom);
 
         $bestSellers = DB::table('detail_penjualans')
             ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
@@ -778,5 +935,61 @@ class DashboardController extends Controller
             'customer_retention_rate' => $totalCustomers > 0 ? ($activeCustomers / $totalCustomers) * 100 : 0,
             'top_customers' => $topCustomers->toArray(),
         ];
+    }
+
+    /**
+     * Get profit chart data
+     */
+    private function getProfitChart(string $dateFrom, string $dateTo): array
+    {
+        $startDate = Carbon::parse($dateFrom);
+        $endDate = Carbon::parse($dateTo);
+        
+        // Get sales data for the period
+        $sales = Penjualan::with(['detailPenjualans.barang'])
+            ->where('status', 'selesai')
+            ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
+            ->get();
+
+        // Check user role for profit calculation
+        $user = auth()->user();
+        $isKasir = $user->hasRole('kasir');
+        $isKaryawan = $user->hasRole('karyawan');
+        $isAdminOrOwner = $user->hasRole('admin') || $user->hasRole('owner');
+
+        // Group by date and calculate data
+        $chartData = [];
+        $currentDate = $startDate->copy();
+        
+        while ($currentDate <= $endDate) {
+            $dateKey = $currentDate->format('Y-m-d');
+            $daySales = $sales->filter(function ($sale) use ($currentDate) {
+                return $sale->tanggal_transaksi->format('Y-m-d') === $currentDate->format('Y-m-d');
+            });
+
+            $revenue = $daySales->sum('total');
+            
+            $data = [
+                'date' => $dateKey,
+                'revenue' => $revenue,
+            ];
+
+            // Only include profit data for admin/owner
+            if ($isAdminOrOwner) {
+                $profit = $daySales->sum(function ($sale) {
+                    return $sale->detailPenjualans->sum(function ($detail) {
+                        return ($detail->harga_satuan - $detail->barang->harga_beli) * $detail->jumlah;
+                    });
+                });
+
+                $data['profit'] = $profit;
+                $data['expenses'] = $revenue - $profit; // Simplified calculation
+            }
+
+            $chartData[] = $data;
+            $currentDate->addDay();
+        }
+
+        return $chartData;
     }
 }

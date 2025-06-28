@@ -6,12 +6,25 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Model DetailPenjualan - Mengelola detail item dalam transaksi penjualan
+ *
+ * Model ini menyimpan informasi detail setiap item yang dibeli dalam transaksi:
+ * - Barang yang dibeli dan jumlahnya
+ * - Harga satuan saat transaksi (untuk tracking harga historis)
+ * - Perhitungan subtotal otomatis
+ * - Perhitungan keuntungan per item
+ *
+ * @package App\Models
+ */
 class DetailPenjualan extends Model
 {
     use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
+     * Atribut yang dapat diisi secara massal
+     *
+     * Daftar field yang diizinkan untuk mass assignment saat membuat atau mengupdate detail penjualan
      *
      * @var array<int, string>
      */
@@ -25,7 +38,9 @@ class DetailPenjualan extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Atribut yang harus di-cast ke tipe data tertentu
+     *
+     * Mengkonversi tipe data field harga untuk konsistensi perhitungan
      */
     protected function casts(): array
     {
@@ -36,7 +51,9 @@ class DetailPenjualan extends Model
     }
 
     /**
-     * Get the penjualan that owns this detail.
+     * Relasi dengan model Penjualan
+     *
+     * Detail penjualan ini milik transaksi penjualan tertentu
      */
     public function penjualan(): BelongsTo
     {
@@ -44,7 +61,9 @@ class DetailPenjualan extends Model
     }
 
     /**
-     * Get the barang for this detail.
+     * Relasi dengan model Barang
+     *
+     * Detail penjualan ini mengacu pada barang tertentu yang dibeli
      */
     public function barang(): BelongsTo
     {
@@ -52,7 +71,9 @@ class DetailPenjualan extends Model
     }
 
     /**
-     * Calculate subtotal automatically
+     * Menghitung subtotal secara otomatis
+     *
+     * Mengkalikan jumlah dengan harga satuan untuk mendapatkan subtotal
      */
     public function calculateSubtotal(): float
     {
@@ -60,7 +81,9 @@ class DetailPenjualan extends Model
     }
 
     /**
-     * Get profit for this detail
+     * Menghitung keuntungan untuk detail ini
+     *
+     * Menghitung profit berdasarkan selisih harga jual dan harga beli dikali jumlah
      */
     public function getProfit(): float
     {
@@ -69,7 +92,9 @@ class DetailPenjualan extends Model
     }
 
     /**
-     * Boot method to auto-calculate subtotal
+     * Boot method untuk auto-calculate subtotal
+     *
+     * Event listener yang otomatis menghitung subtotal sebelum menyimpan data
      */
     protected static function boot()
     {

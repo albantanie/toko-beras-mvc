@@ -177,6 +177,54 @@ export default function PenjualanShow({ auth, penjualan }: PenjualanShowProps) {
                                                 {getPaymentMethodBadge(penjualan.metode_pembayaran)}
                                             </dd>
                                         </div>
+                                        {penjualan.payment_proof && (
+                                            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                                <dt className="text-sm font-medium text-gray-500">
+                                                    Bukti Pembayaran
+                                                </dt>
+                                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                                    <div className="space-y-2">
+                                                        <a
+                                                            href={`/storage/${penjualan.payment_proof}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                                                        >
+                                                            <Icons.view className="w-4 h-4 mr-1" />
+                                                            Lihat Bukti Pembayaran
+                                                        </a>
+                                                        <div className="mt-2">
+                                                            <img
+                                                                src={`/storage/${penjualan.payment_proof}`}
+                                                                alt="Bukti Pembayaran"
+                                                                className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.style.display = 'none';
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                        )}
+                                        {penjualan.payment_rejection_reason && (
+                                            <div className="bg-red-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                                <dt className="text-sm font-medium text-red-600">
+                                                    Alasan Penolakan
+                                                </dt>
+                                                <dd className="mt-1 text-sm text-red-700 sm:mt-0 sm:col-span-2">
+                                                    <div className="space-y-2">
+                                                        <p className="font-medium">Bukti pembayaran ditolak</p>
+                                                        <p>{penjualan.payment_rejection_reason}</p>
+                                                        {penjualan.payment_rejected_at && (
+                                                            <p className="text-xs text-red-600">
+                                                                Ditolak pada: {formatDateTime(penjualan.payment_rejected_at)}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </dd>
+                                            </div>
+                                        )}
                                         <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                                             <dt className="text-sm font-medium text-gray-500">
                                                 Kasir
@@ -315,14 +363,16 @@ export default function PenjualanShow({ auth, penjualan }: PenjualanShowProps) {
                                                 </div>
                                             </>
                                         )}
-                                        <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-2 sm:gap-4 border-t border-gray-200">
-                                            <dt className="text-sm font-medium text-gray-500">
-                                                Profit
-                                            </dt>
-                                            <dd className="mt-1 text-sm font-semibold text-green-600 text-right">
-                                                {formatCurrency(calculateTotalProfit())}
-                                            </dd>
-                                        </div>
+                                        {auth.user?.role !== 'kasir' && (
+                                            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-2 sm:gap-4 border-t border-gray-200">
+                                                <dt className="text-sm font-medium text-gray-500">
+                                                    Profit
+                                                </dt>
+                                                <dd className="mt-1 text-sm font-semibold text-green-600 text-right">
+                                                    {formatCurrency(calculateTotalProfit())}
+                                                </dd>
+                                            </div>
+                                        )}
                                     </dl>
                                 </div>
                             </div>
@@ -357,9 +407,11 @@ export default function PenjualanShow({ auth, penjualan }: PenjualanShowProps) {
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Subtotal
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Profit
-                                                </th>
+                                                {auth.user?.role !== 'kasir' && (
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Profit
+                                                    </th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -416,14 +468,16 @@ export default function PenjualanShow({ auth, penjualan }: PenjualanShowProps) {
                                                                 {formatCurrency(item.subtotal)}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium text-green-600">
-                                                                {formatCurrency(totalProfit)}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500">
-                                                                {formatCurrency(profitPerUnit)}/unit
-                                                            </div>
-                                                        </td>
+                                                        {auth.user?.role !== 'kasir' && (
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm font-medium text-green-600">
+                                                                    {formatCurrency(totalProfit)}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {formatCurrency(profitPerUnit)}/unit
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                     </tr>
                                                 );
                                             })}

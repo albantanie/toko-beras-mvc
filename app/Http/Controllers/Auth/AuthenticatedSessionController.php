@@ -12,10 +12,23 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * AuthenticatedSessionController - Controller untuk mengelola sesi autentikasi
+ *
+ * Controller ini menangani:
+ * - Menampilkan halaman login
+ * - Proses login dan validasi kredensial
+ * - Logout dan pembersihan sesi
+ * - Redirect berdasarkan role pengguna setelah login
+ *
+ * @package App\Http\Controllers\Auth
+ */
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Show the login page.
+     * Menampilkan halaman login
+     *
+     * Menampilkan form login dengan status message jika ada
      */
     public function create(Request $request): Response
     {
@@ -25,7 +38,9 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Menangani proses autentikasi login
+     *
+     * Memvalidasi kredensial dan melakukan redirect berdasarkan role pengguna
      */
     public function store(LoginRequest $request): RedirectResponse
     {

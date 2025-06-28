@@ -89,7 +89,10 @@ export default function Header({
                     {/* Right Navigation */}
                     <div className="flex items-center space-x-6">
                         {/* Cart */}
-                        <Link href={route('cart.index')} className="relative group">
+                        <Link 
+                            href={route('cart.index')} 
+                            className="relative group"
+                        >
                             <div className="flex flex-col items-center">
                                 <div className="relative cart-icon">
                                     <Icons.cart className="w-6 h-6 text-gray-700 group-hover:text-green-600:text-green-400 transition-colors" />

@@ -172,6 +172,13 @@ export default function UserOrders({ auth, orders, cartCount }: UserOrdersProps)
                                                         <p className="font-semibold">
                                                             {order.metode_pembayaran.replace('_', ' ').toUpperCase()}
                                                         </p>
+                                                        {order.payment_proof && (
+                                                            <div className="mt-1">
+                                                                <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                                    ✓ Bukti pembayaran diupload
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="text-sm text-gray-600">Metode Pickup</p>
@@ -204,6 +211,12 @@ export default function UserOrders({ auth, orders, cartCount }: UserOrdersProps)
                                                         {order.status === 'pending' && (
                                                             <div className="text-sm text-orange-600 bg-orange-50 px-3 py-1 rounded">
                                                                 Menunggu konfirmasi pembayaran
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {order.payment_rejection_reason && (
+                                                            <div className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded">
+                                                                Bukti pembayaran ditolak
                                                             </div>
                                                         )}
                                                         

@@ -11,7 +11,7 @@ interface LaporanPenjualanProps extends PageProps {
         total_transactions: number;
         total_sales: number;
         average_transaction: number;
-        total_profit: number;
+        total_profit: number | null;
         total_items_sold: number;
     };
     sales_chart: Array<{
@@ -26,6 +26,11 @@ interface LaporanPenjualanProps extends PageProps {
         sort?: string;
         direction?: string;
     };
+    user_role?: {
+        is_kasir: boolean;
+        is_karyawan: boolean;
+        is_admin_or_owner: boolean;
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -39,7 +44,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function LaporanPenjualan({ auth, penjualans, summary, sales_chart, filters = {} }: LaporanPenjualanProps) {
+export default function LaporanPenjualan({ auth, penjualans, summary, sales_chart, filters = {}, user_role }: LaporanPenjualanProps) {
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
 
@@ -119,7 +124,8 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                 </div>
             ),
         },
-        {
+        // Only show profit column for admin/owner
+        ...(user_role?.is_admin_or_owner ? [{
             key: 'profit',
             label: 'Profit',
             render: (_, row) => {
@@ -134,7 +140,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                     </div>
                 );
             },
-        },
+        }] : []),
     ];
 
     return (
@@ -248,25 +254,28 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                             </div>
                         </div>
 
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="p-5">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <Icons.profit className="h-6 w-6 text-gray-400" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Total Profit
-                                            </dt>
-                                            <dd className="text-lg font-medium text-green-600">
-                                                {formatCurrency(summary.total_profit)}
-                                            </dd>
-                                        </dl>
+                        {/* Only show profit card for admin/owner */}
+                        {user_role?.is_admin_or_owner && summary.total_profit !== null && (
+                            <div className="bg-white overflow-hidden shadow rounded-lg">
+                                <div className="p-5">
+                                    <div className="flex items-center">
+                                        <div className="flex-shrink-0">
+                                            <Icons.profit className="h-6 w-6 text-gray-400" />
+                                        </div>
+                                        <div className="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt className="text-sm font-medium text-gray-500 truncate">
+                                                    Total Profit
+                                                </dt>
+                                                <dd className="text-lg font-medium text-green-600">
+                                                    {formatCurrency(summary.total_profit)}
+                                                </dd>
+                                            </dl>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="bg-white overflow-hidden shadow rounded-lg">
                             <div className="p-5">

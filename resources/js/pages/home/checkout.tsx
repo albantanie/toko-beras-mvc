@@ -19,10 +19,11 @@ interface CheckoutProps extends PageProps {
 
 export default function Checkout({ auth, cartItems, total, user, cartCount }: CheckoutProps) {
     const { data, setData, post, processing, errors } = useForm({
-        nama_pelanggan: user.name || '',
+        nama_pelanggan: user?.name || '',
         telepon_pelanggan: '',
         alamat_pelanggan: '',
         metode_pembayaran: 'transfer',
+        payment_proof: null as File | null,
         pickup_method: 'self',
         pickup_person_name: '',
         pickup_person_phone: '',
@@ -32,7 +33,26 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('cart.process-checkout'));
+        
+        // Pastikan field pickup person dikirim dengan benar
+        const formData = {
+            ...data,
+            pickup_person_name: data.pickup_method === 'self' ? '' : data.pickup_person_name,
+            pickup_person_phone: data.pickup_method === 'self' ? '' : data.pickup_person_phone,
+        };
+        
+        // Kirim data dengan file upload
+        post(route('cart.process-checkout'), {
+            ...formData,
+            preserveScroll: true,
+        });
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setData('payment_proof', file);
+        }
     };
 
     return (
@@ -188,6 +208,80 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                     <p className="mt-1 text-sm text-red-600">{errors.metode_pembayaran}</p>
                                                 )}
                                             </div>
+
+                                    {data.metode_pembayaran === 'transfer' && (
+                                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <h4 className="font-medium text-blue-900 mb-3">Informasi Transfer Bank</h4>
+                                            <div className="space-y-2 text-sm mb-4">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">Bank:</span>
+                                                    <span className="font-medium">Bank Central Asia (BCA)</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">No. Rekening:</span>
+                                                    <span className="font-medium">1234567890</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">Atas Nama:</span>
+                                                    <span className="font-medium">Toko Beras Sejahtera</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">Jumlah Transfer:</span>
+                                                    <span className="font-medium text-green-600">
+                                                        {formatCurrency(total)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Upload Bukti Transfer *
+                                                </label>
+                                                <div className="flex items-center justify-center w-full">
+                                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                            {data.payment_proof ? (
+                                                                <div className="text-center">
+                                                                    <div className="text-green-600 font-medium mb-1">
+                                                                        ✓ File berhasil diupload
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-500">
+                                                                        {data.payment_proof.name}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                                                    </svg>
+                                                                    <p className="mb-2 text-sm text-gray-500">
+                                                                        <span className="font-semibold">Klik untuk upload</span> atau drag and drop
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500">PNG, JPG, PDF (MAX. 5MB)</p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <input
+                                                            type="file"
+                                                            name="payment_proof"
+                                                            accept="image/*,.pdf"
+                                                            onChange={handleFileUpload}
+                                                            className="hidden"
+                                                            required={data.metode_pembayaran === 'transfer'}
+                                                        />
+                                                    </label>
+                                                </div>
+                                                {data.metode_pembayaran === 'transfer' && !data.payment_proof && (
+                                                    <p className="mt-1 text-sm text-red-600">
+                                                        Bukti transfer wajib diupload untuk pembayaran transfer
+                                                    </p>
+                                                )}
+                                                <p className="mt-2 text-xs text-gray-500">
+                                                    Upload screenshot atau foto bukti transfer untuk mempercepat proses verifikasi
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -359,10 +453,6 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600">Subtotal</span>
                                                 <span className="font-semibold">{formatCurrency(total)}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Ongkos Kirim</span>
-                                                <span className="text-green-600">Gratis</span>
                                             </div>
                                             <div className="border-t pt-3">
                                                 <div className="flex justify-between">

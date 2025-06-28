@@ -1,123 +1,441 @@
 <?php
 
-use App\Http\Controllers\BarangController;
-use App\Http\Controllers\LaporanController;
-use App\Http\Controllers\PenjualanController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\ReceiptController;
-use App\Http\Controllers\DashboardController;
-use App\Models\Role;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+/**
+ * ===================================================================
+ * ROUTING CONFIGURATION UNTUK APLIKASI TOKO BERAS
+ * ===================================================================
+ *
+ * File ini mendefinisikan semua routes (rute) untuk aplikasi Toko Beras
+ * dengan sistem role-based access control yang lengkap
+ *
+ * Struktur Routing:
+ * 1. Public Routes - Dapat diakses tanpa login
+ * 2. Cart Routes - Shopping cart dengan checkout yang memerlukan auth
+ * 3. Authenticated Routes - Memerlukan login dan verifikasi
+ * 4. Role-based Routes - Akses berdasarkan role user
+ *
+ * Role yang didukung:
+ * - Admin: Full access ke semua fitur sistem
+ * - Owner: Access ke dashboard, laporan, dan manajemen
+ * - Karyawan: Access ke inventory dan dashboard
+ * - Kasir: Access ke penjualan dan transaksi
+ * - Pelanggan: Access ke shopping dan order history
+ * ===================================================================
+ */
 
-// Public routes
+// Import semua Controller yang diperlukan untuk routing
+use App\Http\Controllers\BarangController;        // Controller untuk manajemen barang/inventory
+use App\Http\Controllers\LaporanController;       // Controller untuk laporan dan analytics
+use App\Http\Controllers\PenjualanController;     // Controller untuk transaksi penjualan
+use App\Http\Controllers\UserController;          // Controller untuk manajemen user
+use App\Http\Controllers\HomeController;          // Controller untuk halaman publik dan customer
+use App\Http\Controllers\CartController;          // Controller untuk shopping cart
+use App\Http\Controllers\ReceiptController;       // Controller untuk receipt dan pickup
+use App\Http\Controllers\DashboardController;     // Controller untuk dashboard role-based
+use App\Models\Role;                              // Model Role untuk konstanta role
+use Illuminate\Support\Facades\Route;            // Laravel Route facade
+use Inertia\Inertia;                             // Inertia.js untuk SPA dengan React
+
+/**
+ * ===================================================================
+ * PUBLIC ROUTES - DAPAT DIAKSES TANPA LOGIN
+ * ===================================================================
+ * Routes ini dapat diakses oleh siapa saja tanpa perlu authentication
+ * Digunakan untuk halaman publik seperti catalog produk
+ */
+
+// Halaman utama - menampilkan catalog produk beras untuk pelanggan
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Detail produk - menampilkan informasi lengkap produk beras
 Route::get('/product/{barang}', [HomeController::class, 'show'])->name('product.show');
 
-// Cart routes (accessible without login for browsing, but checkout requires login)
+// System Validation Route - untuk testing CRUD systems
+Route::get('/system/validate', [\App\Http\Controllers\SystemValidationController::class, 'validateAllSystems'])
+    ->middleware('auth')
+    ->name('system.validate');
+
+/**
+ * ===================================================================
+ * SHOPPING CART ROUTES
+ * ===================================================================
+ * Routes untuk manajemen shopping cart dengan sistem hybrid:
+ * - Browsing cart dapat dilakukan tanpa login
+ * - Checkout memerlukan authentication untuk keamanan transaksi
+ */
 Route::prefix('cart')->name('cart.')->group(function () {
+    // Melihat isi keranjang belanja - dapat diakses tanpa login
     Route::get('/', [CartController::class, 'index'])->name('index');
+
+    // Menambah produk ke keranjang - dapat dilakukan tanpa login
     Route::post('/add', [CartController::class, 'add'])->name('add');
+
+    // Update quantity produk di keranjang
     Route::patch('/update', [CartController::class, 'update'])->name('update');
+
+    // Hapus produk dari keranjang
     Route::delete('/remove', [CartController::class, 'remove'])->name('remove');
+
+    // Kosongkan seluruh keranjang
     Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
 
-    // Checkout requires authentication
+    /**
+     * CHECKOUT ROUTES - MEMERLUKAN AUTHENTICATION
+     * Proses checkout memerlukan login untuk:
+     * - Keamanan transaksi
+     * - Tracking order history
+     * - Customer information
+     */
     Route::middleware('auth')->group(function () {
+        // Halaman checkout - review order sebelum payment
         Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout');
+
+        // Proses checkout - create order dan payment
         Route::post('/checkout', [CartController::class, 'processCheckout'])->name('process-checkout');
     });
 });
 
+/**
+ * ===================================================================
+ * AUTHENTICATED ROUTES - MEMERLUKAN LOGIN DAN VERIFIKASI EMAIL
+ * ===================================================================
+ * Semua routes di dalam group ini memerlukan:
+ * - Authentication (user harus login)
+ * - Email verification (email harus sudah diverifikasi)
+ */
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Default dashboard - redirect based on role
+
+    /**
+     * DEFAULT DASHBOARD ROUTER
+     * ===================================================================
+     * Route ini berfungsi sebagai router utama yang mengarahkan user
+     * ke dashboard yang sesuai berdasarkan role mereka
+     *
+     * Flow:
+     * 1. Cek role user yang sedang login
+     * 2. Redirect ke dashboard yang sesuai dengan role
+     * 3. Fallback ke user dashboard untuk role pelanggan
+     */
     Route::get('dashboard', function () {
+        // Ambil data user yang sedang login
         $user = auth()->user();
 
+        // Redirect berdasarkan role user dengan prioritas tertinggi ke terendah
         if ($user->isAdmin()) {
+            // Admin: Full access dashboard dengan analytics dan user management
             return redirect()->route('admin.dashboard');
         } elseif ($user->isOwner()) {
+            // Owner: Business dashboard dengan laporan dan overview
             return redirect()->route('owner.dashboard');
         } elseif ($user->isKaryawan()) {
+            // Karyawan: Inventory dashboard dengan stock management
             return redirect()->route('karyawan.dashboard');
         } elseif ($user->isKasir()) {
+            // Kasir: Transaction dashboard dengan sales management
             return redirect()->route('kasir.dashboard');
         } else {
-            // Regular user (pelanggan) dashboard
+            // Pelanggan: Customer dashboard dengan order history
             return redirect()->route('user.dashboard');
         }
     })->name('dashboard');
 
-    // User (pelanggan) routes
+    /**
+     * ===================================================================
+     * USER (PELANGGAN) ROUTES
+     * ===================================================================
+     * Routes khusus untuk role pelanggan dengan akses terbatas
+     * Fitur: Dashboard, order history, order tracking
+     */
     Route::middleware(['role:pelanggan'])->prefix('user')->name('user.')->group(function () {
+        // Dashboard pelanggan - menampilkan order history dan status
         Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
+
+        // Daftar semua order pelanggan dengan pagination dan filter
         Route::get('orders', [HomeController::class, 'orders'])->name('orders');
+
+        // Detail order spesifik - tracking status dan informasi lengkap
         Route::get('orders/{order}', [HomeController::class, 'orderDetail'])->name('orders.show');
+
+        // Upload ulang bukti pembayaran untuk orders yang ditolak
+        Route::post('orders/{order}/upload-payment-proof', [HomeController::class, 'uploadPaymentProof'])->name('upload-payment-proof');
     });
 
-    // Admin routes
+    /**
+     * ===================================================================
+     * ADMIN ROUTES
+     * ===================================================================
+     * Routes khusus untuk role admin dengan full system access
+     * Fitur: User management, system analytics, full CRUD operations
+     */
     Route::middleware(['role:' . Role::ADMIN])->prefix('admin')->name('admin.')->group(function () {
+        // Dashboard admin - analytics, statistics, system overview
         Route::get('dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
 
-        // User management routes for admin
+        /**
+         * USER MANAGEMENT ROUTES
+         * Admin dapat mengelola semua user dalam sistem
+         */
+        // Quick add user - form cepat untuk menambah user baru
         Route::get('users/quick-add', [\App\Http\Controllers\Admin\UserController::class, 'quickAdd'])->name('users.quick-add');
+
+        // Resource routes untuk CRUD user (index, create, store, show, edit, update, destroy)
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
     });
 
-    // Owner routes
+    /**
+     * ===================================================================
+     * OWNER ROUTES
+     * ===================================================================
+     * Routes khusus untuk role owner dengan akses business intelligence
+     * Fitur: Business dashboard, comprehensive reports, analytics
+     */
     Route::middleware(['role:' . Role::OWNER])->prefix('owner')->name('owner.')->group(function () {
+        // Dashboard owner - business metrics, KPI, overview
         Route::get('dashboard', [DashboardController::class, 'ownerDashboard'])->name('dashboard');
 
-        // Laporan routes for owner
+        /**
+         * LAPORAN (REPORTS) ROUTES FOR OWNER
+         * Owner memiliki akses ke semua laporan bisnis
+         */
+        // Index laporan - overview semua jenis laporan
         Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
+
+        // Laporan penjualan - sales analytics, revenue, trends
         Route::get('laporan/penjualan', [LaporanController::class, 'penjualan'])->name('laporan.penjualan');
+
+        // Laporan stok - inventory analytics, stock levels, movements
         Route::get('laporan/stok', [LaporanController::class, 'stok'])->name('laporan.stok');
+
+        /**
+         * ===================================================================
+         * OWNER EXCLUSIVE ROUTES - DASHBOARD & DOWNLOAD
+         * ===================================================================
+         * Routes khusus untuk owner: dashboard dan download laporan
+         */
+        // Download laporan dalam format PDF/Excel
+        Route::get('download-report', [LaporanController::class, 'downloadReport'])->name('download-report');
     });
 
-    // Karyawan routes
+    /**
+     * ===================================================================
+     * KARYAWAN ROUTES
+     * ===================================================================
+     * Routes khusus untuk role karyawan dengan fokus inventory management
+     * Fitur: Inventory dashboard, stock monitoring, laporan barang
+     *
+     * PEMBATASAN AKSES KARYAWAN:
+     * - Hanya bisa manage barang (CRUD inventory)
+     * - Hanya bisa generate laporan barang (perlu approval owner)
+     * - TIDAK bisa akses penjualan, transaksi, atau laporan keuangan
+     */
     Route::middleware(['role:' . Role::KARYAWAN])->prefix('karyawan')->name('karyawan.')->group(function () {
+        // Dashboard karyawan - inventory overview, stock alerts, daily tasks
         Route::get('dashboard', [DashboardController::class, 'karyawanDashboard'])->name('dashboard');
+
+        /**
+         * LAPORAN BARANG UNTUK KARYAWAN
+         * Karyawan hanya bisa generate laporan barang yang perlu approval owner
+         */
+        // Daftar laporan barang yang dibuat karyawan
+        Route::get('laporan-barang', [LaporanController::class, 'laporanBarangKaryawan'])->name('laporan.barang.index');
+
+        // Form create laporan barang baru
+        Route::get('laporan-barang/create', function () {
+            return Inertia::render('karyawan/laporan-barang/create');
+        })->name('laporan.barang.create');
+
+        // Generate laporan barang baru
+        Route::post('laporan-barang/generate', [LaporanController::class, 'generateLaporanBarang'])->name('laporan.barang.generate');
+
+        // Submit laporan untuk approval owner
+        Route::patch('laporan-barang/{report}/submit', [LaporanController::class, 'submitForApproval'])->name('laporan.barang.submit');
+
+        // View detail laporan barang
+        Route::get('laporan-barang/{report}', [LaporanController::class, 'showLaporanBarang'])->name('laporan.barang.show');
     });
 
-    // Kasir routes
+    /**
+     * ===================================================================
+     * KASIR ROUTES
+     * ===================================================================
+     * Routes khusus untuk role kasir dengan fokus transaction management
+     * Fitur: Sales dashboard, transaction processing, payment handling
+     */
     Route::middleware(['role:' . Role::KASIR])->prefix('kasir')->name('kasir.')->group(function () {
+        // Dashboard kasir - sales overview, pending transactions, daily summary
         Route::get('dashboard', [DashboardController::class, 'kasirDashboard'])->name('dashboard');
     });
 
+    /**
+     * ===================================================================
+     * BARANG (INVENTORY) MANAGEMENT ROUTES
+     * ===================================================================
+     * Routes untuk manajemen inventory/barang
+     *
+     * Pembagian akses:
+     * - Admin & Owner: Full CRUD access + harga beli + financial data
+     * - Karyawan: Full CRUD access tapi tidak bisa lihat harga beli/profit
+     */
 
-
-    // Barang routes (admin, owner, karyawan)
+    // Routes untuk Admin, Owner, dan Karyawan - Full CRUD access
     Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
-        Route::resource('barang', BarangController::class);
+        // CRUD barang - semua role bisa manage inventory
+        Route::get('barang', [BarangController::class, 'index'])->name('barang.index');
+        Route::get('barang/create', [BarangController::class, 'create'])->middleware('role:admin,owner')->name('barang.create');
+        Route::post('barang', [BarangController::class, 'store'])->middleware('role:admin,owner')->name('barang.store');
+        Route::get('barang/{barang}', [BarangController::class, 'show'])->name('barang.show');
+        Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->middleware('role:admin,owner')->name('barang.edit');
+        Route::put('barang/{barang}', [BarangController::class, 'update'])->middleware('role:admin,owner')->name('barang.update');
+        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->middleware('role:admin,owner')->name('barang.destroy');
+
+        // Stock movements - riwayat perubahan stok
+        Route::get('barang/{barang}/stock-movements', [BarangController::class, 'stockMovements'])->name('barang.stock-movements');
+
+        // Update stock barang - untuk adjustment stock manual
         Route::patch('barang/{barang}/stock', [BarangController::class, 'updateStock'])->name('barang.update-stock');
     });
 
-    // Penjualan routes (admin, owner, karyawan, kasir)
-    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN . ',' . Role::KASIR])->group(function () {
+    /**
+     * ===================================================================
+     * PENJUALAN (SALES) MANAGEMENT ROUTES
+     * ===================================================================
+     * Routes untuk manajemen penjualan dan transaksi
+     * Akses: Admin, Owner, Kasir (TIDAK TERMASUK KARYAWAN)
+     *
+     * Fitur:
+     * - Transaction processing (walk-in & online)
+     * - Payment confirmation
+     * - Order status management
+     * - Receipt generation
+     * - Pickup management
+     *
+     * CATATAN: Karyawan tidak perlu mengakses data transaksi penjualan
+     */
+    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KASIR])->group(function () {
+        // History transaksi - riwayat lengkap semua transaksi dengan role-based access
+        Route::get('penjualan/history', [PenjualanController::class, 'history'])->name('penjualan.history');
+
+        // Resource routes untuk CRUD penjualan (index, create, store, show, edit, update, destroy)
         Route::resource('penjualan', PenjualanController::class);
+
+        // Print invoice/receipt untuk transaksi
         Route::get('penjualan/{penjualan}/print', [PenjualanController::class, 'print'])->name('penjualan.print');
 
-        // Online orders management for kasir
+        /**
+         * ONLINE ORDERS MANAGEMENT
+         * Khusus untuk mengelola pesanan online dari pelanggan
+         */
+        // Daftar pesanan online yang perlu diproses kasir
         Route::get('penjualan-online', [PenjualanController::class, 'onlineOrders'])->name('penjualan.online');
+
+        // Konfirmasi pembayaran pesanan online
         Route::patch('penjualan/{penjualan}/confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
+
+        // Reject bukti pembayaran
+        Route::patch('penjualan/{penjualan}/reject-payment', [PenjualanController::class, 'rejectPayment'])->name('penjualan.reject-payment');
+
+        // Tandai pesanan siap untuk pickup
         Route::patch('penjualan/{penjualan}/ready-pickup', [PenjualanController::class, 'readyPickup'])->name('penjualan.ready-pickup');
+
+        // Complete transaksi setelah pickup
         Route::patch('penjualan/{penjualan}/complete', [PenjualanController::class, 'complete'])->name('penjualan.complete');
 
-        // Receipt routes
+        /**
+         * RECEIPT MANAGEMENT ROUTES
+         * Sistem receipt untuk pickup verification
+         */
+        // Generate receipt untuk pickup (QR code + receipt code)
         Route::get('penjualan/{penjualan}/receipt', [ReceiptController::class, 'generatePickupReceipt'])->name('penjualan.receipt');
+
+        // Show receipt berdasarkan receipt code
         Route::get('receipt/{receiptCode}', [ReceiptController::class, 'showPickupReceipt'])->name('receipt.show');
+
+        // Verify receipt dan complete pickup
         Route::post('receipt/{receiptCode}/verify', [ReceiptController::class, 'verifyAndComplete'])->name('receipt.verify');
     });
 
-    // Laporan routes (admin, owner)
-    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
+    /**
+     * ===================================================================
+     * LAPORAN (REPORTS) ROUTES
+     * ===================================================================
+     * Routes untuk laporan dan analytics
+     * Akses: Admin, Owner, Karyawan (dengan pembatasan jenis laporan)
+     *
+     * Pembatasan akses:
+     * - Admin/Owner: Semua jenis laporan
+     * - Karyawan: Hanya laporan barang/inventory (tidak dapat akses laporan penjualan)
+     * - Kasir: Tidak dapat akses sistem laporan
+     *
+     * Fitur:
+     * - Sales reports (Admin/Owner only)
+     * - Inventory reports (Admin/Owner/Karyawan)
+     * - Business analytics
+     * - Performance metrics
+     * - Report generation and approval workflow
+     */
+    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->prefix('laporan')->name('laporan.')->group(function () {
+        // Index laporan - dashboard laporan dengan overview
         Route::get('/', [LaporanController::class, 'index'])->name('index');
+
+        // Laporan penjualan - detailed sales analytics
         Route::get('penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
+
+        // Laporan stok - inventory analytics dan stock movements
         Route::get('stok', [LaporanController::class, 'stok'])->name('stok');
+
+        // ===== REPORT GENERATION & APPROVAL WORKFLOW =====
+        
+        // Daftar laporan yang sudah di-generate
+        Route::get('reports', [LaporanController::class, 'reports'])->name('reports');
+        
+        // Generate laporan baru
+        Route::post('generate', [LaporanController::class, 'generate'])->name('generate');
+        
+        // Show detail laporan
+        Route::get('reports/{report}', [LaporanController::class, 'show'])->name('show');
+        
+        // Submit laporan untuk approval
+        Route::patch('reports/{report}/submit', [LaporanController::class, 'submitForApproval'])->name('submit');
+    });
+
+    /**
+     * ===================================================================
+     * OWNER EXCLUSIVE ROUTES - APPROVAL WORKFLOW
+     * ===================================================================
+     * Routes khusus untuk owner: approve/reject laporan
+     */
+    Route::middleware(['role:' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
+        // Daftar laporan yang perlu approval
+        Route::get('approvals', [LaporanController::class, 'approvals'])->name('approvals');
+        
+        // Approve laporan
+        Route::patch('reports/{report}/approve', [LaporanController::class, 'approve'])->name('approve');
+        
+        // Reject laporan
+        Route::patch('reports/{report}/reject', [LaporanController::class, 'reject'])->name('reject');
+    });
+
+    /**
+     * ===================================================================
+     * ADMIN/OWNER EXCLUSIVE ROUTES - HISTORY TRANSACTION REPORT
+     * ===================================================================
+     * Routes khusus untuk admin/owner: laporan history transaksi komprehensif
+     */
+    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
+        // Laporan history transaksi komprehensif dengan analytics
+        Route::get('history-transaction', [LaporanController::class, 'historyTransaction'])->name('history-transaction');
     });
 });
 
+/**
+ * ===================================================================
+ * ADDITIONAL ROUTE FILES
+ * ===================================================================
+ * Include file routing tambahan untuk modularitas
+ */
+
+// Include routes untuk settings dan konfigurasi user
 require __DIR__.'/settings.php';
+
+// Include routes untuk authentication (login, register, password reset, dll)
 require __DIR__.'/auth.php';

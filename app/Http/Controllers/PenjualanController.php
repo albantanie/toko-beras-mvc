@@ -6,16 +6,35 @@ use App\Models\Barang;
 use App\Models\DetailPenjualan;
 use App\Models\Penjualan;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * PenjualanController - Controller untuk mengelola transaksi penjualan
+ *
+ * Controller ini menangani semua operasi terkait transaksi penjualan:
+ * - Listing transaksi dengan filter dan pencarian
+ * - Pembuatan transaksi baru (offline dan online)
+ * - Update status transaksi dan pembayaran
+ * - Manajemen pickup dan receipt
+ * - Validasi stok dan perhitungan total
+ *
+ * @package App\Http\Controllers
+ */
 class PenjualanController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Menampilkan daftar transaksi penjualan
+     *
+     * Menampilkan listing transaksi dengan fitur:
+     * - Pencarian berdasarkan nomor transaksi, nama pelanggan, atau kasir
+     * - Filter berdasarkan status, metode pembayaran, dan tanggal
+     * - Sorting berdasarkan berbagai field
+     * - Pagination untuk performa yang optimal
      */
     public function index(Request $request): Response
     {
@@ -88,6 +107,108 @@ class PenjualanController extends Controller
     }
 
     /**
+     * Menampilkan history semua transaksi penjualan
+     *
+     * Menampilkan riwayat lengkap transaksi dengan fitur:
+     * - Pencarian berdasarkan nomor transaksi, nama pelanggan, atau kasir
+     * - Filter berdasarkan status, metode pembayaran, dan tanggal
+     * - Sorting berdasarkan berbagai field
+     * - Pagination untuk performa yang optimal
+     * - Role-based access: kasir bisa edit/delete, admin/owner hanya view
+     */
+    public function history(Request $request): Response
+    {
+        // Ambil parameter dari request
+        $search = $request->get('search');                    // Kata kunci pencarian
+        $status = $request->get('status', 'all');             // Filter status transaksi
+        $metode_pembayaran = $request->get('metode_pembayaran', ''); // Filter metode pembayaran
+        $date_from = $request->get('date_from');              // Filter tanggal dari
+        $date_to = $request->get('date_to');                  // Filter tanggal sampai
+        $sort = $request->get('sort', 'tanggal_transaksi');   // Field untuk sorting
+        $direction = $request->get('direction', 'desc');      // Arah sorting (asc/desc)
+
+        /**
+         * QUERY BUILDER DENGAN RELASI
+         * Load relasi user, pelanggan, dan detail penjualan untuk menampilkan data lengkap
+         */
+        $query = Penjualan::with(['user', 'pelanggan', 'detailPenjualans.barang']);
+
+        /**
+         * FITUR PENCARIAN
+         * Mencari berdasarkan nomor transaksi, nama pelanggan, atau nama kasir
+         */
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nomor_transaksi', 'like', "%{$search}%")
+                  ->orWhere('nama_pelanggan', 'like', "%{$search}%")
+                  ->orWhereHas('pelanggan', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('user', function ($q3) use ($search) {
+                      $q3->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        /**
+         * FILTER BERDASARKAN STATUS TRANSAKSI
+         * Filter berdasarkan status transaksi (pending, selesai, dibatalkan)
+         */
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        /**
+         * FILTER BERDASARKAN METODE PEMBAYARAN
+         * Filter berdasarkan metode pembayaran yang digunakan
+         */
+        if ($metode_pembayaran) {
+            $query->where('metode_pembayaran', $metode_pembayaran);
+        }
+
+        /**
+         * FILTER BERDASARKAN TANGGAL
+         * Filter transaksi berdasarkan rentang tanggal
+         */
+        if ($date_from) {
+            $query->whereDate('tanggal_transaksi', '>=', $date_from);
+        }
+        if ($date_to) {
+            $query->whereDate('tanggal_transaksi', '<=', $date_to);
+        }
+
+        /**
+         * SORTING TRANSAKSI
+         * Urutkan berdasarkan field yang diizinkan
+         */
+        $allowedSorts = ['nomor_transaksi', 'nama_pelanggan', 'total', 'tanggal_transaksi', 'status'];
+        if (in_array($sort, $allowedSorts)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('tanggal_transaksi', 'desc');
+        }
+
+        /**
+         * PAGINATION
+         * Ambil data dengan pagination untuk performa yang optimal
+         */
+        $penjualans = $query->paginate(10)->withQueryString();
+
+        return Inertia::render('penjualan/history', [
+            'penjualans' => $penjualans,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'metode_pembayaran' => $metode_pembayaran,
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'sort' => $sort,
+                'direction' => $direction,
+            ],
+        ]);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create(): Response
@@ -97,10 +218,26 @@ class PenjualanController extends Controller
             $q->where('name', 'pelanggan');
         })->orderBy('name')->get();
 
+        /**
+         * FILTER DATA UNTUK KASIR
+         * Sembunyikan harga_beli dari kasir untuk melindungi informasi sensitif
+         */
+        $currentUser = auth()->user();
+        $isKasir = $currentUser && $currentUser->roles()->where('name', 'kasir')->exists();
+        
+        if ($isKasir) {
+            $barangs = $barangs->map(function ($barang) {
+                $barangArray = $barang->toArray();
+                unset($barangArray['harga_beli']);
+                return $barangArray;
+            });
+        }
+
         return Inertia::render('penjualan/create', [
             'barangs' => $barangs,
             'pelanggans' => $pelanggans,
             'nomor_transaksi' => Penjualan::generateNomorTransaksi(),
+            'is_kasir' => $isKasir,
         ]);
     }
 
@@ -110,107 +247,85 @@ class PenjualanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'pelanggan_id' => 'nullable|exists:users,id',
             'nama_pelanggan' => 'required|string|max:255',
-            'telepon_pelanggan' => 'nullable|string|max:20',
-            'alamat_pelanggan' => 'nullable|string',
-            'jenis_transaksi' => 'required|in:offline,online',
-            'metode_pembayaran' => 'required|in:tunai,transfer,kartu_debit,kartu_kredit',
-            'diskon' => 'nullable|numeric|min:0',
-            'pajak' => 'nullable|numeric|min:0',
-            'bayar' => 'nullable|numeric|min:0',
-            'catatan' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.barang_id' => 'required|exists:barangs,id',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.harga_satuan' => 'required|numeric|min:0',
-            'items.*.catatan' => 'nullable|string',
-        ], [
-            'nama_pelanggan.required' => 'Nama pelanggan wajib diisi.',
-            'items.required' => 'Minimal harus ada 1 produk dalam keranjang.',
-            'items.min' => 'Minimal harus ada 1 produk dalam keranjang.',
-            'items.*.barang_id.required' => 'Produk harus dipilih.',
-            'items.*.barang_id.exists' => 'Produk yang dipilih tidak valid.',
-            'items.*.jumlah.required' => 'Jumlah produk harus diisi.',
-            'items.*.jumlah.min' => 'Jumlah produk minimal 1.',
-            'items.*.harga_satuan.required' => 'Harga satuan harus diisi.',
-            'items.*.harga_satuan.min' => 'Harga satuan tidak boleh negatif.',
-            'jenis_transaksi.required' => 'Jenis transaksi harus dipilih.',
-            'metode_pembayaran.required' => 'Metode pembayaran harus dipilih.',
-            'bayar.min' => 'Jumlah bayar tidak boleh negatif.',
+            'metode_pembayaran' => 'required|in:tunai,transfer,qris',
+            'catatan' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
 
         try {
-            // Calculate totals
-            $subtotal = 0;
-            foreach ($request->items as $item) {
-                $subtotal += $item['jumlah'] * $item['harga_satuan'];
-            }
-
-            $diskon = $request->diskon ?? 0;
-            $pajak = $request->pajak ?? 0;
-            $total = $subtotal - $diskon + $pajak;
-
-            // Determine status based on transaction type
-            $status = $request->jenis_transaksi === 'online' ? 'pending' : 'selesai';
-
             // Create penjualan
             $penjualan = Penjualan::create([
-                'nomor_transaksi' => Penjualan::generateNomorTransaksi(),
-                'user_id' => auth()->id(),
-                'pelanggan_id' => $request->pelanggan_id,
+                'nomor_transaksi' => 'TRX-' . date('Ymd') . '-' . str_pad(Penjualan::count() + 1, 4, '0', STR_PAD_LEFT),
                 'nama_pelanggan' => $request->nama_pelanggan,
-                'telepon_pelanggan' => $request->telepon_pelanggan,
-                'alamat_pelanggan' => $request->alamat_pelanggan,
-                'jenis_transaksi' => $request->jenis_transaksi,
-                'status' => $status,
+                'user_id' => auth()->id(),
+                'subtotal' => 0,
+                'total' => 0,
                 'metode_pembayaran' => $request->metode_pembayaran,
-                'subtotal' => $subtotal,
-                'diskon' => $diskon,
-                'pajak' => $pajak,
-                'total' => $total,
-                'bayar' => $request->jenis_transaksi === 'offline' ? ($request->bayar ?? $total) : null,
-                'kembalian' => ($request->jenis_transaksi === 'offline' && $request->bayar) ? $request->bayar - $total : null,
+                'status' => 'selesai',
                 'catatan' => $request->catatan,
                 'tanggal_transaksi' => now(),
             ]);
 
-            // Create detail penjualans and update stock
-            foreach ($request->items as $item) {
-                $barang = Barang::find($item['barang_id']);
+            $total = 0;
 
-                // Check stock availability
+            // Process items with pessimistic locking
+            foreach ($request->items as $item) {
+                // Lock row barang untuk update - mencegah race condition
+                $barang = Barang::lockForUpdate()->findOrFail($item['barang_id']);
+                
+                // Check stock availability after locking
                 if ($barang->stok < $item['jumlah']) {
-                    throw new \Exception("Stok {$barang->nama} tidak mencukupi. Stok tersedia: {$barang->stok} {$barang->satuan}, diminta: {$item['jumlah']} {$barang->satuan}");
+                    throw new \Exception("Stok tidak mencukupi untuk {$barang->nama}. Stok tersedia: {$barang->stok}");
                 }
 
-                // Create detail
-                DetailPenjualan::create([
+                // Create detail penjualan
+                $detailPenjualan = DetailPenjualan::create([
                     'penjualan_id' => $penjualan->id,
                     'barang_id' => $item['barang_id'],
                     'jumlah' => $item['jumlah'],
                     'harga_satuan' => $item['harga_satuan'],
-                    'catatan' => $item['catatan'] ?? null,
+                    'subtotal' => $item['jumlah'] * $item['harga_satuan'],
                 ]);
 
-                // Update stock
-                $barang->reduceStock($item['jumlah']);
+                $total += $detailPenjualan->subtotal;
+
+                // Record stock movement
+                $barang->recordStockMovement(
+                    type: 'out',
+                    quantity: -$item['jumlah'], // Negative for stock out
+                    description: "Penjualan - {$penjualan->nomor_transaksi}",
+                    userId: auth()->id(),
+                    referenceType: 'App\Models\DetailPenjualan',
+                    referenceId: $detailPenjualan->id,
+                    unitPrice: $item['harga_satuan'],
+                    metadata: [
+                        'penjualan_id' => $penjualan->id,
+                        'detail_penjualan_id' => $detailPenjualan->id,
+                        'customer_name' => $request->nama_pelanggan,
+                        'metode_pembayaran' => $request->metode_pembayaran,
+                    ]
+                );
             }
+
+            // Update total
+            $penjualan->update(['total' => $total]);
 
             DB::commit();
 
             return redirect()->route('penjualan.show', $penjualan)
-                ->with('success', 'Transaksi berhasil disimpan')
-                ->with('order_number', $penjualan->nomor_transaksi);
+                ->with('success', 'Transaksi berhasil dibuat dan stok diperbarui');
 
         } catch (\Exception $e) {
             DB::rollback();
-
             return redirect()->back()
-                ->with('error', 'Gagal menyimpan transaksi: ' . $e->getMessage())
-                ->withInput();
+                ->withInput()
+                ->with('error', 'Gagal membuat transaksi: ' . $e->getMessage());
         }
     }
 
@@ -221,8 +336,25 @@ class PenjualanController extends Controller
     {
         $penjualan->load(['user', 'pelanggan', 'detailPenjualans.barang']);
 
+        /**
+         * FILTER DATA UNTUK KASIR
+         * Sembunyikan harga_beli dari kasir untuk melindungi informasi sensitif
+         */
+        $currentUser = auth()->user();
+        $isKasir = $currentUser && $currentUser->roles()->where('name', 'kasir')->exists();
+        
+        $penjualanData = $penjualan->toArray();
+        if ($isKasir && isset($penjualanData['detail_penjualans'])) {
+            foreach ($penjualanData['detail_penjualans'] as &$detail) {
+                if (isset($detail['barang']['harga_beli'])) {
+                    unset($detail['barang']['harga_beli']);
+                }
+            }
+        }
+
         return Inertia::render('penjualan/show', [
-            'penjualan' => $penjualan,
+            'penjualan' => $penjualanData,
+            'is_kasir' => $isKasir,
         ]);
     }
 
@@ -242,10 +374,37 @@ class PenjualanController extends Controller
             $q->where('name', 'pelanggan');
         })->orderBy('name')->get();
 
+        /**
+         * FILTER DATA UNTUK KASIR
+         * Sembunyikan harga_beli dari kasir untuk melindungi informasi sensitif
+         */
+        $currentUser = auth()->user();
+        $isKasir = $currentUser && $currentUser->roles()->where('name', 'kasir')->exists();
+        
+        if ($isKasir) {
+            $barangs = $barangs->map(function ($barang) {
+                $barangArray = $barang->toArray();
+                unset($barangArray['harga_beli']);
+                return $barangArray;
+            });
+            
+            // Also filter barang data in detail penjualans
+            $penjualanArray = $penjualan->toArray();
+            if (isset($penjualanArray['detail_penjualans'])) {
+                foreach ($penjualanArray['detail_penjualans'] as &$detail) {
+                    if (isset($detail['barang']['harga_beli'])) {
+                        unset($detail['barang']['harga_beli']);
+                    }
+                }
+            }
+            $penjualan = $penjualanArray;
+        }
+
         return Inertia::render('penjualan/edit', [
             'penjualan' => $penjualan,
             'barangs' => $barangs,
             'pelanggans' => $pelanggans,
+            'is_kasir' => $isKasir,
         ]);
     }
 
@@ -270,7 +429,7 @@ class PenjualanController extends Controller
             'pajak' => 'nullable|numeric|min:0',
             'bayar' => 'nullable|numeric|min:0',
             'catatan' => 'nullable|string',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array',
             'items.*.barang_id' => 'required|exists:barangs,id',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.harga_satuan' => 'required|numeric|min:0',
@@ -278,7 +437,6 @@ class PenjualanController extends Controller
         ], [
             'nama_pelanggan.required_without' => 'Nama pelanggan wajib diisi jika tidak memilih pelanggan terdaftar.',
             'items.required' => 'Minimal harus ada 1 produk dalam keranjang.',
-            'items.min' => 'Minimal harus ada 1 produk dalam keranjang.',
             'items.*.barang_id.required' => 'Produk harus dipilih.',
             'items.*.barang_id.exists' => 'Produk yang dipilih tidak valid.',
             'items.*.jumlah.required' => 'Jumlah produk harus diisi.',
@@ -290,9 +448,69 @@ class PenjualanController extends Controller
         DB::beginTransaction();
 
         try {
-            // Restore stock from old items
+            // Jika items kosong, batalkan transaksi
+            if (empty($request->items)) {
+                // Kembalikan stok lama dan catat movement
+                foreach ($penjualan->detailPenjualans as $detail) {
+                    // Lock row barang untuk update - mencegah race condition
+                    $barang = Barang::lockForUpdate()->find($detail->barang_id);
+                    
+                    $barang->recordStockMovement(
+                        type: 'return',
+                        quantity: $detail->jumlah,
+                        description: "Pembatalan Transaksi - Pengembalian stok dari transaksi {$penjualan->nomor_transaksi}",
+                        userId: auth()->id(),
+                        referenceType: 'App\\Models\\Penjualan',
+                        referenceId: $penjualan->id,
+                        unitPrice: $detail->harga_satuan,
+                        metadata: [
+                            'penjualan_id' => $penjualan->id,
+                            'detail_penjualan_id' => $detail->id,
+                            'action' => 'cancel',
+                            'quantity' => $detail->jumlah,
+                            'price' => $detail->harga_satuan,
+                            'customer_name' => $penjualan->nama_pelanggan,
+                            'cancelled_by' => auth()->user()->name,
+                        ]
+                    );
+                }
+                // Hapus detail
+                $penjualan->detailPenjualans()->delete();
+                // Update status transaksi
+                $penjualan->update([
+                    'status' => 'dibatalkan',
+                ]);
+                DB::commit();
+                return redirect()->route('penjualan.show', $penjualan)
+                    ->with('success', 'Transaksi dibatalkan karena tidak ada barang dalam keranjang.');
+            }
+
+            // Store old details for stock movement tracking
+            $oldDetails = $penjualan->detailPenjualans->keyBy('barang_id');
+            
+            // Restore stock from old items and record movement
             foreach ($penjualan->detailPenjualans as $detail) {
-                $detail->barang->addStock($detail->jumlah);
+                // Lock row barang untuk update - mencegah race condition
+                $barang = Barang::lockForUpdate()->find($detail->barang_id);
+                
+                // Record stock movement for returning old items
+                $barang->recordStockMovement(
+                    type: 'return',
+                    quantity: $detail->jumlah, // Positive for stock return
+                    description: "Edit Transaksi - Pengembalian stok dari transaksi {$penjualan->nomor_transaksi}",
+                    userId: auth()->id(),
+                    referenceType: 'App\Models\Penjualan',
+                    referenceId: $penjualan->id,
+                    unitPrice: $detail->harga_satuan,
+                    metadata: [
+                        'penjualan_id' => $penjualan->id,
+                        'detail_penjualan_id' => $detail->id,
+                        'action' => 'edit_return',
+                        'old_quantity' => $detail->jumlah,
+                        'old_price' => $detail->harga_satuan,
+                        'customer_name' => $penjualan->nama_pelanggan,
+                    ]
+                );
             }
 
             // Delete old details
@@ -327,15 +545,16 @@ class PenjualanController extends Controller
 
             // Create new detail penjualans and update stock
             foreach ($request->items as $item) {
-                $barang = Barang::find($item['barang_id']);
+                // Lock row barang untuk update - mencegah race condition
+                $barang = Barang::lockForUpdate()->find($item['barang_id']);
 
-                // Check stock availability
+                // Check stock availability after locking
                 if ($barang->stok < $item['jumlah']) {
                     throw new \Exception("Stok {$barang->nama} tidak mencukupi. Stok tersedia: {$barang->stok} {$barang->satuan}");
                 }
 
                 // Create detail
-                DetailPenjualan::create([
+                $detailPenjualan = DetailPenjualan::create([
                     'penjualan_id' => $penjualan->id,
                     'barang_id' => $item['barang_id'],
                     'jumlah' => $item['jumlah'],
@@ -343,14 +562,33 @@ class PenjualanController extends Controller
                     'catatan' => $item['catatan'] ?? null,
                 ]);
 
-                // Update stock
-                $barang->reduceStock($item['jumlah']);
+                // Record stock movement for new items
+                $barang->recordStockMovement(
+                    type: 'out',
+                    quantity: -$item['jumlah'], // Negative for stock out
+                    description: "Edit Transaksi - Penjualan baru dari transaksi {$penjualan->nomor_transaksi}",
+                    userId: auth()->id(),
+                    referenceType: 'App\Models\DetailPenjualan',
+                    referenceId: $detailPenjualan->id,
+                    unitPrice: $item['harga_satuan'],
+                    metadata: [
+                        'penjualan_id' => $penjualan->id,
+                        'detail_penjualan_id' => $detailPenjualan->id,
+                        'action' => 'edit_new',
+                        'new_quantity' => $item['jumlah'],
+                        'new_price' => $item['harga_satuan'],
+                        'customer_name' => $request->nama_pelanggan,
+                        'metode_pembayaran' => $request->metode_pembayaran,
+                        'old_quantity' => $oldDetails->get($item['barang_id'])?->jumlah ?? 0,
+                        'old_price' => $oldDetails->get($item['barang_id'])?->harga_satuan ?? 0,
+                    ]
+                );
             }
 
             DB::commit();
 
             return redirect()->route('penjualan.show', $penjualan)
-                ->with('success', 'Transaksi berhasil diupdate');
+                ->with('success', 'Transaksi berhasil diupdate dan history movement dicatat');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -374,10 +612,31 @@ class PenjualanController extends Controller
         DB::beginTransaction();
 
         try {
-            // Restore stock if transaction was completed
+            // Restore stock and record movement if transaction was pending
             if ($penjualan->status === 'pending') {
                 foreach ($penjualan->detailPenjualans as $detail) {
-                    $detail->barang->addStock($detail->jumlah);
+                    // Lock row barang untuk update - mencegah race condition
+                    $barang = Barang::lockForUpdate()->find($detail->barang_id);
+                    
+                    // Record stock movement for deletion
+                    $barang->recordStockMovement(
+                        type: 'return',
+                        quantity: $detail->jumlah, // Positive for stock return
+                        description: "Hapus Transaksi - Pengembalian stok dari transaksi {$penjualan->nomor_transaksi}",
+                        userId: auth()->id(),
+                        referenceType: 'App\Models\Penjualan',
+                        referenceId: $penjualan->id,
+                        unitPrice: $detail->harga_satuan,
+                        metadata: [
+                            'penjualan_id' => $penjualan->id,
+                            'detail_penjualan_id' => $detail->id,
+                            'action' => 'delete',
+                            'quantity' => $detail->jumlah,
+                            'price' => $detail->harga_satuan,
+                            'customer_name' => $penjualan->nama_pelanggan,
+                            'deleted_by' => auth()->user()->name,
+                        ]
+                    );
                 }
             }
 
@@ -387,7 +646,7 @@ class PenjualanController extends Controller
             DB::commit();
 
             return redirect()->route('penjualan.index')
-                ->with('success', 'Transaksi berhasil dihapus');
+                ->with('success', 'Transaksi berhasil dihapus dan history movement dicatat');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -473,89 +732,154 @@ class PenjualanController extends Controller
     }
 
     /**
-     * Confirm payment for online order
+     * Confirm payment for online order with payment proof
      */
-    public function confirmPayment(Request $request, Penjualan $penjualan): RedirectResponse
+    public function confirmPayment(Request $request, Penjualan $penjualan)
     {
-        if ($penjualan->jenis_transaksi !== 'online') {
-            return redirect()->back()
-                ->with('error', 'Hanya transaksi online yang dapat dikonfirmasi pembayarannya');
+        // Check if user is kasir or admin
+        if (!auth()->user()->isKasir() && !auth()->user()->isAdmin()) {
+            return Inertia::location(route('penjualan.online'));
         }
 
-        if ($penjualan->status !== 'pending') {
-            return redirect()->back()
-                ->with('error', 'Transaksi ini sudah dikonfirmasi sebelumnya');
+        // Validate payment proof exists for transfer payment
+        if ($penjualan->metode_pembayaran === 'transfer' && !$penjualan->payment_proof) {
+            return Inertia::location(route('penjualan.online'));
         }
 
-        $request->validate([
-            'catatan_kasir' => 'nullable|string|max:500',
+        try {
+            $penjualan->update([
+                'status' => 'dibayar',
+                'payment_confirmed_at' => now(),
+                'payment_confirmed_by' => auth()->id(),
+            ]);
+
+            // Add flash message to session before redirect
+            session()->flash('success', 'Pembayaran berhasil dikonfirmasi. Pesanan siap untuk diproses.');
+            
+            return Inertia::location(route('penjualan.online'));
+        } catch (\Exception $e) {
+            // Add error flash message to session before redirect
+            session()->flash('error', 'Gagal mengkonfirmasi pembayaran: ' . $e->getMessage());
+            
+            return Inertia::location(route('penjualan.online'));
+        }
+    }
+
+    /**
+     * Reject payment proof for online order
+     */
+    public function rejectPayment(Request $request, Penjualan $penjualan)
+    {
+        // Check if user is kasir or admin
+        if (!auth()->user()->isKasir() && !auth()->user()->isAdmin()) {
+            return Inertia::location(route('penjualan.online'));
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
         ]);
 
-        $penjualan->update([
-            'status' => 'dibayar',
-            'catatan' => $penjualan->catatan .
-                ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
-        ]);
+        try {
+            $penjualan->update([
+                'status' => 'pending',
+                'payment_rejected_at' => now(),
+                'payment_rejected_by' => auth()->id(),
+                'payment_rejection_reason' => $validated['rejection_reason'],
+            ]);
 
-        return redirect()->back()
-            ->with('success', 'Pembayaran berhasil dikonfirmasi. Status diubah menjadi "Dibayar"');
+            \Log::info('Payment rejected', [
+                'penjualan_id' => $penjualan->id,
+                'rejection_reason' => $validated['rejection_reason'],
+                'rejected_by' => auth()->id(),
+            ]);
+
+            // Add flash message to session before redirect
+            session()->flash('success', 'Bukti pembayaran ditolak. Pelanggan akan diingatkan untuk upload ulang.');
+            
+            return Inertia::location(route('penjualan.online'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to reject payment', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // Add error flash message to session before redirect
+            session()->flash('error', 'Gagal menolak bukti pembayaran: ' . $e->getMessage());
+            
+            return Inertia::location(route('penjualan.online'));
+        }
     }
 
     /**
      * Mark order as ready for pickup
      */
-    public function readyPickup(Request $request, Penjualan $penjualan): RedirectResponse
+    public function readyPickup(Request $request, Penjualan $penjualan)
     {
         if ($penjualan->jenis_transaksi !== 'online') {
-            return redirect()->back()
-                ->with('error', 'Hanya transaksi online yang dapat diubah statusnya');
+            return Inertia::location(route('penjualan.online'));
         }
 
         if ($penjualan->status !== 'dibayar') {
-            return redirect()->back()
-                ->with('error', 'Transaksi harus sudah dibayar terlebih dahulu');
+            return Inertia::location(route('penjualan.online'));
         }
 
         $request->validate([
             'catatan_kasir' => 'nullable|string|max:500',
         ]);
 
-        $penjualan->update([
-            'status' => 'siap_pickup',
-            'catatan' => $penjualan->catatan .
-                ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
-        ]);
+        try {
+            $penjualan->update([
+                'status' => 'siap_pickup',
+                'catatan' => $penjualan->catatan .
+                    ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
+            ]);
 
-        return redirect()->back()
-            ->with('success', 'Pesanan siap untuk pickup. Status diubah menjadi "Siap Pickup"');
+            // Add flash message to session before redirect
+            session()->flash('success', 'Pesanan siap untuk pickup. Status diubah menjadi "Siap Pickup"');
+            
+            return Inertia::location(route('penjualan.online'));
+        } catch (\Exception $e) {
+            // Add error flash message to session before redirect
+            session()->flash('error', 'Gagal mengubah status pesanan: ' . $e->getMessage());
+            
+            return Inertia::location(route('penjualan.online'));
+        }
     }
 
     /**
      * Complete the order (picked up by customer)
      */
-    public function complete(Request $request, Penjualan $penjualan): RedirectResponse
+    public function complete(Request $request, Penjualan $penjualan)
     {
         if ($penjualan->jenis_transaksi !== 'online') {
-            return redirect()->back()
-                ->with('error', 'Hanya transaksi online yang dapat diselesaikan');
+            return Inertia::location(route('penjualan.online'));
         }
 
         if ($penjualan->status !== 'siap_pickup') {
-            return redirect()->back()
-                ->with('error', 'Transaksi harus sudah siap pickup terlebih dahulu');
+            return Inertia::location(route('penjualan.online'));
         }
 
         $request->validate([
             'catatan_kasir' => 'nullable|string|max:500',
         ]);
 
-        $penjualan->update([
-            'status' => 'selesai',
-            'catatan' => $penjualan->catatan .
-                ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
-        ]);
+        try {
+            $penjualan->update([
+                'status' => 'selesai',
+                'catatan' => $penjualan->catatan .
+                    ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
+            ]);
 
-        return redirect()->back()
-            ->with('success', 'Transaksi berhasil diselesaikan. Pesanan telah diambil pelanggan');
+            // Add flash message to session before redirect
+            session()->flash('success', 'Transaksi berhasil diselesaikan. Pesanan telah diambil pelanggan');
+            
+            return Inertia::location(route('penjualan.online'));
+        } catch (\Exception $e) {
+            // Add error flash message to session before redirect
+            session()->flash('error', 'Gagal menyelesaikan transaksi: ' . $e->getMessage());
+            
+            return Inertia::location(route('penjualan.online'));
+        }
     }
 }

@@ -1,6 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps, Penjualan } from '@/types';
 import { formatCurrency, formatDateTime, StatusBadge, ProductImage, Icons } from '@/utils/formatters';
+import { useState } from 'react';
 
 interface OrderDetailProps extends PageProps {
     order: Penjualan & {
@@ -28,6 +29,51 @@ interface OrderDetailProps extends PageProps {
 }
 
 export default function OrderDetail({ auth, order }: OrderDetailProps) {
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    const { data, setData, post, processing, errors, reset } = useForm({
+        payment_proof: null as File | null,
+    });
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            setData('payment_proof', file);
+            
+            // Create preview URL
+            const url = URL.createObjectURL(file);
+            setPreviewUrl(url);
+        }
+    };
+
+    const handleUpload = () => {
+        if (!selectedFile) return;
+
+        post(route('user.upload-payment-proof', order.id), {
+            onSuccess: () => {
+                setShowUploadModal(false);
+                setSelectedFile(null);
+                setPreviewUrl(null);
+                reset();
+                // Refresh page to show updated status
+                window.location.reload();
+            },
+            onError: (errors) => {
+                console.error('Upload errors:', errors);
+            },
+        });
+    };
+
+    const closeModal = () => {
+        setShowUploadModal(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        reset();
+    };
+
     const getStatusVariant = (status: string) => {
         switch (status) {
             case 'pending':
@@ -303,6 +349,62 @@ export default function OrderDetail({ auth, order }: OrderDetailProps) {
                                                 {order.metode_pembayaran.replace('_', ' ').toUpperCase()}
                                             </p>
                                         </div>
+                                        
+                                        {/* Bukti Pembayaran */}
+                                        {order.payment_proof && (
+                                            <div>
+                                                <span className="text-gray-600">Bukti Pembayaran:</span>
+                                                <div className="mt-2">
+                                                    <a
+                                                        href={`/storage/${order.payment_proof}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-block"
+                                                    >
+                                                        <img
+                                                            src={`/storage/${order.payment_proof}`}
+                                                            alt="Bukti Pembayaran"
+                                                            className="w-32 h-32 object-cover rounded-lg border border-gray-300 hover:opacity-80 transition-opacity cursor-pointer"
+                                                        />
+                                                    </a>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Klik untuk melihat ukuran penuh
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Informasi Penolakan Bukti Pembayaran */}
+                                        {order.payment_rejection_reason && (
+                                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <span className="text-sm font-medium text-red-800">
+                                                        Bukti Pembayaran Ditolak
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-red-700 mb-2">
+                                                    <strong>Alasan:</strong> {order.payment_rejection_reason}
+                                                </p>
+                                                <p className="text-xs text-red-600 mb-3">
+                                                    Silakan upload ulang bukti pembayaran yang valid.
+                                                </p>
+                                                
+                                                {/* Tombol Upload Ulang */}
+                                                <button
+                                                    onClick={() => setShowUploadModal(true)}
+                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                >
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                    </svg>
+                                                    Upload Ulang Bukti Pembayaran
+                                                </button>
+                                            </div>
+                                        )}
+                                        
                                         <div>
                                             <span className="text-gray-600">Metode Pickup:</span>
                                             <p className="font-semibold">
@@ -361,6 +463,88 @@ export default function OrderDetail({ auth, order }: OrderDetailProps) {
                         </div>
                     </div>
                 </section>
+
+                {/* Upload Payment Proof Modal */}
+                {showUploadModal && (
+                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                            <div className="mt-3">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-medium text-gray-900">
+                                        Upload Ulang Bukti Pembayaran
+                                    </h3>
+                                    <button
+                                        onClick={closeModal}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div className="mb-4">
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Silakan upload bukti pembayaran yang valid sesuai dengan alasan penolakan sebelumnya.
+                                    </p>
+                                    
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Pilih File Bukti Pembayaran *
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            onChange={handleFileSelect}
+                                            className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                                            required
+                                        />
+                                        {errors.payment_proof && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.payment_proof}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Preview Image */}
+                                    {previewUrl && (
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Preview:
+                                            </label>
+                                            <img
+                                                src={previewUrl}
+                                                alt="Preview"
+                                                className="w-full max-w-xs h-auto rounded-lg border border-gray-300"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                        <p className="text-sm text-yellow-800">
+                                            <strong>Tips:</strong> Pastikan bukti pembayaran jelas, lengkap, dan sesuai dengan alasan penolakan sebelumnya.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={handleUpload}
+                                        disabled={processing || !selectedFile}
+                                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                                    >
+                                        {processing ? 'Mengupload...' : 'Upload Bukti Pembayaran'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Footer */}
                 <footer className="bg-gray-800 text-white py-8">

@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
+import { BreadcrumbItem } from '@/types';
 import { FormEventHandler, useState } from 'react';
 
 interface Barang {
@@ -25,9 +25,12 @@ interface Barang {
     updater?: {
         name: string;
     };
+    formatted_created_date?: string;
+    formatted_updated_date?: string;
 }
 
-interface ShowBarangProps extends PageProps {
+interface ShowBarangProps {
+    auth: any;
     barang: Barang;
 }
 
@@ -47,8 +50,22 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
 
     const { data, setData, patch, processing, errors, reset } = useForm({
         stok: barang.stok.toString(),
-        catatan: '',
+        reason: '',
+        type: 'adjustment',
     });
+
+    const movementTypes = [
+        { value: 'adjustment', label: 'Penyesuaian Stok', description: 'Penyesuaian manual stok fisik' },
+        { value: 'correction', label: 'Koreksi Sistem', description: 'Koreksi kesalahan input atau sistem' },
+        { value: 'initial', label: 'Stock Awal', description: 'Set stock awal untuk produk baru' },
+        { value: 'in', label: 'Stock Masuk', description: 'Penerimaan barang dari supplier' },
+        { value: 'return', label: 'Retur Barang', description: 'Retur dari pelanggan' },
+    ];
+
+    const getMovementTypeDescription = (type: string) => {
+        const movementType = movementTypes.find(t => t.value === type);
+        return movementType ? movementType.description : '';
+    };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -90,18 +107,26 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                     <p className="text-sm text-gray-500 mt-1">Code: {barang.kode_barang}</p>
                                 </div>
                                 <div className="flex space-x-3">
+                                    {auth.user.roles.some((role: any) => role.name === 'admin' || role.name === 'owner') && (
+                                        <Link
+                                            href={route('barang.edit', barang.id)}
+                                            className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        >
+                                            Edit Product
+                                        </Link>
+                                    )}
+                                    <Link
+                                        href={route('barang.stock-movements', barang.id)}
+                                        className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                    >
+                                        Stock History
+                                    </Link>
                                     <button
                                         onClick={() => setShowStockModal(true)}
                                         className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         Update Stock
                                     </button>
-                                    <Link
-                                        href={route('barang.edit', barang.id)}
-                                        className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                                    >
-                                        Edit Product
-                                    </Link>
                                     <Link
                                         href={route('barang.index')}
                                         className="inline-flex items-center px-4 py-2 bg-gray-300 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-400 focus:bg-gray-400 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
@@ -222,7 +247,7 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Created</label>
                                                 <p className="text-sm text-gray-900">
-                                                    {new Date(barang.created_at).toLocaleString()}
+                                                    {barang.formatted_created_date || new Date(barang.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
                                                     {barang.creator && (
                                                         <span className="text-gray-500"> by {barang.creator.name}</span>
                                                     )}
@@ -231,7 +256,7 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Last Updated</label>
                                                 <p className="text-sm text-gray-900">
-                                                    {new Date(barang.updated_at).toLocaleString()}
+                                                    {barang.formatted_updated_date || new Date(barang.updated_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
                                                     {barang.updater && (
                                                         <span className="text-gray-500"> by {barang.updater.name}</span>
                                                     )}
@@ -271,17 +296,45 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                     )}
                                 </div>
                                 <div>
-                                    <label htmlFor="catatan" className="block text-sm font-medium text-gray-700">
-                                        Notes (Optional)
+                                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Jenis Movement *
+                                    </label>
+                                    <select
+                                        id="type"
+                                        value={data.type}
+                                        onChange={(e) => setData('type', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        required
+                                    >
+                                        {movementTypes.map(type => (
+                                            <option key={type.value} value={type.value}>{type.label}</option>
+                                        ))}
+                                    </select>
+                                    {data.type && (
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            {getMovementTypeDescription(data.type)}
+                                        </p>
+                                    )}
+                                    {errors.type && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.type}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Keterangan/Alasan *
                                     </label>
                                     <textarea
-                                        id="catatan"
-                                        value={data.catatan}
-                                        onChange={(e) => setData('catatan', e.target.value)}
+                                        id="reason"
+                                        value={data.reason}
+                                        onChange={(e) => setData('reason', e.target.value)}
                                         rows={3}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Reason for stock update..."
+                                        placeholder={`Contoh: ${getMovementTypeDescription(data.type)} - ${data.type === 'adjustment' ? 'Stock opname menunjukkan selisih' : data.type === 'correction' ? 'Koreksi kesalahan input sebelumnya' : 'Detail alasan perubahan stok'}`}
+                                        required
                                     />
+                                    {errors.reason && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
+                                    )}
                                 </div>
                                 <div className="flex justify-end space-x-3">
                                     <button
