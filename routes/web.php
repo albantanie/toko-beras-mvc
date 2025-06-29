@@ -35,13 +35,14 @@ use App\Http\Controllers\DashboardController;     // Controller untuk dashboard 
 use App\Models\Role;                              // Model Role untuk konstanta role
 use Illuminate\Support\Facades\Route;            // Laravel Route facade
 use Inertia\Inertia;                             // Inertia.js untuk SPA dengan React
+use Illuminate\Http\Request;
 
 /**
  * ===================================================================
  * PUBLIC ROUTES - DAPAT DIAKSES TANPA LOGIN
  * ===================================================================
- * Routes ini dapat diakses oleh siapa saja tanpa perlu authentication
- * Digunakan untuk halaman publik seperti catalog produk
+ * Routes yang dapat diakses oleh semua pengunjung tanpa perlu login
+ * Termasuk: home page, product listing, cart management
  */
 
 // Halaman utama - menampilkan catalog produk beras untuk pelanggan
@@ -178,8 +179,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Quick add user - form cepat untuk menambah user baru
         Route::get('users/quick-add', [\App\Http\Controllers\Admin\UserController::class, 'quickAdd'])->name('users.quick-add');
 
-        // Resource routes untuk CRUD user (index, create, store, show, edit, update, destroy)
-        Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+        // User management - CRUD operations
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::post('users/{user}/update', [UserController::class, 'update'])->name('users.update.post');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 
     /**
@@ -286,6 +294,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('barang/{barang}', [BarangController::class, 'show'])->name('barang.show');
         Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->middleware('role:admin,owner')->name('barang.edit');
         Route::put('barang/{barang}', [BarangController::class, 'update'])->middleware('role:admin,owner')->name('barang.update');
+        Route::post('barang/{barang}/update', [BarangController::class, 'update'])->middleware('role:admin,owner')->name('barang.update.post');
         Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->middleware('role:admin,owner')->name('barang.destroy');
 
         // Stock movements - riwayat perubahan stok
@@ -317,6 +326,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Resource routes untuk CRUD penjualan (index, create, store, show, edit, update, destroy)
         Route::resource('penjualan', PenjualanController::class);
+        Route::post('penjualan/{penjualan}/update', [PenjualanController::class, 'update'])->name('penjualan.update.post');
 
         // Print invoice/receipt untuk transaksi
         Route::get('penjualan/{penjualan}/print', [PenjualanController::class, 'print'])->name('penjualan.print');

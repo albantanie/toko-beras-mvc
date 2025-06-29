@@ -28,10 +28,19 @@ echo "⏳ Checking application readiness..."
 
 # Set permissions yang tepat untuk direktori Laravel
 echo "🔐 Setting permissions..."
-chown -R www-data:www-data /var/www/html/storage      # Storage Laravel
-chown -R www-data:www-data /var/www/html/bootstrap/cache  # Bootstrap cache
+chown -R nginx:nginx /var/www/html/storage      # Storage Laravel
+chown -R nginx:nginx /var/www/html/bootstrap/cache  # Bootstrap cache
 chmod -R 775 /var/www/html/storage                   # Read/write untuk web server
 chmod -R 775 /var/www/html/bootstrap/cache           # Read/write untuk cache
+
+# Setup nginx temp directories and permissions (fix for POST request issues)
+echo "🔧 Setting up nginx temp directories..."
+mkdir -p /tmp/nginx_client_body
+mkdir -p /var/lib/nginx/tmp/client_body
+chown -R nginx:nginx /tmp/nginx_client_body
+chown -R nginx:nginx /var/lib/nginx
+chmod -R 755 /tmp/nginx_client_body
+chmod -R 755 /var/lib/nginx
 
 # Buat direktori yang diperlukan Laravel jika belum ada
 mkdir -p /var/www/html/storage/framework/cache/data   # Cache data Laravel
@@ -50,7 +59,7 @@ if [ ! -f /var/www/html/database/database.sqlite ]; then
     echo "📄 Creating SQLite database..."
     touch /var/www/html/database/database.sqlite
     chmod 664 /var/www/html/database/database.sqlite      # Read/write untuk owner dan group
-    chown www-data:www-data /var/www/html/database/database.sqlite
+    chown nginx:nginx /var/www/html/database/database.sqlite
 fi
 
 # ===================================================================
@@ -121,8 +130,8 @@ echo "🔗 Creating storage link..."
 php /var/www/html/artisan storage:link
 
 # Set permissions final untuk memastikan web server bisa akses
-chown -R www-data:www-data /var/www/html/storage
-chown -R www-data:www-data /var/www/html/bootstrap/cache
+chown -R nginx:nginx /var/www/html/storage
+chown -R nginx:nginx /var/www/html/bootstrap/cache
 
 echo "✅ Application ready! Starting services..."
 

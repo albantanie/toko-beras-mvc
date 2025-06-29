@@ -29,7 +29,7 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         name: user.name || '',
         email: user.email || '',
         password: '',
@@ -39,7 +39,7 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        put(route('admin.users.update', user.id), {
+        post(route('admin.users.update.post', user.id), {
             onSuccess: () => {
                 RiceStoreAlerts.user.updated(data.name);
             },

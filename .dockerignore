@@ -5,6 +5,7 @@
 
 # Documentation
 README.md
+*.md
 CHANGELOG.md
 LICENSE
 
@@ -16,10 +17,9 @@ docker-compose.dev.yml
 docker-compose.override.yml
 
 # Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+node_modules
+npm-debug.log
+yarn-error.log
 .npm
 .yarn
 
@@ -47,8 +47,8 @@ yarn-error.log*
 /database/*.sqlite
 
 # IDE
-.vscode/
-.idea/
+.vscode
+.idea
 *.swp
 *.swo
 *~
@@ -72,9 +72,16 @@ Thumbs.db
 composer.phar
 
 # Environment
-.env
-.env.backup
-.env.production
+
 
 # Cache
 .cache/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Backup files
+*.bak
+*.backup

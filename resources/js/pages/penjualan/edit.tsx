@@ -62,7 +62,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
     const [quantity, setQuantity] = useState(1);
     const [customPrice, setCustomPrice] = useState('');
 
-    const { data, setData, put, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         pelanggan_id: '',
         nama_pelanggan: penjualan.nama_pelanggan || '',
         telepon_pelanggan: penjualan.telepon_pelanggan || '',
@@ -211,7 +211,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
             items,
         };
 
-        put(route('penjualan.update', penjualan.id), submitData, {
+        post(route('penjualan.update.post', penjualan.id), submitData, {
             onSuccess: () => {
                 RiceStoreAlerts.transaction.updated(penjualan.nomor_transaksi);
             },

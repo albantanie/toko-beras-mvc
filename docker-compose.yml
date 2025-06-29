@@ -2,29 +2,16 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    container_name: toko-beras-app
-    restart: unless-stopped
+    build: .
     ports:
       - "8080:80"
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_KEY=base64:your-app-key-here
-      - DB_CONNECTION=sqlite
-      - DB_DATABASE=/var/www/html/database/database.sqlite
-      - CACHE_DRIVER=file
-      - SESSION_DRIVER=file
-      - QUEUE_CONNECTION=database
-      - MAIL_MAILER=log
     volumes:
-      - app_storage:/var/www/html/storage
-      - app_database:/var/www/html/database
-    networks:
-      - toko-beras-network
+      - ./storage:/var/www/storage
+      - ./bootstrap/cache:/var/www/bootstrap/cache
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
@@ -32,46 +19,17 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: Redis for caching and sessions
-  redis:
-    image: redis:7-alpine
-    container_name: toko-beras-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - toko-beras-network
-    command: redis-server --appendonly yes
+  # Optional: Add database service for local testing
+  # db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: toko_beras
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
 
-  # Optional: MySQL database (alternative to SQLite)
-  mysql:
-    image: mysql:8.0
-    container_name: toko-beras-mysql
-    restart: unless-stopped
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: toko_beras
-      MYSQL_USER: toko_beras_user
-      MYSQL_PASSWORD: toko_beras_password
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - toko-beras-network
-
-volumes:
-  app_storage:
-    driver: local
-  app_database:
-    driver: local
-  redis_data:
-    driver: local
-  mysql_data:
-    driver: local
-
-networks:
-  toko-beras-network:
-    driver: bridge
+# volumes:
+#   postgres_data:
