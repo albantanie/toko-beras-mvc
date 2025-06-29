@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use PDF;
+use Illuminate\Http\RedirectResponse;
 
 /**
  * Controller untuk mengelola laporan dan analytics toko beras
@@ -360,186 +361,6 @@ class LaporanController extends Controller
     }
 
     /**
-     * Menampilkan daftar laporan yang perlu approval (untuk owner)
-     */
-    public function approvals(Request $request): Response
-    {
-        $status = $request->get('status', 'pending_approval');
-        $type = $request->get('type', 'all');
-
-        $query = Report::with(['generator', 'approver'])
-            ->orderBy('created_at', 'desc');
-
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        if ($type !== 'all') {
-            $query->where('type', $type);
-        }
-
-        $reports = $query->paginate(10)->withQueryString();
-
-        return Inertia::render('laporan/approvals', [
-            'reports' => $reports,
-            'filters' => [
-                'status' => $status,
-                'type' => $type,
-            ],
-        ]);
-    }
-
-    /**
-     * Generate laporan baru
-     */
-    public function generate(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'type' => 'required|in:penjualan_summary,penjualan_detail,transaksi_harian,transaksi_kasir,barang_stok,barang_movement,barang_performance,keuangan',
-            'period_from' => 'required_unless:type,barang_stok|date',
-            'period_to' => 'required_unless:type,barang_stok,transaksi_harian|date|after_or_equal:period_from',
-            'specific_date' => 'required_if:type,transaksi_harian|date',
-        ]);
-
-        try {
-            $report = null;
-
-            switch ($request->type) {
-                case 'penjualan_summary':
-                    $report = Report::generateSalesReport(
-                        $request->period_from,
-                        $request->period_to,
-                        auth()->id()
-                    );
-                    break;
-
-                case 'penjualan_detail':
-                    $report = Report::generateDetailedSalesReport(
-                        $request->period_from,
-                        $request->period_to,
-                        auth()->id()
-                    );
-                    break;
-
-                case 'transaksi_harian':
-                    $report = Report::generateDailyTransactionReport(
-                        $request->specific_date,
-                        auth()->id()
-                    );
-                    break;
-
-                case 'transaksi_kasir':
-                    $report = Report::generateCashierReport(
-                        $request->period_from,
-                        $request->period_to,
-                        auth()->id()
-                    );
-                    break;
-
-                case 'barang_stok':
-                    $report = Report::generateStockReport(auth()->id());
-                    break;
-
-                case 'barang_movement':
-                    $report = Report::generateItemMovementReport(
-                        $request->period_from,
-                        $request->period_to,
-                        auth()->id()
-                    );
-                    break;
-
-                case 'barang_performance':
-                    $report = Report::generateItemPerformanceReport(
-                        $request->period_from,
-                        $request->period_to,
-                        auth()->id()
-                    );
-                    break;
-
-                case 'keuangan':
-                    // TODO: Implementasi laporan keuangan
-                    return redirect()->back()->with('error', 'Laporan keuangan belum tersedia');
-            }
-
-            if ($report) {
-                return redirect()->route('laporan.show', $report)
-                    ->with('success', 'Laporan berhasil dibuat');
-            }
-
-            return redirect()->back()->with('error', 'Gagal membuat laporan');
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal membuat laporan: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Menampilkan detail laporan
-     */
-    public function show(Report $report): Response
-    {
-        $report->load(['generator', 'approver']);
-
-        return Inertia::render('laporan/show', [
-            'report' => $report,
-        ]);
-    }
-
-    /**
-     * Submit laporan untuk approval
-     */
-    public function submitForApproval(Report $report): RedirectResponse
-    {
-        if (!$report->submitForApproval()) {
-            return redirect()->back()->with('error', 'Laporan tidak dapat disubmit untuk approval');
-        }
-
-        return redirect()->back()->with('success', 'Laporan berhasil disubmit untuk approval');
-    }
-
-    /**
-     * Approve laporan (hanya owner)
-     */
-    public function approve(Request $request, Report $report): RedirectResponse
-    {
-        // Check if user is owner
-        if (!auth()->user()->isOwner()) {
-            abort(403, 'Hanya owner yang dapat approve laporan');
-        }
-
-        $request->validate([
-            'approval_notes' => 'nullable|string|max:1000',
-        ]);
-
-        if (!$report->approve(auth()->id(), $request->approval_notes)) {
-            return redirect()->back()->with('error', 'Laporan tidak dapat di-approve');
-        }
-
-        return redirect()->back()->with('success', 'Laporan berhasil di-approve');
-    }
-
-    /**
-     * Reject laporan (hanya owner)
-     */
-    public function reject(Request $request, Report $report): RedirectResponse
-    {
-        // Check if user is owner
-        if (!auth()->user()->isOwner()) {
-            abort(403, 'Hanya owner yang dapat reject laporan');
-        }
-
-        $request->validate([
-            'approval_notes' => 'required|string|max:1000',
-        ]);
-
-        if (!$report->reject(auth()->id(), $request->approval_notes)) {
-            return redirect()->back()->with('error', 'Laporan tidak dapat di-reject');
-        }
-
-        return redirect()->back()->with('success', 'Laporan berhasil di-reject');
-    }
-
-    /**
      * Menampilkan daftar laporan yang sudah di-generate
      */
     public function reports(Request $request): Response
@@ -794,6 +615,8 @@ class LaporanController extends Controller
             }
 
         } catch (\Exception $e) {
+            \Log::error('PDF Generation Error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->with('error', 'Gagal membuat laporan: ' . $e->getMessage());
         }
     }
@@ -803,62 +626,41 @@ class LaporanController extends Controller
      */
     private function generateSalesPDF($dateFrom, $dateTo, $fileName)
     {
-        // Get sales data
-        $transactions = Penjualan::with(['user', 'pelanggan'])
-            ->where('status', 'selesai')
-            ->whereDate('tanggal_transaksi', '>=', $dateFrom)
-            ->whereDate('tanggal_transaksi', '<=', $dateTo)
-            ->orderBy('tanggal_transaksi', 'desc')
-            ->get();
+        try {
+            // Get sales data with proper relationships
+            $penjualan = Penjualan::with(['user', 'pelanggan', 'detailPenjualans.barang'])
+                ->where('status', 'selesai')
+                ->whereDate('tanggal_transaksi', '>=', $dateFrom)
+                ->whereDate('tanggal_transaksi', '<=', $dateTo)
+                ->orderBy('tanggal_transaksi', 'desc')
+                ->get();
 
-        // Calculate summary
-        $summary = [
-            'total_transactions' => $transactions->count(),
-            'total_sales' => $transactions->sum('total'),
-            'average_transaction' => $transactions->count() > 0 ? $transactions->sum('total') / $transactions->count() : 0,
-            'total_profit' => $this->calculateProfit($dateFrom, $dateTo),
-        ];
-
-        // Get top products
-        $topProducts = DetailPenjualan::select('barang_id', DB::raw('SUM(jumlah) as total_terjual'))
-            ->whereHas('penjualan', function ($q) use ($dateFrom, $dateTo) {
-                $q->where('status', 'selesai')
-                  ->whereDate('tanggal_transaksi', '>=', $dateFrom)
-                  ->whereDate('tanggal_transaksi', '<=', $dateTo);
-            })
-            ->with('barang')
-            ->groupBy('barang_id')
-            ->orderBy('total_terjual', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($item) {
-                $item->nama = $item->barang->nama;
-                $item->kategori = $item->barang->kategori;
-                $item->total_revenue = $item->total_terjual * $item->barang->harga_jual;
-                return $item;
+            // Calculate summary data
+            $totalTransaksi = $penjualan->count();
+            $totalRevenue = $penjualan->sum('total');
+            $totalItems = $penjualan->sum(function($p) {
+                return $p->detailPenjualans->sum('jumlah');
             });
 
-        // Determine period label
-        $periodLabel = 'Bulanan';
-        if ($dateFrom === $dateTo) {
-            $periodLabel = 'Harian';
-        } elseif (Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) <= 7) {
-            $periodLabel = 'Mingguan';
-        } elseif (Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) <= 90) {
-            $periodLabel = 'Triwulan';
+            // Check if user is admin or owner for profit calculation
+            $isAdminOrOwner = auth()->user()->hasRole('admin') || auth()->user()->hasRole('owner');
+
+            // Generate PDF with correct variable names
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-penjualan', [
+                'penjualan' => $penjualan,
+                'totalTransaksi' => $totalTransaksi,
+                'totalRevenue' => $totalRevenue,
+                'totalItems' => $totalItems,
+                'periodFrom' => $dateFrom,
+                'periodTo' => $dateTo,
+                'isAdminOrOwner' => $isAdminOrOwner
+            ]);
+
+            return $pdf->download($fileName);
+        } catch (\Exception $e) {
+            \Log::error('Sales PDF Generation Error: ' . $e->getMessage());
+            throw $e;
         }
-
-        // Generate PDF
-        $pdf = \PDF::loadView('pdf.laporan-penjualan', [
-            'transactions' => $transactions,
-            'summary' => $summary,
-            'topProducts' => $topProducts,
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'period' => $periodLabel
-        ]);
-
-        return $pdf->download($fileName);
     }
 
     /**
@@ -866,43 +668,41 @@ class LaporanController extends Controller
      */
     private function generateFinancialPDF($dateFrom, $dateTo, $fileName)
     {
-        // Get detailed financial data
-        $transactions = Penjualan::with(['user', 'pelanggan', 'detailPenjualans.barang'])
-            ->where('status', 'selesai')
-            ->whereDate('tanggal_transaksi', '>=', $dateFrom)
-            ->whereDate('tanggal_transaksi', '<=', $dateTo)
-            ->orderBy('tanggal_transaksi', 'desc')
-            ->get();
+        try {
+            // Get detailed financial data
+            $penjualan = Penjualan::with(['user', 'pelanggan', 'detailPenjualans.barang'])
+                ->where('status', 'selesai')
+                ->whereDate('tanggal_transaksi', '>=', $dateFrom)
+                ->whereDate('tanggal_transaksi', '<=', $dateTo)
+                ->orderBy('tanggal_transaksi', 'desc')
+                ->get();
 
-        // Calculate detailed summary
-        $summary = [
-            'total_transactions' => $transactions->count(),
-            'total_sales' => $transactions->sum('total'),
-            'average_transaction' => $transactions->count() > 0 ? $transactions->sum('total') / $transactions->count() : 0,
-            'total_profit' => $this->calculateProfit($dateFrom, $dateTo),
-        ];
+            // Calculate summary data
+            $totalTransaksi = $penjualan->count();
+            $totalRevenue = $penjualan->sum('total');
+            $totalItems = $penjualan->sum(function($p) {
+                return $p->detailPenjualans->sum('jumlah');
+            });
 
-        // Determine period label
-        $periodLabel = 'Bulanan';
-        if ($dateFrom === $dateTo) {
-            $periodLabel = 'Harian';
-        } elseif (Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) <= 7) {
-            $periodLabel = 'Mingguan';
-        } elseif (Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) <= 90) {
-            $periodLabel = 'Triwulan';
+            // Check if user is admin or owner for profit calculation
+            $isAdminOrOwner = auth()->user()->hasRole('admin') || auth()->user()->hasRole('owner');
+
+            // Generate PDF using same view as sales but with more detailed data
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-penjualan', [
+                'penjualan' => $penjualan,
+                'totalTransaksi' => $totalTransaksi,
+                'totalRevenue' => $totalRevenue,
+                'totalItems' => $totalItems,
+                'periodFrom' => $dateFrom,
+                'periodTo' => $dateTo,
+                'isAdminOrOwner' => $isAdminOrOwner
+            ]);
+
+            return $pdf->download($fileName);
+        } catch (\Exception $e) {
+            \Log::error('Financial PDF Generation Error: ' . $e->getMessage());
+            throw $e;
         }
-
-        // Generate PDF using same view as sales but with more detailed data
-        $pdf = \PDF::loadView('pdf.laporan-penjualan', [
-            'transactions' => $transactions,
-            'summary' => $summary,
-            'topProducts' => collect(),
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'period' => $periodLabel
-        ]);
-
-        return $pdf->download($fileName);
     }
 
     /**
@@ -910,39 +710,41 @@ class LaporanController extends Controller
      */
     private function generateStockPDF($fileName)
     {
-        // Get stock data
-        $products = Barang::orderBy('nama')->get();
-        
-        // Calculate summary
-        $summary = [
-            'total_products' => $products->count(),
-            'normal_stock' => $products->filter(function($product) {
-                return $product->stok > $product->min_stok;
-            })->count(),
-            'low_stock' => $products->filter(function($product) {
-                return $product->stok <= $product->min_stok && $product->stok > 0;
-            })->count(),
-            'out_of_stock' => $products->filter(function($product) {
+        try {
+            // Get stock data
+            $barang = Barang::orderBy('nama')->get();
+            
+            // Calculate summary
+            $totalItems = $barang->count();
+            $lowStockItems = $barang->filter(function($product) {
+                return $product->stok <= 10 && $product->stok > 0;
+            })->count();
+            $outOfStockItems = $barang->filter(function($product) {
                 return $product->stok == 0;
-            })->count(),
-        ];
+            })->count();
+            $totalValue = $barang->sum(function($product) {
+                return $product->stok * $product->harga_jual;
+            });
 
-        // Get low stock items
-        $lowStockItems = $products->filter(function($product) {
-            return $product->stok <= $product->min_stok;
-        });
+            // Check if user is admin or owner for purchase price display
+            $isAdminOrOwner = auth()->user()->hasRole('admin') || auth()->user()->hasRole('owner');
 
-        // Generate PDF
-        $pdf = \PDF::loadView('pdf.laporan-stok', [
-            'products' => $products,
-            'summary' => $summary,
-            'lowStockItems' => $lowStockItems,
-            'dateFrom' => Carbon::now()->format('Y-m-d'),
-            'dateTo' => Carbon::now()->format('Y-m-d'),
-            'period' => 'stok'
-        ]);
+            // Generate PDF with correct variable names
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-stok', [
+                'barang' => $barang,
+                'totalItems' => $totalItems,
+                'lowStockItems' => $lowStockItems,
+                'outOfStockItems' => $outOfStockItems,
+                'totalValue' => $totalValue,
+                'generatedAt' => now()->format('d M Y H:i:s'),
+                'isAdminOrOwner' => $isAdminOrOwner
+            ]);
 
-        return $pdf->download($fileName);
+            return $pdf->download($fileName);
+        } catch (\Exception $e) {
+            \Log::error('Stock PDF Generation Error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -1074,5 +876,155 @@ class LaporanController extends Controller
                 'direction' => $direction,
             ],
         ]);
+    }
+
+    /**
+     * Generate laporan baru
+     */
+    public function generate(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'type' => 'required|in:penjualan_summary,penjualan_detail,transaksi_harian,transaksi_kasir,barang_stok,barang_movement,barang_performance,keuangan',
+            'period_from' => 'required_unless:type,barang_stok|date',
+            'period_to' => 'required_unless:type,barang_stok,transaksi_harian|date|after_or_equal:period_from',
+            'specific_date' => 'required_if:type,transaksi_harian|date',
+        ]);
+
+        try {
+            $report = null;
+
+            switch ($request->type) {
+                case 'penjualan_summary':
+                    $report = Report::generateSalesReport(
+                        $request->period_from,
+                        $request->period_to,
+                        auth()->id()
+                    );
+                    break;
+
+                case 'penjualan_detail':
+                    $report = Report::generateDetailedSalesReport(
+                        $request->period_from,
+                        $request->period_to,
+                        auth()->id()
+                    );
+                    break;
+
+                case 'transaksi_harian':
+                    $report = Report::generateDailyTransactionReport(
+                        $request->specific_date,
+                        auth()->id()
+                    );
+                    break;
+
+                case 'transaksi_kasir':
+                    $report = Report::generateCashierReport(
+                        $request->period_from,
+                        $request->period_to,
+                        auth()->id()
+                    );
+                    break;
+
+                case 'barang_stok':
+                    $report = Report::generateStockReport(auth()->id());
+                    break;
+
+                case 'barang_movement':
+                    $report = Report::generateItemMovementReport(
+                        $request->period_from,
+                        $request->period_to,
+                        auth()->id()
+                    );
+                    break;
+
+                case 'barang_performance':
+                    $report = Report::generateItemPerformanceReport(
+                        $request->period_from,
+                        $request->period_to,
+                        auth()->id()
+                    );
+                    break;
+
+                case 'keuangan':
+                    // TODO: Implementasi laporan keuangan
+                    return redirect()->back()->with('error', 'Laporan keuangan belum tersedia');
+            }
+
+            if ($report) {
+                return redirect()->route('laporan.show', $report)
+                    ->with('success', 'Laporan berhasil dibuat');
+            }
+
+            return redirect()->back()->with('error', 'Gagal membuat laporan');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membuat laporan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Menampilkan detail laporan
+     */
+    public function show(Report $report): Response
+    {
+        $report->load(['generator', 'approver']);
+
+        return Inertia::render('laporan/show', [
+            'report' => $report,
+        ]);
+    }
+
+    /**
+     * Submit laporan untuk approval
+     */
+    public function submitForApproval(Report $report): RedirectResponse
+    {
+        if (!$report->submitForApproval()) {
+            return redirect()->back()->with('error', 'Laporan tidak dapat disubmit untuk approval');
+        }
+
+        return redirect()->back()->with('success', 'Laporan berhasil disubmit untuk approval');
+    }
+
+    /**
+     * Approve laporan (hanya owner)
+     */
+    public function approve(Request $request, Report $report): RedirectResponse
+    {
+        // Check if user is owner
+        if (!auth()->user()->isOwner()) {
+            abort(403, 'Hanya owner yang dapat approve laporan');
+        }
+
+        $request->validate([
+            'approval_notes' => 'nullable|string|max:1000',
+        ]);
+
+        if (!$report->approve(auth()->id(), $request->approval_notes)) {
+            return redirect()->back()->with('error', 'Laporan tidak dapat di-approve');
+        }
+
+        return redirect()->back()->with('success', 'Laporan berhasil di-approve');
+    }
+
+    /**
+     * Reject laporan (hanya owner)
+     */
+    public function reject(Request $request, Report $report): RedirectResponse
+    {
+        // Check if user is owner
+        if (!auth()->user()->isOwner()) {
+            abort(403, 'Hanya owner yang dapat reject laporan');
+        }
+
+        $request->validate([
+            'approval_notes' => 'required|string|max:1000',
+        ]);
+
+        if (!$report->reject(auth()->id(), $request->approval_notes)) {
+            return redirect()->back()->with('error', 'Laporan tidak dapat di-reject');
+        }
+
+        return redirect()->back()->with('success', 'Laporan berhasil di-reject');
     }
 }

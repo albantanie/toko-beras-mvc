@@ -1,67 +1,66 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Stok - {{ $period }}</title>
+    <meta charset="utf-8">
+    <title>Laporan Stok Barang</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
             line-height: 1.4;
             color: #333;
-            margin: 0;
-            padding: 20px;
         }
         .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #333;
-            padding-bottom: 20px;
+            padding-bottom: 10px;
         }
         .header h1 {
             margin: 0;
-            color: #2c3e50;
             font-size: 24px;
+            color: #333;
         }
         .header p {
             margin: 5px 0;
-            color: #7f8c8d;
+            font-size: 14px;
         }
         .summary {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .summary h3 {
+            margin: 0 0 10px 0;
+            color: #333;
         }
         .summary-grid {
-            display: table;
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
         }
         .summary-item {
-            display: table-cell;
-            width: 25%;
-            padding: 15px;
             text-align: center;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
             border: 1px solid #ddd;
-            background-color: #f8f9fa;
         }
-        .summary-item h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #2c3e50;
+        .summary-item h4 {
+            margin: 0 0 5px 0;
+            color: #666;
+            font-size: 12px;
         }
         .summary-item .value {
             font-size: 18px;
             font-weight: bold;
-            color: #27ae60;
-        }
-        .table-container {
-            margin-bottom: 30px;
+            color: #333;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -69,12 +68,8 @@
             text-align: left;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #f8f9fa;
             font-weight: bold;
-            font-size: 11px;
-        }
-        td {
-            font-size: 10px;
         }
         .text-right {
             text-align: right;
@@ -82,138 +77,172 @@
         .text-center {
             text-align: center;
         }
-        .status-critical {
-            color: #e74c3c;
-            font-weight: bold;
+        .low-stock {
+            background-color: #fff3cd;
         }
-        .status-low {
-            color: #f39c12;
-            font-weight: bold;
-        }
-        .status-normal {
-            color: #27ae60;
+        .out-of-stock {
+            background-color: #f8d7da;
         }
         .footer {
             margin-top: 30px;
             text-align: center;
             font-size: 10px;
-            color: #7f8c8d;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>LAPORAN STOK</h1>
-        <p>Toko Beras - Sistem Manajemen Toko</p>
-        <p>Periode: {{ $dateFrom }} s/d {{ $dateTo }}</p>
-        <p>Dibuat pada: {{ now()->format('d/m/Y H:i') }}</p>
+        <h1>LAPORAN STOK BARANG</h1>
+        <p>Dibuat pada: {{ $generatedAt }}</p>
     </div>
 
     <div class="summary">
-        <h2>Ringkasan Stok</h2>
+        <h3>Ringkasan</h3>
         <div class="summary-grid">
             <div class="summary-item">
-                <h3>Total Produk</h3>
-                <div class="value">{{ number_format($summary['total_products']) }}</div>
+                <h4>Total Barang</h4>
+                <div class="value">{{ number_format($totalItems) }}</div>
             </div>
             <div class="summary-item">
-                <h3>Stok Normal</h3>
-                <div class="value">{{ number_format($summary['normal_stock']) }}</div>
+                <h4>Stok Menipis (≤10)</h4>
+                <div class="value">{{ number_format($lowStockItems) }}</div>
             </div>
             <div class="summary-item">
-                <h3>Stok Rendah</h3>
-                <div class="value">{{ number_format($summary['low_stock']) }}</div>
+                <h4>Habis Stok</h4>
+                <div class="value">{{ number_format($outOfStockItems) }}</div>
             </div>
             <div class="summary-item">
-                <h3>Habis Stok</h3>
-                <div class="value">{{ number_format($summary['out_of_stock']) }}</div>
+                <h4>Total Nilai Stok</h4>
+                <div class="value">Rp {{ number_format($totalValue) }}</div>
             </div>
         </div>
     </div>
 
-    <div class="table-container">
-        <h2>Detail Stok Produk</h2>
+    @if($barang->count() > 0)
         <table>
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Nama Produk</th>
+                    <th>Kode</th>
+                    <th>Nama Barang</th>
                     <th>Kategori</th>
                     <th>Stok</th>
-                    <th>Minimal Stok</th>
-                    <th>Satuan</th>
+                    @if($isAdminOrOwner)
+                        <th>Harga Beli</th>
+                    @endif
                     <th>Harga Jual</th>
+                    <th>Nilai Stok</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($products as $index => $product)
-                <tr>
-                    <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $product->nama }}</td>
-                    <td>{{ $product->kategori }}</td>
-                    <td class="text-center">{{ number_format($product->stok) }}</td>
-                    <td class="text-center">{{ number_format($product->min_stok) }}</td>
-                    <td class="text-center">{{ $product->satuan }}</td>
-                    <td class="text-right">Rp {{ number_format($product->harga_jual) }}</td>
-                    <td class="text-center">
-                        @if($product->stok == 0)
-                            <span class="status-critical">HABIS</span>
-                        @elseif($product->stok <= $product->min_stok)
-                            <span class="status-low">RENDAH</span>
-                        @else
-                            <span class="status-normal">NORMAL</span>
+                @foreach($barang as $index => $b)
+                    <tr class="@if($b->stok == 0) out-of-stock @elseif($b->stok <= 10) low-stock @endif">
+                        <td class="text-center">{{ $index + 1 }}</td>
+                        <td>{{ $b->kode }}</td>
+                        <td>{{ $b->nama }}</td>
+                        <td>{{ $b->kategori }}</td>
+                        <td class="text-center">{{ number_format($b->stok) }}</td>
+                        @if($isAdminOrOwner)
+                            <td class="text-right">Rp {{ number_format($b->harga_beli) }}</td>
                         @endif
-                    </td>
-                </tr>
+                        <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
+                        <td class="text-right">Rp {{ number_format($b->stok * $b->harga_jual) }}</td>
+                        <td class="text-center">
+                            @if($b->stok == 0)
+                                <span style="color: #dc3545; font-weight: bold;">HABIS</span>
+                            @elseif($b->stok <= 10)
+                                <span style="color: #ffc107; font-weight: bold;">MENIPIS</span>
+                            @else
+                                <span style="color: #28a745;">NORMAL</span>
+                            @endif
+                        </td>
+                    </tr>
                 @endforeach
             </tbody>
         </table>
-    </div>
 
-    @if($lowStockItems->count() > 0)
-    <div class="table-container">
-        <h2>Alert Stok Rendah</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Nama Produk</th>
-                    <th>Kategori</th>
-                    <th>Stok Saat Ini</th>
-                    <th>Minimal Stok</th>
-                    <th>Satuan</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($lowStockItems as $index => $item)
-                <tr>
-                    <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $item->nama }}</td>
-                    <td>{{ $item->kategori }}</td>
-                    <td class="text-center">{{ number_format($item->stok) }}</td>
-                    <td class="text-center">{{ number_format($item->min_stok) }}</td>
-                    <td class="text-center">{{ $item->satuan }}</td>
-                    <td class="text-center">
-                        @if($item->stok == 0)
-                            <span class="status-critical">KRITIS</span>
-                        @else
-                            <span class="status-low">RENDAH</span>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+        @if($lowStockItems > 0)
+            <div style="margin-top: 30px;">
+                <h4>Barang dengan Stok Menipis (≤10):</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode</th>
+                            <th>Nama Barang</th>
+                            <th>Stok</th>
+                            @if($isAdminOrOwner)
+                                <th>Harga Beli</th>
+                            @endif
+                            <th>Harga Jual</th>
+                            <th>Nilai Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $lowStockIndex = 1; @endphp
+                        @foreach($barang->where('stok', '<=', 10) as $b)
+                            <tr class="low-stock">
+                                <td class="text-center">{{ $lowStockIndex++ }}</td>
+                                <td>{{ $b->kode }}</td>
+                                <td>{{ $b->nama }}</td>
+                                <td class="text-center">{{ number_format($b->stok) }}</td>
+                                @if($isAdminOrOwner)
+                                    <td class="text-right">Rp {{ number_format($b->harga_beli) }}</td>
+                                @endif
+                                <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
+                                <td class="text-right">Rp {{ number_format($b->stok * $b->harga_jual) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        @if($outOfStockItems > 0)
+            <div style="margin-top: 30px;">
+                <h4>Barang Habis Stok:</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode</th>
+                            <th>Nama Barang</th>
+                            <th>Kategori</th>
+                            @if($isAdminOrOwner)
+                                <th>Harga Beli</th>
+                            @endif
+                            <th>Harga Jual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $outOfStockIndex = 1; @endphp
+                        @foreach($barang->where('stok', 0) as $b)
+                            <tr class="out-of-stock">
+                                <td class="text-center">{{ $outOfStockIndex++ }}</td>
+                                <td>{{ $b->kode }}</td>
+                                <td>{{ $b->nama }}</td>
+                                <td>{{ $b->kategori }}</td>
+                                @if($isAdminOrOwner)
+                                    <td class="text-right">Rp {{ number_format($b->harga_beli) }}</td>
+                                @endif
+                                <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    @else
+        <div style="text-align: center; padding: 40px; color: #666;">
+            <h3>Tidak ada data barang</h3>
+        </div>
     @endif
 
     <div class="footer">
-        <p>Laporan ini dibuat secara otomatis oleh sistem Toko Beras</p>
-        <p>© {{ date('Y') }} Toko Beras. All rights reserved.</p>
+        <p>Laporan ini dibuat secara otomatis oleh sistem</p>
+        <p>Halaman 1</p>
     </div>
 </body>
 </html> 

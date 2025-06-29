@@ -5,6 +5,9 @@ import { SweetAlert } from '@/utils/sweetalert';
 
 type RegisterForm = {
     name: string;
+    username: string;
+    phone_number: string;
+    address: string;
     email: string;
     password: string;
     password_confirmation: string;
@@ -13,6 +16,9 @@ type RegisterForm = {
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm<Required<RegisterForm>>({
         name: '',
+        username: '',
+        phone_number: '',
+        address: '',
         email: '',
         password: '',
         password_confirmation: '',
@@ -89,6 +95,78 @@ export default function Register() {
                                 </div>
                                 {errors.name && (
                                     <p className="mt-2 text-sm text-red-600">{errors.name}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                                    Username
+                                </label>
+                                <div className="mt-1 relative">
+                                    <input
+                                        id="username"
+                                        name="username"
+                                        type="text"
+                                        autoComplete="username"
+                                        required
+                                        value={data.username}
+                                        onChange={(e) => setData('username', e.target.value)}
+                                        disabled={processing}
+                                        className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm disabled:opacity-50 text-gray-900 bg-white"
+                                        placeholder="Masukkan username unik"
+                                    />
+                                    <Icons.user className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                </div>
+                                {errors.username && (
+                                    <p className="mt-2 text-sm text-red-600">{errors.username}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">
+                                    Nomor HP
+                                </label>
+                                <div className="mt-1 relative">
+                                    <input
+                                        id="phone_number"
+                                        name="phone_number"
+                                        type="tel"
+                                        autoComplete="tel"
+                                        required
+                                        value={data.phone_number}
+                                        onChange={(e) => setData('phone_number', e.target.value)}
+                                        disabled={processing}
+                                        className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm disabled:opacity-50 text-gray-900 bg-white"
+                                        placeholder="Masukkan nomor HP aktif"
+                                    />
+                                    <Icons.mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                </div>
+                                {errors.phone_number && (
+                                    <p className="mt-2 text-sm text-red-600">{errors.phone_number}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                                    Alamat
+                                </label>
+                                <div className="mt-1 relative">
+                                    <input
+                                        id="address"
+                                        name="address"
+                                        type="text"
+                                        autoComplete="street-address"
+                                        required
+                                        value={data.address}
+                                        onChange={(e) => setData('address', e.target.value)}
+                                        disabled={processing}
+                                        className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm disabled:opacity-50 text-gray-900 bg-white"
+                                        placeholder="Masukkan alamat lengkap Anda"
+                                    />
+                                    <Icons.mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                </div>
+                                {errors.address && (
+                                    <p className="mt-2 text-sm text-red-600">{errors.address}</p>
                                 )}
                             </div>
 

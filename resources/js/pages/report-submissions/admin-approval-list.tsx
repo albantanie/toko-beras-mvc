@@ -6,33 +6,40 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Clock, CheckCircle, XCircle, FileText, User, Calendar, Eye } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, FileText, User, Calendar, Eye, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 
-interface Report {
+interface ReportSubmission {
     id: number;
     title: string;
     type: string;
-    status: 'draft' | 'pending_approval' | 'approved' | 'rejected';
+    status: string;
     period_from: string;
     period_to: string;
     created_at: string;
-    generator: {
+    submitted_at?: string;
+    crosschecked_at?: string;
+    approved_at?: string;
+    submitter: {
         name: string;
         email: string;
+    };
+    crosschecker?: {
+        name: string;
     };
     approver?: {
         name: string;
     };
-    approved_at?: string;
+    submission_notes?: string;
+    crosscheck_notes?: string;
     approval_notes?: string;
 }
 
 interface Props {
     reports: {
-        data: Report[];
+        data: ReportSubmission[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -51,24 +58,29 @@ interface Props {
 
 const breadcrumbs = [
     { title: 'Laporan', href: '/laporan' },
-    { title: 'Approval', href: '/laporan/approvals' },
+    { title: 'Admin Approval', href: '/report-submissions/admin-approval-list' },
 ];
 
-export default function Approvals({ reports, filters }: Props) {
-    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+export default function AdminApprovalList({ reports, filters }: Props) {
+    const [selectedReport, setSelectedReport] = useState<ReportSubmission | null>(null);
     const [approvalNotes, setApprovalNotes] = useState('');
-    const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+    const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
     const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-    const [actionType, setActionType] = useState<'approve' | 'reject'>('approve');
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'pending_approval':
-                return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Menunggu</Badge>;
+            case 'owner_pending':
+                return <Badge variant="secondary" className="bg-orange-100 text-orange-800"><Clock className="w-3 h-3 mr-1" />Menunggu Approval</Badge>;
             case 'approved':
                 return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Disetujui</Badge>;
             case 'rejected':
                 return <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Ditolak</Badge>;
+            case 'crosscheck_pending':
+                return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Menunggu Crosscheck</Badge>;
+            case 'crosscheck_approved':
+                return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3 mr-1" />Crosscheck Selesai</Badge>;
+            case 'crosscheck_rejected':
+                return <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Crosscheck Ditolak</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
@@ -83,14 +95,13 @@ export default function Approvals({ reports, filters }: Props) {
             case 'barang_stok': return 'Laporan Stok Barang';
             case 'barang_movement': return 'Laporan Pergerakan Barang';
             case 'barang_performance': return 'Laporan Performa Barang';
-            case 'barang_karyawan': return 'Laporan Barang Karyawan';
             case 'keuangan': return 'Laporan Keuangan';
             default: return type;
         }
     };
 
     const handleFilterChange = (key: string, value: string) => {
-        router.get(route('laporan.approvals'), {
+        router.get(route('report-submissions.admin-approval-list'), {
             ...filters,
             [key]: value,
         }, {
@@ -99,13 +110,12 @@ export default function Approvals({ reports, filters }: Props) {
         });
     };
 
-    const handleAction = (report: Report, type: 'approve' | 'reject') => {
+    const handleAction = (report: ReportSubmission, type: 'approve' | 'reject') => {
         setSelectedReport(report);
-        setActionType(type);
         setApprovalNotes('');
         
         if (type === 'approve') {
-            setIsApprovalDialogOpen(true);
+            setIsApproveDialogOpen(true);
         } else {
             setIsRejectDialogOpen(true);
         }
@@ -114,26 +124,27 @@ export default function Approvals({ reports, filters }: Props) {
     const submitAction = () => {
         if (!selectedReport) return;
 
-        const routeName = actionType === 'approve' ? 'laporan.approve' : 'laporan.reject';
-        
+        const routeName = isApproveDialogOpen ? 'report-submissions.admin-approve' : 'report-submissions.admin-reject';
+        const successMessage = isApproveDialogOpen ? 'Laporan berhasil diapprove' : 'Laporan berhasil direject';
+
         router.patch(route(routeName, selectedReport.id), {
             approval_notes: approvalNotes,
         }, {
             onSuccess: () => {
                 Swal.fire({
                     title: 'Berhasil!',
-                    text: `Laporan berhasil ${actionType === 'approve' ? 'disetujui' : 'ditolak'}.`,
+                    text: successMessage,
                     icon: 'success',
                     timer: 2000,
                     showConfirmButton: false
                 });
-                setIsApprovalDialogOpen(false);
+                setIsApproveDialogOpen(false);
                 setIsRejectDialogOpen(false);
             },
             onError: () => {
                 Swal.fire({
                     title: 'Gagal!',
-                    text: `Terjadi kesalahan saat ${actionType === 'approve' ? 'menyetujui' : 'menolak'} laporan.`,
+                    text: 'Terjadi kesalahan saat memproses laporan.',
                     icon: 'error'
                 });
             }
@@ -142,7 +153,7 @@ export default function Approvals({ reports, filters }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Approval Laporan" />
+            <Head title="Admin Approval Laporan" />
 
             <div className="py-6">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -150,8 +161,8 @@ export default function Approvals({ reports, filters }: Props) {
                     <div className="mb-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Approval Laporan</h1>
-                                <p className="text-gray-600">Review dan approve laporan yang dibuat oleh karyawan dan admin</p>
+                                <h1 className="text-2xl font-bold text-gray-900">Admin Approval Laporan</h1>
+                                <p className="text-gray-600">Review dan approve laporan yang sudah melalui crosscheck</p>
                             </div>
                             <Link href={route('laporan.index')}>
                                 <Button variant="outline">
@@ -165,37 +176,36 @@ export default function Approvals({ reports, filters }: Props) {
                     {/* Filters */}
                     <Card className="mb-6">
                         <CardContent className="p-4">
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
-                                    <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Semua Status</SelectItem>
-                                            <SelectItem value="pending_approval">Menunggu Approval</SelectItem>
-                                            <SelectItem value="approved">Disetujui</SelectItem>
-                                            <SelectItem value="rejected">Ditolak</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm font-medium text-gray-700">Filter:</span>
                                 </div>
-                                <div className="flex-1">
-                                    <label className="text-sm font-medium text-gray-700 mb-1 block">Jenis Laporan</label>
-                                    <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Semua Jenis</SelectItem>
-                                            <SelectItem value="penjualan_summary">Laporan Penjualan</SelectItem>
-                                            <SelectItem value="barang_stok">Laporan Stok</SelectItem>
-                                            <SelectItem value="barang_movement">Laporan Pergerakan</SelectItem>
-                                            <SelectItem value="barang_performance">Laporan Performa</SelectItem>
-                                            <SelectItem value="transaksi_harian">Laporan Transaksi</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <Select value={filters.status} onValueChange={val => handleFilterChange('status', val)}>
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Status</SelectItem>
+                                        <SelectItem value="owner_pending">Menunggu Approval</SelectItem>
+                                        <SelectItem value="approved">Disetujui</SelectItem>
+                                        <SelectItem value="rejected">Ditolak</SelectItem>
+                                        <SelectItem value="crosscheck_pending">Menunggu Crosscheck</SelectItem>
+                                        <SelectItem value="crosscheck_approved">Crosscheck Selesai</SelectItem>
+                                        <SelectItem value="crosscheck_rejected">Crosscheck Ditolak</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={filters.type} onValueChange={val => handleFilterChange('type', val)}>
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Jenis</SelectItem>
+                                        <SelectItem value="penjualan_summary">Laporan Penjualan</SelectItem>
+                                        <SelectItem value="barang_stok">Laporan Stok</SelectItem>
+                                        <SelectItem value="keuangan">Laporan Keuangan</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </CardContent>
                     </Card>
@@ -223,7 +233,10 @@ export default function Approvals({ reports, filters }: Props) {
                                                 
                                                 <div className="text-sm text-gray-600 space-y-1 mb-4">
                                                     <p><strong>Jenis:</strong> {getReportTypeLabel(report.type)}</p>
-                                                    <p><strong>Generator:</strong> {report.generator.name} ({report.generator.email})</p>
+                                                    <p><strong>Submitter:</strong> {report.submitter.name} ({report.submitter.email})</p>
+                                                    {report.crosschecker && (
+                                                        <p><strong>Crosschecker:</strong> {report.crosschecker.name}</p>
+                                                    )}
                                                     <p>
                                                         <strong>Periode:</strong> {format(new Date(report.period_from), 'dd MMM yyyy', { locale: id })} - 
                                                         {format(new Date(report.period_to), 'dd MMM yyyy', { locale: id })}
@@ -231,32 +244,58 @@ export default function Approvals({ reports, filters }: Props) {
                                                     <p>
                                                         <strong>Dibuat:</strong> {format(new Date(report.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
                                                     </p>
+                                                    {report.submitted_at && (
+                                                        <p>
+                                                            <strong>Disubmit:</strong> {format(new Date(report.submitted_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                                                        </p>
+                                                    )}
+                                                    {report.crosschecked_at && (
+                                                        <p>
+                                                            <strong>Crosscheck:</strong> {format(new Date(report.crosschecked_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                                                        </p>
+                                                    )}
                                                     {report.approved_at && (
                                                         <p>
-                                                            <strong>Disetujui:</strong> {format(new Date(report.approved_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                                                            <strong>Approved:</strong> {format(new Date(report.approved_at), 'dd MMM yyyy HH:mm', { locale: id })}
                                                             {report.approver && ` oleh ${report.approver.name}`}
                                                         </p>
                                                     )}
                                                 </div>
 
+                                                {report.submission_notes && (
+                                                    <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                                                        <p className="text-sm text-blue-700">
+                                                            <strong>Catatan Submitter:</strong> {report.submission_notes}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {report.crosscheck_notes && (
+                                                    <div className="mt-3 p-3 bg-green-50 rounded-md">
+                                                        <p className="text-sm text-green-700">
+                                                            <strong>Catatan Crosscheck:</strong> {report.crosscheck_notes}
+                                                        </p>
+                                                    </div>
+                                                )}
+
                                                 {report.approval_notes && (
-                                                    <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                                                        <p className="text-sm text-gray-700">
-                                                            <strong>Catatan:</strong> {report.approval_notes}
+                                                    <div className="mt-3 p-3 bg-purple-50 rounded-md">
+                                                        <p className="text-sm text-purple-700">
+                                                            <strong>Catatan Approval:</strong> {report.approval_notes}
                                                         </p>
                                                     </div>
                                                 )}
                                             </div>
 
                                             <div className="flex items-center gap-2 ml-4">
-                                                <Link href={route('laporan.show', report.id)}>
+                                                <Link href={route('report-submissions.show', report.id)}>
                                                     <Button variant="outline" size="sm">
                                                         <Eye className="w-4 h-4 mr-1" />
                                                         Detail
                                                     </Button>
                                                 </Link>
                                                 
-                                                {report.status === 'pending_approval' && (
+                                                {report.status === 'owner_pending' && (
                                                     <>
                                                         <Button 
                                                             variant="outline" 
@@ -264,7 +303,7 @@ export default function Approvals({ reports, filters }: Props) {
                                                             onClick={() => handleAction(report, 'approve')}
                                                             className="text-green-600 border-green-600 hover:bg-green-50"
                                                         >
-                                                            <CheckCircle className="w-4 h-4 mr-1" />
+                                                            <Check className="w-4 h-4 mr-1" />
                                                             Approve
                                                         </Button>
                                                         <Button 
@@ -273,7 +312,7 @@ export default function Approvals({ reports, filters }: Props) {
                                                             onClick={() => handleAction(report, 'reject')}
                                                             className="text-red-600 border-red-600 hover:bg-red-50"
                                                         >
-                                                            <XCircle className="w-4 h-4 mr-1" />
+                                                            <X className="w-4 h-4 mr-1" />
                                                             Reject
                                                         </Button>
                                                     </>
@@ -294,11 +333,11 @@ export default function Approvals({ reports, filters }: Props) {
                                     <Link
                                         key={index}
                                         href={link.url || '#'}
-                                        className={`px-3 py-2 text-sm rounded-md ${
+                                        className={`px-3 py-2 text-sm font-medium rounded-md ${
                                             link.active
                                                 ? 'bg-blue-600 text-white'
-                                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                        }`}
                                     >
                                         {link.label}
                                     </Link>
@@ -309,13 +348,13 @@ export default function Approvals({ reports, filters }: Props) {
                 </div>
             </div>
 
-            {/* Approval Dialog */}
-            <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
+            {/* Approve Dialog */}
+            <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Approve Laporan</DialogTitle>
                         <DialogDescription>
-                            Setujui laporan "{selectedReport?.title}" yang dibuat oleh {selectedReport?.generator.name}
+                            Setujui laporan "{selectedReport?.title}" yang dibuat oleh {selectedReport?.submitter.name}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -331,11 +370,11 @@ export default function Approvals({ reports, filters }: Props) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>
                             Batal
                         </Button>
                         <Button onClick={submitAction} className="bg-green-600 hover:bg-green-700">
-                            <CheckCircle className="w-4 h-4 mr-2" />
+                            <Check className="w-4 h-4 mr-2" />
                             Approve
                         </Button>
                     </DialogFooter>
@@ -346,21 +385,21 @@ export default function Approvals({ reports, filters }: Props) {
             <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Tolak Laporan</DialogTitle>
+                        <DialogTitle>Reject Laporan</DialogTitle>
                         <DialogDescription>
-                            Tolak laporan "{selectedReport?.title}" yang dibuat oleh {selectedReport?.generator.name}
+                            Tolak laporan "{selectedReport?.title}" yang dibuat oleh {selectedReport?.submitter.name}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div>
-                            <label className="text-sm font-medium text-gray-700 mb-1 block">Alasan Penolakan *</label>
+                            <label className="text-sm font-medium text-gray-700 mb-1 block">Alasan Penolakan <span className="text-red-500">*</span></label>
                             <textarea
                                 value={approvalNotes}
                                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setApprovalNotes(e.target.value)}
-                                placeholder="Berikan alasan penolakan laporan..."
+                                placeholder="Berikan alasan penolakan..."
                                 rows={3}
-                                required
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                required
                             />
                         </div>
                     </div>
@@ -370,10 +409,10 @@ export default function Approvals({ reports, filters }: Props) {
                         </Button>
                         <Button 
                             onClick={submitAction} 
-                            disabled={!approvalNotes.trim()}
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={!approvalNotes.trim()}
                         >
-                            <XCircle className="w-4 h-4 mr-2" />
+                            <X className="w-4 h-4 mr-2" />
                             Reject
                         </Button>
                     </DialogFooter>
@@ -381,4 +420,4 @@ export default function Approvals({ reports, filters }: Props) {
             </Dialog>
         </AppLayout>
     );
-}
+} 

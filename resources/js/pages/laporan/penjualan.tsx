@@ -298,6 +298,18 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                         </div>
                     </div>
 
+                    <div className="flex items-center gap-2 mb-4">
+                        <a
+                            href={`/owner/download-report?type=penjualan${dateFrom ? `&date_from=${dateFrom}` : ''}${dateTo ? `&date_to=${dateTo}` : ''}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                        >
+                            <Icons.download className="w-4 h-4 mr-2" />
+                            Download PDF
+                        </a>
+                    </div>
+
                     {/* Transactions Table */}
                     <DataTable
                         data={penjualans}

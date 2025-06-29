@@ -21,6 +21,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 type ProfileForm = {
     name: string;
+    username: string;
+    phone_number: string;
+    address: string;
     email: string;
 };
 
@@ -29,6 +32,9 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
         name: auth.user.name,
+        username: auth.user.username,
+        phone_number: auth.user.phone_number,
+        address: auth.user.address,
         email: auth.user.email,
     });
 
@@ -43,7 +49,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Profile settings" />
-
+            
             <SettingsLayout>
                 <div className="space-y-6">
                     <HeadingSmall title="Profile information" description="Update your name and email address" />
@@ -63,6 +69,54 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             />
 
                             <InputError className="mt-2" message={errors.name} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="username">Username</Label>
+
+                            <Input
+                                id="username"
+                                className="mt-1 block w-full"
+                                value={data.username}
+                                onChange={(e) => setData('username', e.target.value)}
+                                required
+                                autoComplete="username"
+                                placeholder="Username"
+                            />
+
+                            <InputError className="mt-2" message={errors.username} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="phone_number">Phone Number</Label>
+
+                            <Input
+                                id="phone_number"
+                                className="mt-1 block w-full"
+                                value={data.phone_number}
+                                onChange={(e) => setData('phone_number', e.target.value)}
+                                required
+                                autoComplete="tel"
+                                placeholder="Phone number"
+                            />
+
+                            <InputError className="mt-2" message={errors.phone_number} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="address">Address</Label>
+
+                            <Input
+                                id="address"
+                                className="mt-1 block w-full"
+                                value={data.address}
+                                onChange={(e) => setData('address', e.target.value)}
+                                required
+                                autoComplete="street-address"
+                                placeholder="Address"
+                            />
+
+                            <InputError className="mt-2" message={errors.address} />
                         </div>
 
                         <div className="grid gap-2">
@@ -118,9 +172,9 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             </Transition>
                         </div>
                     </form>
-                </div>
 
-                <DeleteUser />
+                    <DeleteUser />
+                </div>
             </SettingsLayout>
         </AppLayout>
     );

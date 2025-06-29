@@ -52,6 +52,11 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/laporan',
                     icon: BarChart3,
                 },
+                {
+                    title: 'Admin Approval',
+                    href: '/report-submissions/admin-approval-list',
+                    icon: FileText,
+                },
             ];
 
         case 'owner':
@@ -87,6 +92,11 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/laporan/stok',
                     icon: Warehouse,
                 },
+                {
+                    title: 'Owner Approval',
+                    href: '/report-submissions/owner-approval-list',
+                    icon: FileText,
+                },
             ];
 
         case 'karyawan':
@@ -102,6 +112,16 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/laporan/stok',
                     icon: BarChart3,
                 },
+                {
+                    title: 'Laporan Saya',
+                    href: '/report-submissions/my-reports',
+                    icon: FileText,
+                },
+                {
+                    title: 'Crosscheck Laporan',
+                    href: '/report-submissions/crosscheck-list',
+                    icon: FileText,
+                },
             ];
 
         case 'kasir':
@@ -116,6 +136,16 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     title: 'Riwayat Transaksi',
                     href: '/penjualan/history',
                     icon: History,
+                },
+                {
+                    title: 'Laporan Saya',
+                    href: '/report-submissions/my-reports',
+                    icon: FileText,
+                },
+                {
+                    title: 'Crosscheck Laporan',
+                    href: '/report-submissions/crosscheck-list',
+                    icon: FileText,
                 },
             ];
 

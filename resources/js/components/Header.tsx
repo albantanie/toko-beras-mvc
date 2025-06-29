@@ -2,6 +2,10 @@ import { Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Icons } from '@/utils/formatters';
 import { PageProps } from '@/types';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { UserMenuContent } from '@/components/user-menu-content';
+import { useInitials } from '@/hooks/use-initials';
 
 interface HeaderProps {
     auth: PageProps['auth'];
@@ -31,6 +35,8 @@ export default function Header({
 
     const isActive = (page: string) => currentPage === page;
 
+    const getInitials = useInitials();
+
     return (
         <header className="bg-white shadow-sm sticky top-0 z-50">
             {/* Top Header */}
@@ -39,13 +45,13 @@ export default function Header({
                     <div className="flex justify-between items-center text-sm">
                         <div className="flex items-center space-x-4">
                             <span>📞 Hubungi Kami: 0812-3456-7890</span>
-                            <span>🚚 Gratis Ongkir untuk pembelian di atas Rp 100.000</span>
+                            <span>📘 Beli beras premium, medium, ekonomis dengan harga terjangkau</span>
                         </div>
-                        <div className="hidden md:flex items-center space-x-4">
+                        {/* <div className="hidden md:flex items-center space-x-4">
                             <span>Ikuti Kami:</span>
                             <span>📘 Facebook</span>
                             <span>📷 Instagram</span>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
@@ -109,33 +115,51 @@ export default function Header({
                         </Link>
 
                         {auth.user ? (
-                            <div className="flex items-center space-x-4">
-                                {/* User Menu */}
-                                <Link href={route('user.dashboard')} className="flex flex-col items-center group">
-                                    <Icons.user className="w-6 h-6 text-gray-700 group-hover:text-green-600" />
-                                    <span className={`text-xs group-hover:text-green-600 ${isActive('dashboard') ? 'text-green-600 font-semibold' : 'text-gray-600'}`}>
-                                        Dashboard
-                                    </span>
-                                </Link>
-                                
-                                {/* Orders */}
-                                <Link href={route('user.orders')} className="flex flex-col items-center group">
-                                    <Icons.package className="w-6 h-6 text-gray-700 group-hover:text-green-600" />
-                                    <span className={`text-xs group-hover:text-green-600 ${isActive('orders') ? 'text-green-600 font-semibold' : 'text-gray-600'}`}>
-                                        Pesanan
-                                    </span>
-                                </Link>
-
-                                {/* Logout */}
-                                <Link
-                                    href={route('logout')}
-                                    method="post"
-                                    as="button"
-                                    className="text-red-600 hover:text-red-700 text-xs font-medium"
-                                >
-                                    Logout
-                                </Link>
-                            </div>
+                            <>
+                                <div className="flex items-center space-x-4">
+                                    {/* User Menu */}
+                                    <Link href={route('user.dashboard')} className="flex flex-col items-center group">
+                                        <Icons.user className="w-6 h-6 text-gray-700 group-hover:text-green-600" />
+                                        <span className={`text-xs group-hover:text-green-600 ${isActive('dashboard') ? 'text-green-600 font-semibold' : 'text-gray-600'}`}>
+                                            Dashboard
+                                        </span>
+                                    </Link>
+                                    {/* Orders */}
+                                    <Link href={route('user.orders')} className="flex flex-col items-center group">
+                                        <Icons.package className="w-6 h-6 text-gray-700 group-hover:text-green-600" />
+                                        <span className={`text-xs group-hover:text-green-600 ${isActive('orders') ? 'text-green-600 font-semibold' : 'text-gray-600'}`}>
+                                            Pesanan
+                                        </span>
+                                    </Link>
+                                    {/* Logout (hidden on desktop, pindah ke dropdown) */}
+                                    <div className="md:hidden">
+                                        <Link
+                                            href={route('logout')}
+                                            method="post"
+                                            as="button"
+                                            className="text-red-600 hover:text-red-700 text-xs font-medium"
+                                        >
+                                            Logout
+                                        </Link>
+                                    </div>
+                                </div>
+                                {/* Profile/Avatar Dropdown */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button className="ml-2 focus:outline-none">
+                                            <Avatar className="size-8 overflow-hidden rounded-full">
+                                                <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
+                                                <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                                                    {getInitials(auth.user.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" align="end">
+                                        <UserMenuContent user={auth.user} />
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </>
                         ) : (
                             <div className="flex items-center space-x-3">
                                 <Link

@@ -85,11 +85,18 @@ class UserController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
+                'username' => 'required|string|max:255|unique:users',
+                'phone_number' => 'required|string|max:20',
+                'address' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
                 'role_id' => 'required|exists:roles,id',
             ], [
                 'name.required' => 'Nama harus diisi.',
+                'username.required' => 'Username harus diisi.',
+                'username.unique' => 'Username sudah digunakan.',
+                'phone_number.required' => 'Nomor HP harus diisi.',
+                'address.required' => 'Alamat harus diisi.',
                 'email.required' => 'Email harus diisi.',
                 'email.email' => 'Format email tidak valid.',
                 'email.unique' => 'Email sudah digunakan.',
@@ -101,6 +108,9 @@ class UserController extends Controller
 
             $user = User::create([
                 'name' => $request->name,
+                'username' => $request->username,
+                'phone_number' => $request->phone_number,
+                'address' => $request->address,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'email_verified_at' => now(),
@@ -144,6 +154,7 @@ class UserController extends Controller
 
         $user->load('roles');
         $roles = Role::all();
+        \Log::info('Roles for edit user:', $roles->toArray()); // DEBUG
 
         return Inertia::render('admin/users/edit', [
             'user' => $user,
@@ -162,11 +173,18 @@ class UserController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
+                'username' => 'required|string|max:255|unique:users,username,' . $user->id,
+                'phone_number' => 'required|string|max:20',
+                'address' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
                 'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
                 'role_id' => 'required|exists:roles,id',
             ], [
                 'name.required' => 'Nama harus diisi.',
+                'username.required' => 'Username harus diisi.',
+                'username.unique' => 'Username sudah digunakan.',
+                'phone_number.required' => 'Nomor HP harus diisi.',
+                'address.required' => 'Alamat harus diisi.',
                 'email.required' => 'Email harus diisi.',
                 'email.email' => 'Format email tidak valid.',
                 'email.unique' => 'Email sudah digunakan.',
@@ -177,6 +195,9 @@ class UserController extends Controller
 
             $updateData = [
                 'name' => $request->name,
+                'username' => $request->username,
+                'phone_number' => $request->phone_number,
+                'address' => $request->address,
                 'email' => $request->email,
             ];
 

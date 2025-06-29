@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, TrendingUp, TrendingDown, DollarSign, BarChart3, FileText, Calendar } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -97,6 +98,12 @@ export default function OwnerDashboard({
     pendingReports,
     filters
 }: OwnerDashboardProps) {
+    const [customType, setCustomType] = useState<'date'|'month'|'year'>('date');
+    const [customDate, setCustomDate] = useState(filters.date_from || '');
+    const [customMonth, setCustomMonth] = useState(filters.date_from ? filters.date_from.slice(0,7) : '');
+    const [customYear, setCustomYear] = useState(filters.date_from ? filters.date_from.slice(0,4) : '');
+    const [showCustom, setShowCustom] = useState(filters.period === 'custom');
+
     const getRecommendationIcon = (iconName: string) => {
         switch (iconName) {
             case 'alert-triangle': return <Icons.alertTriangle className="w-5 h-5" />;
@@ -153,6 +160,29 @@ export default function OwnerDashboard({
         });
     };
 
+    const handleCustomSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        let dateFrom = '', dateTo = '';
+        if (customType === 'date') {
+            dateFrom = customDate;
+            dateTo = customDate;
+        } else if (customType === 'month') {
+            dateFrom = customMonth + '-01';
+            dateTo = format(endOfMonth(new Date(customMonth + '-01')), 'yyyy-MM-dd');
+        } else if (customType === 'year') {
+            dateFrom = customYear + '-01-01';
+            dateTo = customYear + '-12-31';
+        }
+        router.get(route('owner.dashboard'), {
+            period: 'custom',
+            date_from: dateFrom,
+            date_to: dateTo,
+        }, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const downloadReport = (type: string) => {
         const params = new URLSearchParams({
             type,
@@ -182,7 +212,7 @@ export default function OwnerDashboard({
                                     <p className="text-gray-600">Kelola bisnis toko beras dengan analitik lengkap dan rekomendasi cerdas</p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Link href={route('laporan.approvals')}>
+                                    <Link href={route('report-submissions.owner-approval-list')}>
                                         <Button variant="outline" className="relative">
                                             <FileText className="w-4 h-4 mr-2" />
                                             Approval Laporan
@@ -212,7 +242,10 @@ export default function OwnerDashboard({
                                     <Calendar className="w-4 h-4 text-gray-500" />
                                     <span className="text-sm font-medium text-gray-700">Periode:</span>
                                 </div>
-                                <Select value={filters.period} onValueChange={handlePeriodChange}>
+                                <Select value={filters.period} onValueChange={val => {
+                                    if (val === 'custom') setShowCustom(true); else setShowCustom(false);
+                                    handlePeriodChange(val);
+                                }}>
                                     <SelectTrigger className="w-40">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -221,8 +254,28 @@ export default function OwnerDashboard({
                                         <SelectItem value="week">7 Hari Terakhir</SelectItem>
                                         <SelectItem value="month">Bulan Ini</SelectItem>
                                         <SelectItem value="quarter">3 Bulan Terakhir</SelectItem>
+                                        <SelectItem value="custom">Custom</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                {showCustom && (
+                                    <form onSubmit={handleCustomSubmit} className="flex items-center gap-2 mt-2">
+                                        <select value={customType} onChange={e => setCustomType(e.target.value as any)} className="border rounded px-2 py-1">
+                                            <option value="date">Tanggal</option>
+                                            <option value="month">Bulan</option>
+                                            <option value="year">Tahun</option>
+                                        </select>
+                                        {customType === 'date' && (
+                                            <input type="date" value={customDate} onChange={e => setCustomDate(e.target.value)} className="border rounded px-2 py-1" required />
+                                        )}
+                                        {customType === 'month' && (
+                                            <input type="month" value={customMonth} onChange={e => setCustomMonth(e.target.value)} className="border rounded px-2 py-1" required />
+                                        )}
+                                        {customType === 'year' && (
+                                            <input type="number" min="2000" max="2100" value={customYear} onChange={e => setCustomYear(e.target.value)} className="border rounded px-2 py-1 w-24" required />
+                                        )}
+                                        <Button type="submit" size="sm" className="ml-2">Terapkan</Button>
+                                    </form>
+                                )}
                                 <div className="flex items-center gap-2 ml-auto">
                                     <Button 
                                         variant="outline" 
@@ -235,11 +288,57 @@ export default function OwnerDashboard({
                                     <Button 
                                         variant="outline" 
                                         size="sm"
-                                        onClick={() => downloadReport('keuangan')}
+                                        onClick={() => downloadReport('stok')}
                                     >
                                         <Download className="w-4 h-4 mr-2" />
-                                        Download Laporan Keuangan
+                                        Download Laporan Stok
                                     </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Simple Date Filter */}
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex flex-wrap items-end gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Dari Tanggal
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={filters.date_from || ''}
+                                        onChange={(e) => {
+                                            router.get(route('owner.dashboard'), {
+                                                ...filters,
+                                                date_from: e.target.value,
+                                            }, {
+                                                preserveState: true,
+                                                replace: true,
+                                            });
+                                        }}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Sampai Tanggal
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={filters.date_to || ''}
+                                        onChange={(e) => {
+                                            router.get(route('owner.dashboard'), {
+                                                ...filters,
+                                                date_to: e.target.value,
+                                            }, {
+                                                preserveState: true,
+                                                replace: true,
+                                            });
+                                        }}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
                                 </div>
                             </div>
                         </CardContent>
