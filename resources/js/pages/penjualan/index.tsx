@@ -202,8 +202,6 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
                 { value: '', label: 'All Methods' },
                 { value: 'tunai', label: 'Cash' },
                 { value: 'transfer', label: 'Transfer' },
-                { value: 'kartu_debit', label: 'Debit Card' },
-                { value: 'kartu_kredit', label: 'Credit Card' },
             ],
         },
     ];
