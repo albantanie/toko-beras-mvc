@@ -651,8 +651,6 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                         >
                                                             <option value="tunai">Tunai</option>
                                                             <option value="transfer">Transfer Bank</option>
-                                                            <option value="kartu_debit">Kartu Debit</option>
-                                                            <option value="kartu_kredit">Kartu Kredit</option>
                                                         </select>
                                                     </div>
 

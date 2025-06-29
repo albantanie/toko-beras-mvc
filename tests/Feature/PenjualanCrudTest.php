@@ -30,6 +30,8 @@ class PenjualanCrudTest extends TestCase
         // Create admin user
         $this->admin = User::create([
             'name' => 'Admin User',
+            'username' => 'admin',
+            'phone_number' => '0811111111',
             'email' => 'admin@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -39,6 +41,8 @@ class PenjualanCrudTest extends TestCase
         // Create kasir user
         $this->kasir = User::create([
             'name' => 'Kasir User',
+            'username' => 'kasir',
+            'phone_number' => '0812222222',
             'email' => 'kasir@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -770,10 +774,11 @@ class PenjualanCrudTest extends TestCase
     {
         // Create a regular user without proper role
         $user = User::create([
-            'name' => 'Regular User',
-            'email' => 'user@test.com',
+            'name' => 'Test User',
+            'username' => 'testuser',
+            'phone_number' => '0813333333',
+            'email' => 'testuser@test.com',
             'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
         
         $this->actingAs($user);

@@ -217,19 +217,16 @@ class CartController extends Controller
     }
 
     /**
-     * Memproses checkout dan membuat transaksi baru
-     *
-     * @param Request $request Data checkout dari form
-     * @return RedirectResponse Redirect ke halaman pesanan atau error
+     * Process checkout from cart
      */
-    public function processCheckout(Request $request): RedirectResponse
+    public function processCheckout(Request $request)
     {
         // Validasi data checkout yang lengkap
         $request->validate([
             'nama_pelanggan' => 'required|string|max:255',
             'telepon_pelanggan' => 'required|string|max:20',
             'alamat_pelanggan' => 'required|string',
-            'metode_pembayaran' => 'required|in:transfer,kartu_debit,kartu_kredit',
+            'metode_pembayaran' => 'required|in:tunai,transfer',
             'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'pickup_method' => 'required|in:self,grab,gojek,other',
             'pickup_person_name' => 'nullable|string|max:255',
@@ -254,6 +251,13 @@ class CartController extends Controller
                     ->withErrors(['pickup_person_phone' => 'Nomor HP pengambil wajib diisi jika tidak mengambil sendiri'])
                     ->withInput();
             }
+        }
+
+        // Validasi payment proof untuk transfer
+        if ($request->metode_pembayaran === 'transfer' && !$request->hasFile('payment_proof')) {
+            return redirect()->back()
+                ->withErrors(['payment_proof' => 'Bukti pembayaran wajib diupload untuk pembayaran transfer'])
+                ->withInput();
         }
 
         // Ambil cart dari session
@@ -295,13 +299,16 @@ class CartController extends Controller
             // Hitung total (saat ini tanpa diskon atau pajak)
             $total = $subtotal;
 
-            // Handle upload payment proof jika ada
+            // Handle upload payment proof jika ada (hanya untuk transfer)
             $paymentProofPath = null;
-            if ($request->hasFile('payment_proof')) {
+            if ($request->hasFile('payment_proof') && $request->metode_pembayaran === 'transfer') {
                 $file = $request->file('payment_proof');
                 $fileName = time() . '_' . $file->getClientOriginalName();
                 $paymentProofPath = $file->storeAs('payment-proofs', $fileName, 'public');
             }
+
+            // Set status berdasarkan metode pembayaran
+            $status = $request->metode_pembayaran === 'tunai' ? 'dibayar' : 'pending';
 
             // Buat transaksi penjualan baru
             $penjualan = Penjualan::create([
@@ -316,15 +323,15 @@ class CartController extends Controller
                 'pickup_person_name' => $request->pickup_person_name ?: null,
                 'pickup_person_phone' => $request->pickup_person_phone ?: null,
                 'pickup_notes' => $request->pickup_notes ?: null,
-                'status' => 'pending', // Status awal pending
+                'status' => $status,
                 'metode_pembayaran' => $request->metode_pembayaran,
                 'payment_proof' => $paymentProofPath,
                 'subtotal' => $subtotal,
                 'diskon' => 0,
                 'pajak' => 0,
                 'total' => $total,
-                'bayar' => null, // Akan diset ketika kasir konfirmasi pembayaran
-                'kembalian' => null,
+                'bayar' => $request->metode_pembayaran === 'tunai' ? $total : null,
+                'kembalian' => 0,
                 'catatan' => $request->catatan ?: null,
                 'tanggal_transaksi' => now(),
             ]);
@@ -346,18 +353,30 @@ class CartController extends Controller
             // Commit transaction jika semua berhasil
             DB::commit();
 
-            // Kosongkan cart setelah checkout berhasil
+            // Clear cart setelah checkout berhasil
             session()->forget('cart');
 
-            // Redirect ke halaman pesanan dengan pesan sukses
+            // Redirect dengan pesan sukses
+            $message = $request->metode_pembayaran === 'tunai' 
+                ? "Pesanan berhasil dibuat! Silakan datang ke toko untuk mengambil pesanan Anda."
+                : "Pesanan berhasil dibuat! Silakan lakukan pembayaran transfer dan upload bukti pembayaran.";
+
             return redirect()->route('user.orders')
-                ->with('success', 'Pesanan berhasil dibuat! Nomor pesanan: ' . $penjualan->nomor_transaksi);
+                ->with('success', $message);
 
         } catch (\Exception $e) {
-            // Rollback jika ada error
+            // Rollback transaction jika ada error
             DB::rollback();
+
+            \Log::error('Checkout failed', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'cart' => $cart,
+            ]);
+
             return redirect()->back()
-                ->with('error', 'Gagal memproses pesanan: ' . $e->getMessage());
+                ->with('error', 'Gagal memproses checkout: ' . $e->getMessage())
+                ->withInput();
         }
     }
 

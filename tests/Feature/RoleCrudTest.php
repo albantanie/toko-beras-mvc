@@ -22,6 +22,8 @@ class RoleCrudTest extends TestCase
         
         $this->admin = User::create([
             'name' => 'Admin User',
+            'username' => 'admin',
+            'phone_number' => '0811111111',
             'email' => 'admin@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -62,14 +64,18 @@ class RoleCrudTest extends TestCase
         ]);
 
         $user1 = User::create([
-            'name' => 'User 1',
+            'name' => 'User One',
+            'username' => 'user1',
+            'phone_number' => '0812222222',
             'email' => 'user1@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
         ]);
 
         $user2 = User::create([
-            'name' => 'User 2',
+            'name' => 'User Two',
+            'username' => 'user2',
+            'phone_number' => '0813333333',
             'email' => 'user2@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -173,9 +179,10 @@ class RoleCrudTest extends TestCase
 
         $user = User::create([
             'name' => 'Test User',
-            'email' => 'test@test.com',
+            'username' => 'testuser',
+            'phone_number' => '0814444444',
+            'email' => 'testuser@test.com',
             'password' => bcrypt('password'),
-            'email_verified_at' => now(),
         ]);
 
         $role->users()->attach($user->id);

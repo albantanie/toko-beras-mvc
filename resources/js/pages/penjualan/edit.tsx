@@ -558,8 +558,6 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                                         >
                                                             <option value="tunai">Cash</option>
                                                             <option value="transfer">Bank Transfer</option>
-                                                            <option value="kartu_debit">Debit Card</option>
-                                                            <option value="kartu_kredit">Credit Card</option>
                                                         </select>
                                                     </div>
 

@@ -717,9 +717,7 @@ class DashboardController extends Controller
     {
         return match($method) {
             'transfer' => 'Transfer Bank',
-            'kartu_debit' => 'Kartu Debit',
-            'kartu_kredit' => 'Kartu Kredit',
-            'cash' => 'Tunai',
+            'tunai' => 'Tunai',
             default => ucfirst(str_replace('_', ' ', $method)),
         };
     }

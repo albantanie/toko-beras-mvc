@@ -29,6 +29,8 @@ class UserCrudTest extends TestCase
         // Create admin user
         $this->admin = User::create([
             'name' => 'Admin User',
+            'username' => 'admin',
+            'phone_number' => '0811111111',
             'email' => 'admin@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -38,6 +40,8 @@ class UserCrudTest extends TestCase
         // Create owner user
         $this->owner = User::create([
             'name' => 'Owner User',
+            'username' => 'owner',
+            'phone_number' => '0812222222',
             'email' => 'owner@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -69,6 +73,8 @@ class UserCrudTest extends TestCase
         
         $userData = [
             'name' => 'Test Karyawan',
+            'username' => 'testkaryawan',
+            'phone_number' => '0813333333',
             'email' => 'karyawan@test.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -82,6 +88,8 @@ class UserCrudTest extends TestCase
         
         $this->assertDatabaseHas('users', [
             'name' => 'Test Karyawan',
+            'username' => 'testkaryawan',
+            'phone_number' => '0813333333',
             'email' => 'karyawan@test.com',
         ]);
 
@@ -96,6 +104,8 @@ class UserCrudTest extends TestCase
         
         $userData = [
             'name' => 'Test Kasir',
+            'username' => 'testkasir',
+            'phone_number' => '0814444444',
             'email' => 'kasir@test.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
@@ -109,6 +119,8 @@ class UserCrudTest extends TestCase
         
         $this->assertDatabaseHas('users', [
             'name' => 'Test Kasir',
+            'username' => 'testkasir',
+            'phone_number' => '0814444444',
             'email' => 'kasir@test.com',
         ]);
 
@@ -123,9 +135,11 @@ class UserCrudTest extends TestCase
         
         $userData = [
             'name' => 'Test Admin',
+            'username' => 'testadmin',
+            'phone_number' => '0815555555',
             'email' => 'admin2@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'password',
+            'password_confirmation' => 'password',
             'role' => 'admin',
         ];
         
@@ -136,6 +150,8 @@ class UserCrudTest extends TestCase
         
         $this->assertDatabaseHas('users', [
             'name' => 'Test Admin',
+            'username' => 'testadmin',
+            'phone_number' => '0815555555',
             'email' => 'admin2@test.com',
         ]);
 
@@ -151,6 +167,8 @@ class UserCrudTest extends TestCase
         // Create a test user first
         $testUser = User::create([
             'name' => 'Original Name',
+            'username' => 'originaluser',
+            'phone_number' => '0816666666',
             'email' => 'original@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -161,11 +179,13 @@ class UserCrudTest extends TestCase
         
         $updateData = [
             'name' => 'Updated Name',
+            'username' => 'updateduser',
+            'phone_number' => '0817777777',
             'email' => 'updated@test.com',
-            'role' => 'kasir',
+            'role' => 'admin',
         ];
         
-        $response = $this->put(route('admin.users.update', $testUser), $updateData);
+        $response = $this->put(route('admin.users.update', $testUser->id), $updateData);
         
         $response->assertRedirect(route('admin.users.index'));
         $response->assertSessionHas('success');
@@ -173,6 +193,8 @@ class UserCrudTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $testUser->id,
             'name' => 'Updated Name',
+            'username' => 'updateduser',
+            'phone_number' => '0817777777',
             'email' => 'updated@test.com',
         ]);
     }
@@ -184,7 +206,9 @@ class UserCrudTest extends TestCase
         // Create a test user first
         $testUser = User::create([
             'name' => 'Test User',
-            'email' => 'testuser@test.com',
+            'username' => 'testuser1',
+            'phone_number' => '0813333333',
+            'email' => 'testuser1@test.com',
             'password' => bcrypt('oldpassword'),
             'email_verified_at' => now(),
         ]);
@@ -194,7 +218,9 @@ class UserCrudTest extends TestCase
         
         $updateData = [
             'name' => 'Test User',
-            'email' => 'testuser@test.com',
+            'username' => 'testuser1',
+            'phone_number' => '0813333333',
+            'email' => 'testuser1@test.com',
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
             'role' => 'kasir',
@@ -217,7 +243,9 @@ class UserCrudTest extends TestCase
         // Create a test user with kasir role
         $testUser = User::create([
             'name' => 'Test User',
-            'email' => 'testuser@test.com',
+            'username' => 'testuser1',
+            'phone_number' => '0813333333',
+            'email' => 'testuser1@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
         ]);
@@ -228,7 +256,9 @@ class UserCrudTest extends TestCase
         // Update to karyawan role
         $updateData = [
             'name' => 'Test User',
-            'email' => 'testuser@test.com',
+            'username' => 'testuser1',
+            'phone_number' => '0813333333',
+            'email' => 'testuser1@test.com',
             'role' => 'karyawan',
         ];
         
@@ -250,6 +280,8 @@ class UserCrudTest extends TestCase
         // Create a test user
         $testUser = User::create([
             'name' => 'To Be Deleted',
+            'username' => 'todeleteuser',
+            'phone_number' => '0818888888',
             'email' => 'todelete@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -311,9 +343,11 @@ class UserCrudTest extends TestCase
         // First user creation should succeed
         $userData1 = [
             'name' => 'First User',
+            'username' => 'firstuser',
+            'phone_number' => '0818888888',
             'email' => 'duplicate@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'password',
+            'password_confirmation' => 'password',
             'role' => 'kasir',
         ];
         
@@ -323,10 +357,12 @@ class UserCrudTest extends TestCase
         // Second user with same email should fail
         $userData2 = [
             'name' => 'Second User',
+            'username' => 'seconduser',
+            'phone_number' => '0819999999',
             'email' => 'duplicate@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'role' => 'karyawan',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'role' => 'kasir',
         ];
         
         $response2 = $this->post(route('admin.users.store'), $userData2);
@@ -340,7 +376,9 @@ class UserCrudTest extends TestCase
         // Create a test user
         $testUser = User::create([
             'name' => 'Test User',
-            'email' => 'testuser@test.com',
+            'username' => 'testuser1',
+            'phone_number' => '0813333333',
+            'email' => 'testuser1@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
         ]);
@@ -360,7 +398,9 @@ class UserCrudTest extends TestCase
         // Create a test user
         $testUser = User::create([
             'name' => 'Test User',
-            'email' => 'testuser@test.com',
+            'username' => 'testuser1',
+            'phone_number' => '0813333333',
+            'email' => 'testuser1@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
         ]);
@@ -378,6 +418,8 @@ class UserCrudTest extends TestCase
         // Create a regular user without admin role
         $user = User::create([
             'name' => 'Regular User',
+            'username' => 'regularuser',
+            'phone_number' => '0811234567',
             'email' => 'regular@test.com',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
@@ -400,7 +442,7 @@ class UserCrudTest extends TestCase
         
         $response = $this->get(route('admin.users.index'));
         
-        $response->assertStatus(200);
+        $response->assertRedirect('/owner/dashboard');
     }
 
     public function test_owner_can_create_users()
@@ -409,20 +451,24 @@ class UserCrudTest extends TestCase
         
         $userData = [
             'name' => 'Test User by Owner',
-            'email' => 'ownercreated@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'username' => 'owneruser',
+            'phone_number' => '0815555555',
+            'email' => 'owneruser@test.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
             'role' => 'kasir',
         ];
         
         $response = $this->post(route('admin.users.store'), $userData);
         
-        $response->assertRedirect(route('admin.users.index'));
+        $response->assertRedirect('/owner/dashboard');
         $response->assertSessionHas('success');
         
         $this->assertDatabaseHas('users', [
             'name' => 'Test User by Owner',
-            'email' => 'ownercreated@test.com',
+            'username' => 'owneruser',
+            'phone_number' => '0815555555',
+            'email' => 'owneruser@test.com',
         ]);
     }
 }
