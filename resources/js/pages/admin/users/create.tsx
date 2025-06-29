@@ -30,10 +30,13 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
 
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
+        username: '',
+        phone_number: '',
         email: '',
         password: '',
         password_confirmation: '',
         role_id: '',
+        address: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -80,6 +83,40 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                 </div>
 
                                 <div>
+                                    <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                                        Username
+                                    </label>
+                                    <input
+                                        id="username"
+                                        type="text"
+                                        value={data.username}
+                                        onChange={(e) => setData('username', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        required
+                                    />
+                                    {errors.username && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">
+                                        Phone Number
+                                    </label>
+                                    <input
+                                        id="phone_number"
+                                        type="text"
+                                        value={data.phone_number}
+                                        onChange={(e) => setData('phone_number', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        required
+                                    />
+                                    {errors.phone_number && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.phone_number}</p>
+                                    )}
+                                </div>
+
+                                <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                                         Email
                                     </label>
@@ -93,6 +130,23 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                     />
                                     {errors.email && (
                                         <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                                        Address
+                                    </label>
+                                    <input
+                                        id="address"
+                                        type="text"
+                                        value={data.address}
+                                        onChange={(e) => setData('address', e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        required
+                                    />
+                                    {errors.address && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.address}</p>
                                     )}
                                 </div>
 

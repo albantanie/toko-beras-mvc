@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@tokoberas.com'],
             [
                 'name' => 'Administrator',
+                'username' => 'admin',
+                'phone_number' => '0811111111',
+                'address' => 'Jl. Admin No. 1',
                 'password' => Hash::make('admin123'),
                 'email_verified_at' => now(),
             ]
@@ -39,6 +42,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
+                'username' => 'testuser',
+                'phone_number' => '0812222222',
+                'address' => 'Jl. Test User No. 2',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -49,6 +55,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'owner@tokoberas.com'],
             [
                 'name' => 'Owner Toko Beras',
+                'username' => 'owner',
+                'phone_number' => '0813333333',
+                'address' => 'Jl. Owner No. 3',
                 'password' => Hash::make('owner123'),
                 'email_verified_at' => now(),
             ]
@@ -71,6 +80,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'kasir@tokoberas.com'],
             [
                 'name' => 'Kasir Toko Beras',
+                'username' => 'kasir',
+                'phone_number' => '0814444444',
+                'address' => 'Jl. Kasir No. 4',
                 'password' => Hash::make('kasir123'),
                 'email_verified_at' => now(),
             ]
@@ -87,6 +99,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'walkin@tokoberas.internal'],
             [
                 'name' => 'Walk-in Customer',
+                'username' => 'walkin',
+                'phone_number' => '0815555555',
+                'address' => 'Jl. Walkin No. 5',
                 'password' => Hash::make('walkin123'),
                 'email_verified_at' => now(),
             ]
@@ -97,6 +112,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'pelanggan1@example.com'],
             [
                 'name' => 'Ibu Sari',
+                'username' => 'ibusari',
+                'phone_number' => '0816666666',
+                'address' => 'Jl. Sari No. 6',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -106,6 +124,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'pelanggan2@example.com'],
             [
                 'name' => 'Bapak Ahmad',
+                'username' => 'bapakahmad',
+                'phone_number' => '0817777777',
+                'address' => 'Jl. Ahmad No. 7',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -115,6 +136,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'pelanggan3@example.com'],
             [
                 'name' => 'Ibu Dewi',
+                'username' => 'ibudewi',
+                'phone_number' => '0818888888',
+                'address' => 'Jl. Dewi No. 8',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -141,6 +165,9 @@ class DatabaseSeeder extends Seeder
             ['email' => 'karyawan@tokoberas.com'],
             [
                 'name' => 'Karyawan Toko Beras',
+                'username' => 'karyawan',
+                'phone_number' => '0819999999',
+                'address' => 'Jl. Karyawan No. 9',
                 'password' => Hash::make('karyawan123'),
                 'email_verified_at' => now(),
             ]
@@ -157,5 +184,8 @@ class DatabaseSeeder extends Seeder
 
         // Seed penjualans
         $this->call(PenjualanSeeder::class);
+
+        // Seed report submissions
+        $this->call(ReportSubmissionSeeder::class);
     }
 }

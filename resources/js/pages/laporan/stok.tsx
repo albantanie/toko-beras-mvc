@@ -1,8 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Barang } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatCurrency, StatusBadge, ProductImage, Icons } from '@/utils/formatters';
+import { useState } from 'react';
 
 interface LaporanStokProps extends PageProps {
     barangs: PaginatedData<Barang>;
@@ -39,6 +40,20 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function LaporanStok({ auth, barangs, summary, filters = {}, user_role }: LaporanStokProps) {
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
+    const handleDateFilter = () => {
+        router.get(route('laporan.stok'), {
+            ...filters,
+            date_from: dateFrom,
+            date_to: dateTo,
+        }, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const getStockStatus = (stok: number, stokMinimum: number) => {
         if (stok <= 0) {
             return { label: 'Out of Stock', variant: 'danger' as const };
@@ -321,6 +336,54 @@ export default function LaporanStok({ auth, barangs, summary, filters = {}, user
                                 </div>
                             </div>
                         )}
+                    </div>
+
+                    {/* Date Filter */}
+                    <div className="bg-white overflow-hidden shadow rounded-lg mb-6">
+                        <div className="px-4 py-5 sm:p-6">
+                            <div className="flex flex-wrap items-end gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Dari Tanggal
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={dateFrom}
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Sampai Tanggal
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={dateTo}
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleDateFilter}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                        <a
+                            href="/owner/download-report?type=stok"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                        >
+                            <Icons.download className="w-4 h-4 mr-2" />
+                            Download PDF
+                        </a>
                     </div>
 
                     {/* Stock Table */}

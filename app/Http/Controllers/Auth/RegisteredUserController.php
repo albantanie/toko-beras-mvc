@@ -44,12 +44,16 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
+            'phone_number' => 'required|string|max:20',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $request->name,
+            'username' => $request->username,
+            'phone_number' => $request->phone_number,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
@@ -60,11 +64,8 @@ class RegisteredUserController extends Controller
             $user->roles()->attach($userRole->id);
         }
 
-        event(new Registered($user));
-
         Auth::login($user);
-
-        // Redirect new user (pelanggan) to user dashboard
-        return redirect()->intended(route('user.dashboard'));
+        // Redirect langsung ke halaman utama setelah register
+        return redirect('/');
     }
 }

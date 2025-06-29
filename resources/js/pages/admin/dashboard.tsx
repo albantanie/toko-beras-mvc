@@ -1,10 +1,11 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import LineChart from '@/components/Charts/LineChart';
 import DoughnutChart from '@/components/Charts/DoughnutChart';
 import BarChart from '@/components/Charts/BarChart';
 import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -47,6 +48,19 @@ export default function AdminDashboard({
     topProducts,
     recentTransactions
 }: AdminDashboardProps) {
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
+    const handleDateFilter = () => {
+        router.get(route('admin.dashboard'), {
+            date_from: dateFrom,
+            date_to: dateTo,
+        }, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     // Prepare chart data
     const salesTrendData = {
         labels: todaysSalesTrend?.map(item => item.hour) || [],
@@ -132,6 +146,42 @@ export default function AdminDashboard({
                         <div className="p-6">
                             <h3 className="text-2xl font-bold text-gray-900 mb-2">Admin Dashboard</h3>
                             <p className="text-gray-600">Selamat datang, Administrator! Kelola sistem toko beras dengan akses penuh.</p>
+                        </div>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                        <div className="px-4 py-5 sm:p-6">
+                            <div className="flex flex-wrap items-end gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Dari Tanggal
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={dateFrom}
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Sampai Tanggal
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={dateTo}
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleDateFilter}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Filter
+                                </button>
+                            </div>
                         </div>
                     </div>
 

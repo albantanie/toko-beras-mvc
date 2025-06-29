@@ -27,7 +27,8 @@
 use App\Http\Controllers\BarangController;        // Controller untuk manajemen barang/inventory
 use App\Http\Controllers\LaporanController;       // Controller untuk laporan dan analytics
 use App\Http\Controllers\PenjualanController;     // Controller untuk transaksi penjualan
-use App\Http\Controllers\UserController;          // Controller untuk manajemen user
+use App\Http\Controllers\Admin\UserController;    // Controller untuk manajemen user admin
+use App\Http\Controllers\UserController as GlobalUserController; // Controller untuk manajemen user global
 use App\Http\Controllers\HomeController;          // Controller untuk halaman publik dan customer
 use App\Http\Controllers\CartController;          // Controller untuk shopping cart
 use App\Http\Controllers\ReceiptController;       // Controller untuk receipt dan pickup
@@ -36,6 +37,7 @@ use App\Models\Role;                              // Model Role untuk konstanta 
 use Illuminate\Support\Facades\Route;            // Laravel Route facade
 use Inertia\Inertia;                             // Inertia.js untuk SPA dengan React
 use Illuminate\Http\Request;
+use App\Http\Controllers\ReportSubmissionController; // Controller untuk report submission
 
 /**
  * ===================================================================
@@ -289,13 +291,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
         // CRUD barang - semua role bisa manage inventory
         Route::get('barang', [BarangController::class, 'index'])->name('barang.index');
-        Route::get('barang/create', [BarangController::class, 'create'])->middleware('role:admin,owner')->name('barang.create');
-        Route::post('barang', [BarangController::class, 'store'])->middleware('role:admin,owner')->name('barang.store');
+        Route::get('barang/create', [BarangController::class, 'create'])->name('barang.create');
+        Route::post('barang', [BarangController::class, 'store'])->name('barang.store');
         Route::get('barang/{barang}', [BarangController::class, 'show'])->name('barang.show');
-        Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->middleware('role:admin,owner')->name('barang.edit');
-        Route::put('barang/{barang}', [BarangController::class, 'update'])->middleware('role:admin,owner')->name('barang.update');
-        Route::post('barang/{barang}/update', [BarangController::class, 'update'])->middleware('role:admin,owner')->name('barang.update.post');
-        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->middleware('role:admin,owner')->name('barang.destroy');
+        Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->name('barang.edit');
+        Route::put('barang/{barang}', [BarangController::class, 'update'])->name('barang.update');
+        Route::post('barang/{barang}/update', [BarangController::class, 'update'])->name('barang.update.post');
+        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
 
         // Stock movements - riwayat perubahan stok
         Route::get('barang/{barang}/stock-movements', [BarangController::class, 'stockMovements'])->name('barang.stock-movements');
@@ -415,9 +417,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
      * Routes khusus untuk owner: approve/reject laporan
      */
     Route::middleware(['role:' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
-        // Daftar laporan yang perlu approval
-        Route::get('approvals', [LaporanController::class, 'approvals'])->name('approvals');
-        
         // Approve laporan
         Route::patch('reports/{report}/approve', [LaporanController::class, 'approve'])->name('approve');
         
@@ -434,6 +433,66 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
         // Laporan history transaksi komprehensif dengan analytics
         Route::get('history-transaction', [LaporanController::class, 'historyTransaction'])->name('history-transaction');
+    });
+
+    /**
+     * ===================================================================
+     * DUAL CROSSCHECK REPORT SYSTEM ROUTES
+     * ===================================================================
+     * Routes untuk sistem dual crosscheck laporan dari kasir dan karyawan
+     */
+    Route::prefix('report-submissions')->name('report-submissions.')->group(function () {
+        // SEMUA ROUTE STRING LITERAL HARUS DI ATAS ROUTE PARAMETER {reportSubmission}
+        
+        // Routes untuk kasir dan karyawan - string literal
+        Route::middleware(['role:' . Role::KASIR . ',' . Role::KARYAWAN])->group(function () {
+            Route::get('my-reports', [ReportSubmissionController::class, 'myReports'])->name('my-reports');
+            Route::get('create', [ReportSubmissionController::class, 'create'])->name('create');
+            Route::post('store', [ReportSubmissionController::class, 'store'])->name('store');
+            Route::get('crosscheck-list', [ReportSubmissionController::class, 'crosscheckList'])->name('crosscheck-list');
+        });
+
+        // Routes untuk owner - string literal
+        Route::middleware(['role:' . Role::OWNER])->group(function () {
+            Route::get('owner-approval-list', [ReportSubmissionController::class, 'ownerApprovalList'])->name('owner-approval-list');
+        });
+
+        // Routes untuk admin - string literal
+        Route::middleware(['role:' . Role::ADMIN])->group(function () {
+            Route::get('admin-approval-list', [ReportSubmissionController::class, 'adminApprovalList'])->name('admin-approval-list');
+        });
+
+        // Route untuk download PDF
+        Route::get('download-pdf/{path}', [ReportSubmissionController::class, 'downloadPdf'])->name('download-pdf')->where('path', '.*');
+
+        // Route show untuk semua role yang relevan (kasir, karyawan, owner, admin)
+        Route::middleware(['role:' . Role::KASIR . ',' . Role::KARYAWAN . ',' . Role::OWNER . ',' . Role::ADMIN])->group(function () {
+            Route::get('{id}', [ReportSubmissionController::class, 'show'])->name('show')->where('id', '[0-9]+');
+        });
+
+        // ROUTE PARAMETER {reportSubmission} HARUS DI BAWAH SEMUA STRING LITERAL
+        
+        // Routes untuk kasir dan karyawan - dengan parameter
+        Route::middleware(['role:' . Role::KASIR . ',' . Role::KARYAWAN])->group(function () {
+            Route::patch('{id}/submit', [ReportSubmissionController::class, 'submitForCrosscheck'])->name('submit')->where('id', '[0-9]+');
+            Route::get('{id}/edit', [ReportSubmissionController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
+            Route::put('{id}', [ReportSubmissionController::class, 'update'])->name('update')->where('id', '[0-9]+');
+            Route::delete('{id}', [ReportSubmissionController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
+            Route::patch('{id}/crosscheck-approve', [ReportSubmissionController::class, 'crosscheckApprove'])->name('crosscheck-approve')->where('id', '[0-9]+');
+            Route::patch('{id}/crosscheck-reject', [ReportSubmissionController::class, 'crosscheckReject'])->name('crosscheck-reject')->where('id', '[0-9]+');
+        });
+
+        // Routes untuk owner - dengan parameter
+        Route::middleware(['role:' . Role::OWNER])->group(function () {
+            Route::patch('{id}/owner-approve', [ReportSubmissionController::class, 'ownerApprove'])->name('owner-approve')->where('id', '[0-9]+');
+            Route::patch('{id}/owner-reject', [ReportSubmissionController::class, 'ownerReject'])->name('owner-reject')->where('id', '[0-9]+');
+        });
+
+        // Routes untuk admin - dengan parameter
+        Route::middleware(['role:' . Role::ADMIN])->group(function () {
+            Route::patch('{id}/admin-approve', [ReportSubmissionController::class, 'adminApprove'])->name('admin-approve')->where('id', '[0-9]+');
+            Route::patch('{id}/admin-reject', [ReportSubmissionController::class, 'adminReject'])->name('admin-reject')->where('id', '[0-9]+');
+        });
     });
 });
 
