@@ -71,7 +71,6 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
         berat_per_unit: barang.berat_per_unit?.toString() || '',
         is_active: barang.is_active ?? true,
         gambar: null as File | null,
-        _method: 'PUT',
     });
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +90,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('barang.update', barang.id), {
+        post(route('barang.update.post', barang.id), {
             forceFormData: true,
             onSuccess: () => {
                 RiceStoreAlerts.product.updated(data.nama);
