@@ -508,3 +508,11 @@ require __DIR__.'/settings.php';
 
 // Include routes untuk authentication (login, register, password reset, dll)
 require __DIR__.'/auth.php';
+
+/**
+ * ===================================================================
+ * DOCUMENTATION ROUTES
+ * ===================================================================
+ * Route untuk download dokumentasi PDF
+ */
+Route::get('/documentation/download', [\App\Http\Controllers\DocumentationController::class, 'downloadPdf'])->name('documentation.download');
