@@ -7,7 +7,7 @@ import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Admin Dashboard',
+        title: 'Dashboard Admin',
         href: '/admin/dashboard',
     },
 ];
@@ -51,7 +51,7 @@ export default function AdminDashboard({
         labels: todaysSalesTrend?.map(item => item.hour) || [],
         datasets: [
             {
-                label: 'Revenue',
+                label: 'Pendapatan',
                 data: todaysSalesTrend?.map(item => item.revenue) || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -59,7 +59,7 @@ export default function AdminDashboard({
                 tension: 0.4,
             },
             {
-                label: 'Transactions',
+                label: 'Transaksi',
                 data: todaysSalesTrend?.map(item => item.transactions) || [],
                 borderColor: 'rgb(59, 130, 246)',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -102,7 +102,7 @@ export default function AdminDashboard({
                 position: 'left' as const,
                 title: {
                     display: true,
-                    text: 'Revenue (Rp)',
+                    text: 'Pendapatan (Rp)',
                 },
             },
             y1: {
@@ -111,7 +111,7 @@ export default function AdminDashboard({
                 position: 'right' as const,
                 title: {
                     display: true,
-                    text: 'Transactions',
+                    text: 'Transaksi',
                 },
                 grid: {
                     drawOnChartArea: false,
@@ -122,14 +122,14 @@ export default function AdminDashboard({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Admin Dashboard" />
+            <Head title="Dashboard Admin" />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                     {/* Header */}
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Admin Dashboard</h3>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Admin</h3>
                             <p className="text-gray-600">Selamat datang, Administrator! Kelola sistem toko beras dengan akses penuh.</p>
                         </div>
                     </div>
@@ -143,7 +143,7 @@ export default function AdminDashboard({
                                         <Icons.money className="h-6 w-6 text-green-600" />
                                     </div>
                                     <div className="ml-4 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-600">Revenue Hari Ini</p>
+                                        <p className="text-sm font-medium text-gray-600">Pendapatan Hari Ini</p>
                                         <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(salesSummary?.today?.revenue || 0)}>
                                             {formatCompactNumber(salesSummary?.today?.revenue || 0, 'currency')}
                                         </p>
@@ -175,7 +175,7 @@ export default function AdminDashboard({
                                         <Icons.calendar className="h-6 w-6 text-purple-600" />
                                     </div>
                                     <div className="ml-4 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-600">Revenue Bulan Ini</p>
+                                        <p className="text-sm font-medium text-gray-600">Pendapatan Bulan Ini</p>
                                         <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(salesSummary?.this_month?.revenue || 0)}>
                                             {formatCompactNumber(salesSummary?.this_month?.revenue || 0, 'currency')}
                                         </p>
@@ -206,7 +206,7 @@ export default function AdminDashboard({
                         {/* Today's Sales Trend */}
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div className="p-6">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Today's Sales Trend</h4>
+                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Tren Penjualan Hari Ini</h4>
                                 <LineChart data={salesTrendData} options={salesTrendOptions} height={300} />
                             </div>
                         </div>
@@ -214,7 +214,7 @@ export default function AdminDashboard({
                         {/* Payment Methods */}
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div className="p-6">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h4>
+                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Metode Pembayaran</h4>
                                 <DoughnutChart data={paymentMethodsData} height={300} />
                             </div>
                         </div>

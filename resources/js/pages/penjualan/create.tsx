@@ -166,12 +166,12 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
 
         if (cart.length === 0) {
             console.log('STOPPING: Cart is empty');
-            SweetAlert.error.custom('Cart Empty!', 'Please add some products to the cart before proceeding.');
+            SweetAlert.error.custom('Keranjang Kosong!', 'Silakan tambahkan produk ke keranjang sebelum melanjutkan.');
             return;
         }
 
         if (data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && data.bayar < total) {
-            SweetAlert.error.custom('Insufficient Payment!', `Payment amount (${formatCurrency(data.bayar)}) is less than total (${formatCurrency(total)}).`);
+            SweetAlert.error.custom('Pembayaran Tidak Cukup!', `Jumlah bayar (${formatCurrency(data.bayar)}) kurang dari total (${formatCurrency(total)}).`);
             return;
         }
 
@@ -191,7 +191,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
         // Validate items array
         if (items.length === 0) {
             console.log('ERROR: Items array is empty despite cart having items');
-            SweetAlert.error.custom('Error!', 'Terjadi kesalahan dalam memproses keranjang. Silakan refresh halaman dan coba lagi.');
+            SweetAlert.error.custom('Kesalahan!', 'Terjadi kesalahan dalam memproses keranjang. Silakan refresh halaman dan coba lagi.');
             return;
         }
 

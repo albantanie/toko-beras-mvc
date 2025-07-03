@@ -14,7 +14,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Profile settings',
+        title: 'Pengaturan Profil',
         href: '/settings/profile',
     },
 ];
@@ -30,13 +30,16 @@ type ProfileForm = {
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
 
-    const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
-        name: auth.user.name,
-        username: auth.user.username,
-        phone_number: auth.user.phone_number,
-        address: auth.user.address,
-        email: auth.user.email,
-    });
+    const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>(
+        undefined,
+        {
+            name: auth.user.name,
+            username: auth.user.username,
+            phone_number: auth.user.phone_number,
+            address: auth.user.address,
+            email: auth.user.email,
+        }
+    );
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -48,15 +51,15 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Profile settings" />
+            <Head title="Pengaturan Profil" />
             
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall title="Profile information" description="Update your name and email address" />
+                    <HeadingSmall title="Informasi Profil" description="Perbarui nama, username, nomor HP, alamat, dan email Anda." />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Name</Label>
+                            <Label htmlFor="name">Nama</Label>
 
                             <Input
                                 id="name"
@@ -65,10 +68,10 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 onChange={(e) => setData('name', e.target.value)}
                                 required
                                 autoComplete="name"
-                                placeholder="Full name"
+                                placeholder="Nama lengkap"
                             />
 
-                            <InputError className="mt-2" message={errors.name} />
+                            <InputError className="mt-2" message={errors.name && `Nama wajib diisi.`} />
                         </div>
 
                         <div className="grid gap-2">
@@ -84,11 +87,11 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 placeholder="Username"
                             />
 
-                            <InputError className="mt-2" message={errors.username} />
+                            <InputError className="mt-2" message={errors.username && `Username wajib diisi.`} />
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="phone_number">Phone Number</Label>
+                            <Label htmlFor="phone_number">Nomor HP</Label>
 
                             <Input
                                 id="phone_number"
@@ -97,14 +100,14 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 onChange={(e) => setData('phone_number', e.target.value)}
                                 required
                                 autoComplete="tel"
-                                placeholder="Phone number"
+                                placeholder="Nomor HP"
                             />
 
-                            <InputError className="mt-2" message={errors.phone_number} />
+                            <InputError className="mt-2" message={errors.phone_number && `Nomor HP wajib diisi.`} />
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="address">Address</Label>
+                            <Label htmlFor="address">Alamat</Label>
 
                             <Input
                                 id="address"
@@ -113,14 +116,14 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 onChange={(e) => setData('address', e.target.value)}
                                 required
                                 autoComplete="street-address"
-                                placeholder="Address"
+                                placeholder="Alamat lengkap"
                             />
 
-                            <InputError className="mt-2" message={errors.address} />
+                            <InputError className="mt-2" message={errors.address && `Alamat wajib diisi.`} />
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email address</Label>
+                            <Label htmlFor="email">Alamat Email</Label>
 
                             <Input
                                 id="email"
@@ -130,36 +133,36 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 onChange={(e) => setData('email', e.target.value)}
                                 required
                                 autoComplete="username"
-                                placeholder="Email address"
+                                placeholder="Alamat email"
                             />
 
-                            <InputError className="mt-2" message={errors.email} />
+                            <InputError className="mt-2" message={errors.email && `Alamat email wajib diisi.`} />
                         </div>
 
                         {mustVerifyEmail && auth.user.email_verified_at === null && (
                             <div>
                                 <p className="-mt-4 text-sm text-muted-foreground">
-                                    Your email address is unverified.{' '}
+                                    Alamat email Anda belum terverifikasi.{' '}
                                     <Link
                                         href={route('verification.send')}
                                         method="post"
                                         as="button"
                                         className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
                                     >
-                                        Click here to resend the verification email.
+                                        Klik di sini untuk mengirim ulang email verifikasi.
                                     </Link>
                                 </p>
 
                                 {status === 'verification-link-sent' && (
                                     <div className="mt-2 text-sm font-medium text-green-600">
-                                        A new verification link has been sent to your email address.
+                                        Link verifikasi baru telah dikirim ke email Anda.
                                     </div>
                                 )}
                             </div>
                         )}
 
                         <div className="flex items-center gap-4">
-                            <Button disabled={processing}>Save</Button>
+                            <Button disabled={processing}>Simpan</Button>
 
                             <Transition
                                 show={recentlySuccessful}
@@ -168,7 +171,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 leave="transition ease-in-out"
                                 leaveTo="opacity-0"
                             >
-                                <p className="text-sm text-neutral-600">Saved</p>
+                                <p className="text-sm text-neutral-600">Tersimpan</p>
                             </Transition>
                         </div>
                     </form>

@@ -70,7 +70,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
     const columns: Column[] = [
         {
             key: 'nama',
-            label: 'Product',
+            label: 'Produk',
             sortable: true,
             searchable: true,
             render: (value, row) => (
@@ -89,7 +89,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
         },
         {
             key: 'kategori',
-            label: 'Category',
+            label: 'Kategori',
             sortable: true,
             render: (value) => (
                 <span className="text-sm text-gray-900">{value}</span>
@@ -97,7 +97,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
         },
         {
             key: 'harga_jual',
-            label: 'Price',
+            label: 'Harga Jual',
             sortable: true,
             render: (value, row) => (
                 <div>
@@ -105,14 +105,14 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                         {formatCurrency(value)}
                     </div>
                     <div className="text-xs text-gray-500">
-                        Buy: {formatCurrency(row.harga_beli)}
+                        Beli: {formatCurrency(row.harga_beli)}
                     </div>
                 </div>
             ),
         },
         {
             key: 'stok',
-            label: 'Stock',
+            label: 'Stok',
             sortable: true,
             render: (value, row) => (
                 <div>
@@ -134,7 +134,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                     <div className="flex flex-col space-y-1">
                         <StatusBadge status={stockStatus.text} variant={stockStatus.variant} />
                         {!row.is_active && (
-                            <StatusBadge status="Inactive" variant="default" />
+                            <StatusBadge status="Tidak Aktif" variant="default" />
                         )}
                     </div>
                 );
@@ -142,14 +142,14 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
         },
         {
             key: 'actions',
-            label: 'Actions',
+            label: 'Aksi',
             render: (_, row) => (
                 <div className="whitespace-nowrap text-sm text-gray-500 flex gap-2">
-                    <Link href={route('barang.show', row.id)} className="text-blue-600 hover:underline">View</Link>
+                    <Link href={route('barang.show', row.id)} className="text-blue-600 hover:underline">Lihat</Link>
                     {isAdminOrOwner && (
                         <>
-                            <Link href={route('barang.edit', row.id)} className="text-green-600 hover:underline">Edit</Link>
-                            <button onClick={() => handleDelete(row.id, row.nama)} className="text-red-600 hover:underline">Delete</button>
+                            <Link href={route('barang.edit', row.id)} className="text-green-600 hover:underline">Ubah</Link>
+                            <button onClick={() => handleDelete(row.id, row.nama)} className="text-red-600 hover:underline">Hapus</button>
                         </>
                     )}
                 </div>
@@ -160,19 +160,19 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
     const tableFilters: Filter[] = [
         {
             key: 'filter',
-            label: 'All Products',
+            label: 'Semua Produk',
             options: [
-                { value: 'all', label: 'All Products' },
-                { value: 'low_stock', label: 'Low Stock' },
-                { value: 'out_of_stock', label: 'Out of Stock' },
-                { value: 'inactive', label: 'Inactive' },
+                { value: 'all', label: 'Semua Produk' },
+                { value: 'low_stock', label: 'Stok Rendah' },
+                { value: 'out_of_stock', label: 'Stok Habis' },
+                { value: 'inactive', label: 'Tidak Aktif' },
             ],
         },
     ];
 
     const actions = isAdminOrOwner ? [
         {
-            label: 'Add New Product',
+            label: 'Tambah Produk Baru',
             href: route('barang.create'),
             className: 'inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
             icon: <Icons.add />,
@@ -182,14 +182,14 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
     return (
         <>
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Manage Products" />
+                <Head title="Barang" />
 
                 <div className="py-12">
                     <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                         <div className="mb-6">
-                            <h3 className="text-lg font-medium text-gray-900">Manage Products</h3>
+                            <h3 className="text-lg font-medium text-gray-900">Barang</h3>
                             <p className="mt-1 text-sm text-gray-600">
-                                Manage your product inventory, pricing, and stock levels.
+                                Kelola data produk, harga, dan stok barang di toko Anda.
                             </p>
                         </div>
 
@@ -198,18 +198,18 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                             columns={columns}
                             filters={tableFilters}
                             actions={actions}
-                            searchPlaceholder="Search products..."
+                            searchPlaceholder="Cari produk berdasarkan nama, kode, atau kategori..."
                             routeName="barang.index"
                             currentSearch={filters?.search || ''}
                             currentFilters={{ filter: filters?.filter || 'all' }}
                             currentSort={filters?.sort || 'nama'}
                             currentDirection={filters?.direction as 'asc' | 'desc' || 'asc'}
                             emptyState={{
-                                title: 'No products found',
-                                description: 'Get started by creating a new product for your store.',
+                                title: 'Belum ada produk',
+                                description: 'Belum ada data produk yang tercatat. Silakan tambah produk baru untuk mulai mengelola inventaris.',
                                 ...(isAdminOrOwner && {
                                     action: {
-                                        label: 'Add New Product',
+                                        label: 'Tambah Produk Baru',
                                         href: route('barang.create'),
                                     },
                                 }),

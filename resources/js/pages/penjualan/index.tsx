@@ -20,7 +20,7 @@ interface PenjualanIndexProps extends PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Transaksi Penjualan',
+        title: 'Penjualan',
         href: '/penjualan',
     },
 ];
@@ -72,9 +72,23 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
             kartu_kredit: 'bg-orange-100 text-orange-800',
         };
 
+        let label = '';
+        switch (method) {
+            case 'tunai':
+                label = 'Tunai'; break;
+            case 'transfer':
+                label = 'Transfer'; break;
+            case 'kartu_debit':
+                label = 'Kartu Debit'; break;
+            case 'kartu_kredit':
+                label = 'Kartu Kredit'; break;
+            default:
+                label = 'Metode Lain'; // fallback label in Bahasa Indonesia
+        }
+
         return (
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${colors[method] || 'bg-gray-100 text-gray-800'}`}>
-                {method.replace('_', ' ').toUpperCase()}
+                {label}
             </span>
         );
     };
@@ -101,7 +115,7 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
             render: (value, row) => (
                 <div>
                     <div className="text-sm font-medium text-gray-900">
-                        {value || row.pelanggan?.name || 'Walk-in Customer'}
+                        {value || row.pelanggan?.name || 'Pelanggan Langsung'}
                     </div>
                     {row.telepon_pelanggan && (
                         <div className="text-xs text-gray-500">{row.telepon_pelanggan}</div>
@@ -114,13 +128,13 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
             label: 'Kasir',
             render: (_, row) => (
                 <div className="text-sm text-gray-900">
-                    {row.user?.name || 'Unknown'}
+                    {row.user?.name || 'Tidak diketahui'}
                 </div>
             ),
         },
         {
             key: 'total',
-            label: 'Total & Items',
+            label: 'Total & Jumlah Jenis',
             sortable: true,
             render: (value, row) => {
                 const totalItems = row.detail_penjualans?.reduce((sum, item) => sum + item.jumlah, 0) || 0;
@@ -140,7 +154,7 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
         },
         {
             key: 'metode_pembayaran',
-            label: 'Pembayaran',
+            label: 'Metode Pembayaran',
             render: (value) => getPaymentMethodBadge(value),
         },
         {
@@ -149,34 +163,39 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
             sortable: true,
             render: (value) => (
                 <StatusBadge 
-                    status={value.charAt(0).toUpperCase() + value.slice(1)} 
+                    status={
+                        value === 'pending' ? 'Menunggu Pembayaran' :
+                        value === 'selesai' ? 'Selesai' :
+                        value === 'dibatalkan' ? 'Dibatalkan' :
+                        'Status Tidak Diketahui'
+                    }
                     variant={getStatusVariant(value)} 
                 />
             ),
         },
         {
             key: 'actions',
-            label: 'Actions',
+            label: 'Aksi',
             render: (_, row) => (
                 <ActionButtons
                     actions={[
                         {
-                            label: 'View',
+                            label: 'Lihat Detail',
                             href: route('penjualan.show', row.id),
                             variant: 'secondary',
-                            icon: Icons.view,
+                            icon: <Icons.view />,
                         },
                         ...(row.status === 'pending' ? [{
-                            label: 'Edit',
+                            label: 'Ubah Transaksi',
                             href: route('penjualan.edit', row.id),
                             variant: 'primary' as const,
-                            icon: Icons.edit,
+                            icon: <Icons.edit />,
                         }] : []),
                         {
-                            label: 'Delete',
+                            label: 'Hapus',
                             onClick: () => handleDelete(row.id, row.nomor_transaksi),
                             variant: 'danger' as const,
-                            icon: Icons.delete,
+                            icon: <Icons.delete />,
                         },
                     ]}
                 />
@@ -187,20 +206,20 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
     const tableFilters: Filter[] = [
         {
             key: 'status',
-            label: 'All Status',
+            label: 'Status',
             options: [
-                { value: 'all', label: 'All Status' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'selesai', label: 'Completed' },
-                { value: 'dibatalkan', label: 'Cancelled' },
+                { value: 'all', label: 'Semua Status' },
+                { value: 'pending', label: 'Menunggu Pembayaran' },
+                { value: 'selesai', label: 'Selesai' },
+                { value: 'dibatalkan', label: 'Dibatalkan' },
             ],
         },
         {
             key: 'metode_pembayaran',
-            label: 'Payment Method',
+            label: 'Metode Pembayaran',
             options: [
-                { value: '', label: 'All Methods' },
-                { value: 'tunai', label: 'Cash' },
+                { value: '', label: 'Semua Metode Pembayaran' },
+                { value: 'tunai', label: 'Tunai' },
                 { value: 'transfer', label: 'Transfer' },
             ],
         },
@@ -208,7 +227,7 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
 
     const actions = [
         {
-            label: 'New Transaction',
+            label: 'Transaksi Penjualan Baru',
             href: route('penjualan.create'),
             className: 'inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
             icon: Icons.add,
@@ -217,21 +236,21 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Transaksi Penjualan" />
+            <Head title="Penjualan" />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="mb-6">
-                        <h3 className="text-lg font-medium text-gray-900">Transaksi Penjualan</h3>
+                        <h3 className="text-lg font-medium text-gray-900">Penjualan</h3>
                         <p className="mt-1 text-sm text-gray-600">
-                            Kelola semua transaksi penjualan toko beras.
+                            Kelola seluruh transaksi penjualan beras di toko Anda.
                         </p>
                     </div>
 
                     <DataTable
                         data={penjualans}
                         columns={columns}
-                        searchPlaceholder="Search by transaction number, customer, or cashier..."
+                        searchPlaceholder="Cari transaksi berdasarkan nomor transaksi, nama pelanggan, atau nama kasir..."
                         filters={tableFilters}
                         actions={actions}
                         routeName="penjualan.index"
@@ -243,10 +262,10 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
                         currentSort={filters?.sort}
                         currentDirection={filters?.direction}
                         emptyState={{
-                            title: 'No transactions found',
-                            description: 'Get started by creating a new sales transaction.',
+                            title: 'Belum ada transaksi penjualan',
+                            description: 'Belum ada data transaksi penjualan yang tercatat. Silakan buat transaksi penjualan baru untuk mulai mencatat penjualan.',
                             action: {
-                                label: 'New Transaction',
+                                label: 'Transaksi Penjualan Baru',
                                 href: route('penjualan.create'),
                             },
                         }}

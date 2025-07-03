@@ -7,7 +7,7 @@ import { formatCurrency, formatCompactNumber, formatDateTime, Icons } from '@/ut
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Kasir Dashboard',
+        title: 'Dashboard Kasir',
         href: '/kasir/dashboard',
     },
 ];
@@ -91,13 +91,13 @@ export default function KasirDashboard({
     return (
         <>
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Kasir Dashboard" />
+                <Head title="Dashboard Kasir" />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
-                            <h3 className="text-lg font-medium mb-6">Dashboard Kasir - Transaction Center</h3>
+                            <h3 className="text-lg font-medium mb-6">Dashboard Kasir - Pusat Transaksi</h3>
                             
                             {/* Transaction Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -109,7 +109,7 @@ export default function KasirDashboard({
                                             </svg>
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-green-600">Today's Sales</p>
+                                            <p className="text-sm font-medium text-green-600">Penjualan Hari Ini</p>
                                             <p className="text-xl font-bold text-green-900 truncate" title={formatCurrency(todaysSummary?.total_revenue || 0)}>
                                                 {formatCompactNumber(todaysSummary?.total_revenue || 0, 'currency')}
                                             </p>
@@ -125,7 +125,7 @@ export default function KasirDashboard({
                                             </svg>
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-blue-600">Transactions</p>
+                                            <p className="text-sm font-medium text-blue-600">Jumlah Transaksi</p>
                                             <p className="text-xl font-bold text-blue-900 truncate" title={(todaysSummary?.total_transactions || 0).toString()}>
                                                 {formatCompactNumber(todaysSummary?.total_transactions || 0)}
                                             </p>
@@ -141,7 +141,7 @@ export default function KasirDashboard({
                                             </svg>
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-purple-600">Online Orders</p>
+                                            <p className="text-sm font-medium text-purple-600">Pesanan Online</p>
                                             <p className="text-xl font-bold text-purple-900 truncate" title={(todaysSummary?.online_orders?.total || 0).toString()}>
                                                 {formatCompactNumber(todaysSummary?.online_orders?.total || 0)}
                                             </p>
@@ -157,7 +157,7 @@ export default function KasirDashboard({
                                             </svg>
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-orange-600">Walk-in Sales</p>
+                                            <p className="text-sm font-medium text-orange-600">Penjualan Langsung</p>
                                             <p className="text-xl font-bold text-orange-900 truncate" title={(todaysSummary?.walk_in_sales || 0).toString()}>
                                                 {formatCompactNumber(todaysSummary?.walk_in_sales || 0)}
                                             </p>
@@ -170,8 +170,8 @@ export default function KasirDashboard({
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-lg">
                                     <div className="text-center">
-                                        <h4 className="text-xl font-bold text-white mb-2">New Transaction</h4>
-                                        <p className="text-blue-100 mb-4">Process walk-in customer purchases</p>
+                                        <h4 className="text-xl font-bold text-white mb-2">Transaksi Baru</h4>
+                                        <p className="text-blue-100 mb-4">Proses pembelian pelanggan langsung</p>
                                         <a
                                             href={route('penjualan.create')}
                                             className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out"
@@ -179,15 +179,15 @@ export default function KasirDashboard({
                                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                             </svg>
-                                            Start Transaction
+                                            Mulai Transaksi
                                         </a>
                                     </div>
                                 </div>
 
                                 <div className="bg-gradient-to-r from-green-500 to-teal-600 p-6 rounded-lg">
                                     <div className="text-center">
-                                        <h4 className="text-xl font-bold text-white mb-2">Online Orders</h4>
-                                        <p className="text-green-100 mb-4">Manage online customer orders</p>
+                                        <h4 className="text-xl font-bold text-white mb-2">Pesanan Online</h4>
+                                        <p className="text-green-100 mb-4">Kelola pesanan pelanggan online</p>
                                         <a
                                             href={route('penjualan.online')}
                                             className="inline-flex items-center px-6 py-3 bg-white text-green-600 font-semibold rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out"
@@ -195,7 +195,7 @@ export default function KasirDashboard({
                                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                             </svg>
-                                            Manage Orders
+                                            Kelola Pesanan
                                         </a>
                                     </div>
                                 </div>
@@ -204,9 +204,9 @@ export default function KasirDashboard({
                             {/* Online Orders Overview */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h4 className="text-xl font-semibold text-gray-800">📦 Online Orders Overview</h4>
+                                    <h4 className="text-xl font-semibold text-gray-800">📦 Ringkasan Pesanan Online</h4>
                                     <div className="flex items-center space-x-2">
-                                        <span className="text-sm text-gray-500">Last updated:</span>
+                                        <span className="text-sm text-gray-500">Terakhir diperbarui:</span>
                                         <span className="text-sm font-medium text-gray-700">{new Date().toLocaleTimeString('id-ID')}</span>
                                     </div>
                                 </div>
@@ -275,7 +275,7 @@ export default function KasirDashboard({
                                     <div className="p-4 rounded-lg border-2 bg-purple-50 border-purple-300">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                                                <p className="text-sm font-medium text-gray-600">Total Pesanan</p>
                                                 <p className="text-2xl font-bold text-purple-700">
                                                     {todaysSummary?.online_orders?.total || 0}
                                                 </p>
@@ -298,24 +298,24 @@ export default function KasirDashboard({
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                         </svg>
-                                        Kelola Semua Orders
+                                        Kelola Semua Pesanan
                                     </a>
                                     
                                     {todaysSummary?.online_orders?.urgent > 0 && (
                                         <span className="inline-flex items-center px-4 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-lg">
-                                            ⚠️ {todaysSummary?.online_orders?.urgent} Orders Urgent (≥1 jam)
+                                            ⚠️ {todaysSummary?.online_orders?.urgent} Pesanan Urgent (≥1 jam)
                                         </span>
                                     )}
                                     
                                     {todaysSummary?.online_orders?.paid > 0 && (
                                         <span className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 text-sm font-medium rounded-lg">
-                                            💳 {todaysSummary?.online_orders?.paid} Orders Perlu Konfirmasi
+                                            💳 {todaysSummary?.online_orders?.paid} Pesanan Perlu Konfirmasi
                                         </span>
                                     )}
                                     
                                     {todaysSummary?.online_orders?.ready > 0 && (
                                         <span className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg">
-                                            📦 {todaysSummary?.online_orders?.ready} Orders Siap Pickup
+                                            📦 {todaysSummary?.online_orders?.ready} Pesanan Siap Pickup
                                         </span>
                                     )}
                                 </div>
@@ -325,9 +325,9 @@ export default function KasirDashboard({
                             {pendingOrders?.orders && pendingOrders.orders.length > 0 && (
                                 <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
                                     <div className="flex items-center justify-between mb-6">
-                                        <h4 className="text-xl font-semibold text-gray-800">🚨 Orders Yang Perlu Ditindak</h4>
+                                        <h4 className="text-xl font-semibold text-gray-800">🚨 Pesanan yang Perlu Ditindak</h4>
                                         <span className="text-sm text-gray-500">
-                                            {pendingOrders.orders.length} orders pending
+                                            {pendingOrders.orders.length} pesanan menunggu
                                         </span>
                                     </div>
 
@@ -335,13 +335,13 @@ export default function KasirDashboard({
                                         <table className="min-w-full divide-y divide-gray-200">
                                             <thead className="bg-gray-50">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Pesanan</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
@@ -368,10 +368,10 @@ export default function KasirDashboard({
                                                                 )}
                                                             </td>
                                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                                {order.nama_pelanggan || 'Walk-in Customer'}
+                                                                {order.nama_pelanggan || 'Pelanggan Langsung'}
                                                             </td>
                                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                                {order.detail_penjualans?.length || 0} items
+                                                                {order.detail_penjualans?.length || 0} item
                                                             </td>
                                                             <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                                 {formatCurrency(order.total)}
@@ -405,7 +405,7 @@ export default function KasirDashboard({
                                                 href={route('penjualan.online')}
                                                 className="text-blue-600 hover:text-blue-900 font-medium"
                                             >
-                                                Lihat semua {pendingOrders.orders.length} orders →
+                                                Lihat semua {pendingOrders.orders.length} pesanan →
                                             </a>
                                         </div>
                                     )}
@@ -415,44 +415,44 @@ export default function KasirDashboard({
                             {/* Sales Charts */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="text-lg font-semibold mb-4">Today's Sales Trend</h4>
+                                    <h4 className="text-lg font-semibold mb-4">Tren Penjualan Hari Ini</h4>
                                     <LineChart data={salesTrendData} height={250} />
                                 </div>
 
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="text-lg font-semibold mb-4">Transaction Types</h4>
+                                    <h4 className="text-lg font-semibold mb-4">Jenis Transaksi</h4>
                                     <DoughnutChart data={transactionTypesData} height={250} />
                                 </div>
                             </div>
 
                             {/* Recent Transactions */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                                <h4 className="text-lg font-semibold mb-4">Recent Transactions</h4>
+                                <h4 className="text-lg font-semibold mb-4">Transaksi Terbaru</h4>
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembayaran</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             <tr>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">14:30</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">John Doe</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3 items</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3 item</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp 75,000</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Cash</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Tunai</td>
                                             </tr>
                                             <tr>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">14:15</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jane Smith</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2 items</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2 item</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp 45,000</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Card</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Kartu</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -462,24 +462,24 @@ export default function KasirDashboard({
                             {/* Quick Actions */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-2">Transaction History</h4>
-                                    <p className="text-gray-600 mb-4">View all completed transactions</p>
+                                    <h4 className="font-semibold text-gray-800 mb-2">Riwayat Transaksi</h4>
+                                    <p className="text-gray-600 mb-4">Lihat semua transaksi yang sudah selesai</p>
                                     <a 
                                         href={route('penjualan.index')} 
                                         className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
-                                        View History
+                                        Lihat Riwayat
                                     </a>
                                 </div>
                                 
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-2">Product Lookup</h4>
-                                    <p className="text-gray-600 mb-4">Search products and check prices</p>
+                                    <h4 className="font-semibold text-gray-800 mb-2">Cari Produk</h4>
+                                    <p className="text-gray-600 mb-4">Cari produk dan cek harga</p>
                                     <a 
                                         href={route('barang.index')} 
                                         className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
-                                        Browse Products
+                                        Lihat Produk
                                     </a>
                                 </div>
                             </div>

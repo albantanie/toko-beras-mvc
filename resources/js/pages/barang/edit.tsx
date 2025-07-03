@@ -46,7 +46,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
     
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: 'Products',
+            title: 'Produk',
             href: '/barang',
         },
         {
@@ -54,7 +54,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
             href: `/barang/${barang.id}`,
         },
         {
-            title: 'Edit',
+            title: 'Ubah',
             href: `/barang/${barang.id}/edit`,
         },
     ];

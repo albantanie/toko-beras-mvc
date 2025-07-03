@@ -7,11 +7,11 @@ import { hasRole } from '@/utils/role';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Products',
+        title: 'Produk',
         href: '/barang',
     },
     {
-        title: 'Create Product',
+        title: 'Tambah Produk',
         href: '/barang/create',
     },
 ];

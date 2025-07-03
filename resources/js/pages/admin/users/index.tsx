@@ -20,7 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/admin/dashboard',
     },
     {
-        title: 'Users',
+        title: 'Kelola Pengguna',
         href: '/admin/users',
     },
 ];
@@ -44,7 +44,7 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
     const columns: Column[] = [
         {
             key: 'name',
-            label: 'Name',
+            label: 'Nama',
             sortable: true,
             searchable: true,
             render: (value, row) => (
@@ -56,9 +56,9 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
         },
         {
             key: 'roles',
-            label: 'Role',
+            label: 'Peran',
             render: (value, row) => (
-                <RoleBadge role={row.roles && row.roles.length > 0 ? row.roles[0].name : 'No Role'} />
+                <RoleBadge role={row.roles && row.roles.length > 0 ? row.roles[0].name : 'Tanpa Peran'} />
             ),
         },
         {
@@ -67,41 +67,41 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
             render: (value) => (
                 value ? (
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Verified
+                        Terverifikasi
                     </span>
                 ) : (
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                        Not Verified
+                        Belum Diverifikasi
                     </span>
                 )
             ),
         },
         {
             key: 'created_at',
-            label: 'Created',
+            label: 'Dibuat',
             sortable: true,
             render: (value) => formatDateTime(value),
         },
         {
             key: 'actions',
-            label: 'Actions',
+            label: 'Aksi',
             render: (_, row) => (
                 <ActionButtons
                     actions={[
                         {
-                            label: 'View',
+                            label: 'Lihat',
                             href: route('admin.users.show', row.id),
                             variant: 'secondary',
                             icon: Icons.view,
                         },
                         {
-                            label: 'Edit',
+                            label: 'Ubah',
                             href: route('admin.users.edit', row.id),
                             variant: 'primary',
                             icon: Icons.edit,
                         },
                         {
-                            label: 'Delete',
+                            label: 'Hapus',
                             onClick: () => handleDelete(row.id, row.name),
                             variant: 'danger',
                             icon: Icons.delete,
@@ -115,7 +115,7 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
     const tableFilters: Filter[] = [
         {
             key: 'role',
-            label: 'All Roles',
+            label: 'Semua Peran',
             options: roles.map(role => ({
                 value: role.name,
                 label: role.name,
@@ -125,7 +125,7 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
 
     const actions = [
         {
-            label: 'Add New User',
+            label: 'Tambah Pengguna Baru',
             href: route('admin.users.create'),
             className: 'inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
             icon: Icons.add,
@@ -134,21 +134,21 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Manage Users" />
+            <Head title="Kelola Pengguna" />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="mb-6">
-                        <h3 className="text-lg font-medium text-gray-900">Manage Users</h3>
+                        <h3 className="text-lg font-medium text-gray-900">Kelola Pengguna</h3>
                         <p className="mt-1 text-sm text-gray-600">
-                            Manage user accounts and their roles in the system.
+                            Kelola akun pengguna dan peran mereka di sistem.
                         </p>
                     </div>
 
                     <DataTable
                         data={users}
                         columns={columns}
-                        searchPlaceholder="Search users by name or email..."
+                        searchPlaceholder="Cari pengguna berdasarkan nama atau email..."
                         filters={tableFilters}
                         actions={actions}
                         routeName="admin.users.index"
@@ -157,10 +157,10 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
                         currentSort={filters?.sort}
                         currentDirection={filters?.direction}
                         emptyState={{
-                            title: 'No users found',
-                            description: 'Get started by creating a new user account.',
+                            title: 'Pengguna tidak ditemukan',
+                            description: 'Silakan tambah akun pengguna baru untuk memulai.',
                             action: {
-                                label: 'Add New User',
+                                label: 'Tambah Pengguna Baru',
                                 href: route('admin.users.create'),
                             },
                         }}
