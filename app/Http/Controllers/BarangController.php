@@ -198,54 +198,51 @@ class BarangController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $user = auth()->user();
+        $isKaryawan = $user->hasRole('karyawan');
+        $isAdmin = $user->hasRole('admin');
+        $isOwner = $user->hasRole('owner');
         try {
-            $request->validate([
+            $rules = [
                 'nama' => 'required|string|max:255',
                 'deskripsi' => 'nullable|string',
                 'kategori' => 'required|string|max:255',
-                'harga_beli' => 'required|numeric|min:0',
-                'harga_jual' => 'required|numeric|min:0|gt:harga_beli',
-                'stok' => 'required|integer|min:0',
+                'harga_beli' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0',
+                'harga_jual' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0|gt:harga_beli',
+                'stok' => ($isAdmin && !$isOwner) ? 'nullable' : 'required|integer|min:0',
                 'stok_minimum' => 'required|integer|min:0',
                 'satuan' => 'required|string|max:50',
                 'berat_per_unit' => 'required|numeric|min:0.01',
                 'kode_barang' => 'required|string|max:255|unique:barangs',
                 'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            ], [
+            ];
+            $request->validate($rules, [
                 'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
                 'kode_barang.unique' => 'Kode barang sudah digunakan.',
                 'gambar.image' => 'File harus berupa gambar.',
                 'gambar.max' => 'Ukuran gambar maksimal 2MB.',
             ]);
-
             $data = $request->all();
-            $data['created_by'] = auth()->id();
-            $data['updated_by'] = auth()->id();
+            $data['created_by'] = $user->id;
+            $data['updated_by'] = $user->id;
             $data['is_active'] = $request->boolean('is_active', true);
-
+            // Proteksi field sesuai role
+            if ($isKaryawan && !$isOwner) {
+                unset($data['harga_beli'], $data['harga_jual']);
+            }
+            if ($isAdmin && !$isOwner) {
+                unset($data['stok']);
+            }
             if ($request->hasFile('gambar')) {
-                // Compress and store image
                 $data['gambar'] = $this->imageService->compressAndStore(
-                    $request->file('gambar'),
-                    'barang',
-                    800,  // max width
-                    600,  // max height
-                    80    // quality (80%)
+                    $request->file('gambar'), 'barang', 800, 600, 80
                 );
-
-                // Also create thumbnail
                 $this->imageService->createThumbnail($request->file('gambar'));
             }
-
             Barang::create($data);
-
-            return redirect()->route('barang.index')
-                ->with('success', 'Barang berhasil ditambahkan');
-                
+            return redirect()->route('barang.index')->with('success', 'Barang berhasil ditambahkan');
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Gagal menambahkan barang: ' . $e->getMessage())
-                ->withInput();
+            return redirect()->back()->with('error', 'Gagal menambahkan barang: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -283,61 +280,55 @@ class BarangController extends Controller
      */
     public function update(Request $request, Barang $barang): RedirectResponse
     {
-        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('owner')) {
+        $user = auth()->user();
+        $isKaryawan = $user->hasRole('karyawan');
+        $isAdmin = $user->hasRole('admin');
+        $isOwner = $user->hasRole('owner');
+        if (!$isAdmin && !$isOwner) {
             abort(403, 'Hanya admin atau owner yang dapat mengupdate produk');
         }
         try {
-            $request->validate([
+            $rules = [
                 'nama' => 'required|string|max:255',
                 'deskripsi' => 'nullable|string',
                 'kategori' => 'required|string|max:255',
-                'harga_beli' => 'required|numeric|min:0',
-                'harga_jual' => 'required|numeric|min:0|gt:harga_beli',
-                'stok' => 'required|integer|min:0',
+                'harga_beli' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0',
+                'harga_jual' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0|gt:harga_beli',
+                'stok' => ($isAdmin && !$isOwner) ? 'nullable' : 'required|integer|min:0',
                 'stok_minimum' => 'required|integer|min:0',
                 'satuan' => 'required|string|max:50',
                 'berat_per_unit' => 'required|numeric|min:0.01',
                 'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
                 'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
                 'is_active' => 'boolean',
-            ], [
+            ];
+            $request->validate($rules, [
                 'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
                 'kode_barang.unique' => 'Kode barang sudah digunakan.',
                 'gambar.image' => 'File harus berupa gambar.',
                 'gambar.max' => 'Ukuran gambar maksimal 2MB.',
             ]);
-
             $data = $request->all();
-            $data['updated_by'] = auth()->id();
-
+            $data['updated_by'] = $user->id;
+            if ($isKaryawan && !$isOwner) {
+                unset($data['harga_beli'], $data['harga_jual']);
+            }
+            if ($isAdmin && !$isOwner) {
+                unset($data['stok']);
+            }
             if ($request->hasFile('gambar')) {
-                // Delete old image and thumbnail
                 if ($barang->gambar) {
                     $this->imageService->deleteImage($barang->gambar);
                 }
-
-                // Compress and store new image
                 $data['gambar'] = $this->imageService->compressAndStore(
-                    $request->file('gambar'),
-                    'barang',
-                    800,  // max width
-                    600,  // max height
-                    80    // quality (80%)
+                    $request->file('gambar'), 'barang', 800, 600, 80
                 );
-
-                // Also create thumbnail
                 $this->imageService->createThumbnail($request->file('gambar'));
             }
-
             $barang->update($data);
-
-            return redirect()->route('barang.index')
-                ->with('success', 'Barang berhasil diupdate');
-                
+            return redirect()->route('barang.index')->with('success', 'Barang berhasil diupdate');
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Gagal mengupdate barang: ' . $e->getMessage())
-                ->withInput();
+            return redirect()->back()->with('error', 'Gagal mengupdate barang: ' . $e->getMessage())->withInput();
         }
     }
 

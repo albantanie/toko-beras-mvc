@@ -3,6 +3,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { FormEventHandler, useState } from 'react';
 import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
+import { hasRole } from '@/utils/role';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -45,6 +46,10 @@ export default function CreateBarang({ auth }: PageProps) {
         berat_per_unit: '',
         gambar: null as File | null,
     });
+
+    const isKaryawan = hasRole(auth.user, 'karyawan');
+    const isAdmin = hasRole(auth.user, 'admin');
+    const isOwner = hasRole(auth.user, 'owner');
 
     const generateKodeBarang = () => {
         const timestamp = Date.now().toString().slice(-6);
@@ -189,7 +194,6 @@ export default function CreateBarang({ auth }: PageProps) {
                                     {/* Pricing and Stock */}
                                     <div className="space-y-4">
                                         <h4 className="text-md font-semibold text-gray-800">Pricing & Stock</h4>
-                                        
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label htmlFor="harga_beli" className="block text-sm font-medium text-gray-700">
@@ -205,6 +209,7 @@ export default function CreateBarang({ auth }: PageProps) {
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
                                                     placeholder="0"
+                                                    disabled={isKaryawan && !isOwner}
                                                 />
                                                 {errors.harga_beli && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.harga_beli}</p>
@@ -225,6 +230,7 @@ export default function CreateBarang({ auth }: PageProps) {
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
                                                     placeholder="0"
+                                                    disabled={isKaryawan && !isOwner}
                                                 />
                                                 {errors.harga_jual && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.harga_jual}</p>
@@ -246,6 +252,7 @@ export default function CreateBarang({ auth }: PageProps) {
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
                                                     placeholder="0"
+                                                    disabled={isAdmin && !isOwner}
                                                 />
                                                 {errors.stok && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.stok}</p>

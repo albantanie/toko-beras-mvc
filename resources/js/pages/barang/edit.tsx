@@ -3,6 +3,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem } from '@/types';
 import { FormEventHandler, useState } from 'react';
 import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
+import { hasRole } from '@/utils/role';
 
 interface Barang {
     id: number;
@@ -72,6 +73,10 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
         is_active: barang.is_active ?? true,
         gambar: null as File | null,
     });
+
+    const isKaryawan = hasRole(auth.user, 'karyawan');
+    const isAdmin = hasRole(auth.user, 'admin');
+    const isOwner = hasRole(auth.user, 'owner');
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -208,7 +213,6 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                     {/* Pricing and Stock */}
                                     <div className="space-y-4">
                                         <h4 className="text-md font-semibold text-gray-800">Pricing & Stock</h4>
-                                        
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label htmlFor="harga_beli" className="block text-sm font-medium text-gray-700">
@@ -223,6 +227,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                     onChange={(e) => setData('harga_beli', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
+                                                    disabled={isKaryawan && !isOwner}
                                                 />
                                                 {errors.harga_beli && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.harga_beli}</p>
@@ -242,6 +247,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                     onChange={(e) => setData('harga_jual', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
+                                                    disabled={isKaryawan && !isOwner}
                                                 />
                                                 {errors.harga_jual && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.harga_jual}</p>
@@ -262,6 +268,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                     onChange={(e) => setData('stok', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
+                                                    disabled={isAdmin && !isOwner}
                                                 />
                                                 {errors.stok && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.stok}</p>
