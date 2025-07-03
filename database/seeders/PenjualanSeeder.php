@@ -40,6 +40,9 @@ class PenjualanSeeder extends Seeder
             $kasir = User::create([
                 'name' => 'Kasir User',
                 'email' => 'kasir@example.com',
+                'username' => 'kasiruser',
+                'phone_number' => '0812345678',
+                'address' => 'Jl. Kasir No. 1',
                 'password' => bcrypt('password'),
                 'email_verified_at' => now()
             ]);

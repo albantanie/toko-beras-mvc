@@ -36,30 +36,29 @@ class LaporanController extends Controller
      *
      * @return Response Halaman dashboard laporan dengan berbagai metrics dan generate
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        // Setup tanggal untuk filtering data
-        $today = Carbon::today();
-        $thisMonth = Carbon::now()->startOfMonth();
-        $thisYear = Carbon::now()->startOfYear();
+        // Ambil filter tanggal dari request
+        $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->get('date_to', Carbon::now()->format('Y-m-d'));
 
         // Summary cards - ringkasan penjualan
-        $todaySales = Penjualan::completed()->today()->sum('total');
-        $monthSales = Penjualan::completed()->thisMonth()->sum('total');
-        $yearSales = Penjualan::completed()->whereYear('tanggal_transaksi', now()->year)->sum('total');
+        $todaySales = Penjualan::completed()->whereDate('tanggal_transaksi', $dateTo)->sum('total');
+        $monthSales = Penjualan::completed()->whereDate('tanggal_transaksi', '>=', $dateFrom)->whereDate('tanggal_transaksi', '<=', $dateTo)->sum('total');
+        $yearSales = Penjualan::completed()->whereYear('tanggal_transaksi', Carbon::parse($dateTo)->year)->sum('total');
 
         // Summary cards - jumlah transaksi
-        $todayTransactions = Penjualan::completed()->today()->count();
-        $monthTransactions = Penjualan::completed()->thisMonth()->count();
+        $todayTransactions = Penjualan::completed()->whereDate('tanggal_transaksi', $dateTo)->count();
+        $monthTransactions = Penjualan::completed()->whereDate('tanggal_transaksi', '>=', $dateFrom)->whereDate('tanggal_transaksi', '<=', $dateTo)->count();
 
         // Summary cards - status inventory
         $lowStockItems = Barang::lowStock()->count();
         $outOfStockItems = Barang::outOfStock()->count();
 
-        // Produk terlaris bulan ini (top 5)
+        // Produk terlaris pada range
         $topProducts = DetailPenjualan::select('barang_id', DB::raw('SUM(jumlah) as total_sold'))
-            ->whereHas('penjualan', function ($q) {
-                $q->completed()->thisMonth();
+            ->whereHas('penjualan', function ($q) use ($dateFrom, $dateTo) {
+                $q->completed()->whereDate('tanggal_transaksi', '>=', $dateFrom)->whereDate('tanggal_transaksi', '<=', $dateTo);
             })
             ->with('barang')
             ->groupBy('barang_id')
@@ -67,19 +66,20 @@ class LaporanController extends Controller
             ->limit(5)
             ->get();
 
-        // Data chart penjualan 7 hari terakhir
+        // Data chart penjualan harian pada range
         $salesChart = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
+        $startDate = Carbon::parse($dateFrom);
+        $endDate = Carbon::parse($dateTo);
+        while ($startDate <= $endDate) {
             $sales = Penjualan::completed()
-                ->whereDate('tanggal_transaksi', $date)
+                ->whereDate('tanggal_transaksi', $startDate)
                 ->sum('total');
-
             $salesChart[] = [
-                'date' => $date->format('Y-m-d'),
-                'label' => $date->format('d M'),
+                'date' => $startDate->format('Y-m-d'),
+                'label' => $startDate->format('d M'),
                 'sales' => $sales,
             ];
+            $startDate->addDay();
         }
 
         // Recent reports & approval status (untuk owner)
@@ -87,7 +87,6 @@ class LaporanController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
-
         $pendingApprovals = Report::pendingApproval()->count();
 
         return Inertia::render('laporan/index', [
@@ -105,6 +104,10 @@ class LaporanController extends Controller
             'recent_reports' => $recentReports,
             'pending_approvals' => $pendingApprovals,
             'can_approve' => auth()->user()->isOwner(),
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
         ]);
     }
 
@@ -886,7 +889,7 @@ class LaporanController extends Controller
         $request->validate([
             'type' => 'required|in:penjualan_summary,penjualan_detail,transaksi_harian,transaksi_kasir,barang_stok,barang_movement,barang_performance,keuangan',
             'period_from' => 'required_unless:type,barang_stok|date',
-            'period_to' => 'required_unless:type,barang_stok,transaksi_harian|date|after_or_equal:period_from',
+            'period_to' => 'required_unless:type,barang_stok|date|after_or_equal:period_from',
             'specific_date' => 'required_if:type,transaksi_harian|date',
         ]);
 

@@ -59,18 +59,23 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Kirim data sebagai FormData agar file terupload
+        const formData = new FormData();
+        formData.append('nama_pelanggan', data.nama_pelanggan);
+        formData.append('telepon_pelanggan', data.telepon_pelanggan);
+        formData.append('alamat_pelanggan', data.alamat_pelanggan);
+        formData.append('metode_pembayaran', data.metode_pembayaran);
+        if (data.payment_proof) formData.append('payment_proof', data.payment_proof);
+        formData.append('pickup_method', data.pickup_method);
+        formData.append('pickup_person_name', data.pickup_method === 'self' ? '' : data.pickup_person_name);
+        formData.append('pickup_person_phone', data.pickup_method === 'self' ? '' : data.pickup_person_phone);
+        formData.append('pickup_notes', data.pickup_notes);
+        formData.append('catatan', data.catatan);
         
-        // Pastikan field pickup person dikirim dengan benar
-        const formData = {
-            ...data,
-            pickup_person_name: data.pickup_method === 'self' ? '' : data.pickup_person_name,
-            pickup_person_phone: data.pickup_method === 'self' ? '' : data.pickup_person_phone,
-        };
-        
-        // Kirim data dengan file upload
-        post(route('cart.process-checkout'), {
-            ...formData,
+        // Inertia post dengan FormData dan forceFormData agar file terkirim
+        post(route('cart.process-checkout'), formData, {
             preserveScroll: true,
+            forceFormData: true,
         });
     };
 
@@ -110,7 +115,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                         </nav>
                 </div>
 
-                    <form onSubmit={submit} className="lg:grid lg:grid-cols-3 lg:gap-8">
+                    <form onSubmit={submit} className="lg:grid lg:grid-cols-3 lg:gap-8" encType="multipart/form-data">
                                 <div className="lg:col-span-2">
                             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -236,15 +241,27 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                     Upload Bukti Transfer *
                                                 </label>
                                                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                                                    <div className="space-y-1 text-center">
+                                                    <label htmlFor="payment_proof_upload" className="w-full cursor-pointer">
+                                                        <div className="space-y-1 text-center">
                                                             {data.payment_proof ? (
-                                                            <div className="flex items-center justify-center">
-                                                                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                                </svg>
-                                                                <span className="ml-2 text-sm text-green-600">
-                                                                        {data.payment_proof.name}
-                                                                </span>
+                                                                <div className="flex flex-col items-center justify-center">
+                                                                    {data.payment_proof.type.startsWith('image/') ? (
+                                                                        <img
+                                                                            src={URL.createObjectURL(data.payment_proof)}
+                                                                            alt={data.payment_proof.name}
+                                                                            className="max-h-40 rounded shadow mb-2"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="flex items-center justify-center">
+                                                                            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            <span className="ml-2 text-sm text-green-600">
+                                                                                {data.payment_proof.name}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                    <span className="text-xs text-gray-500">{data.payment_proof.name}</span>
                                                                 </div>
                                                             ) : (
                                                                 <>
@@ -259,6 +276,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             )}
                                                         </div>
                                                         <input
+                                                            id="payment_proof_upload"
                                                             type="file"
                                                             name="payment_proof"
                                                             accept="image/*,.pdf"
@@ -266,6 +284,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             className="hidden"
                                                             required={data.metode_pembayaran === 'transfer'}
                                                         />
+                                                    </label>
                                                 </div>
                                                 {data.metode_pembayaran === 'transfer' && !data.payment_proof && (
                                                     <p className="mt-1 text-sm text-red-600">

@@ -518,7 +518,7 @@ class ReportSubmissionController extends Controller
         $reportSubmission = ReportSubmission::findOrFail($id);
         
         // Check if user is admin
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->x()) {
             abort(403, 'Hanya admin yang dapat approve laporan');
         }
 

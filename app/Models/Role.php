@@ -78,7 +78,7 @@ class Role extends Model
      */
     public function isAdmin(): bool
     {
-        return $this->name === self::ADMIN;
+        return strtolower($this->name) === self::ADMIN;
     }
 
     /**
@@ -88,7 +88,7 @@ class Role extends Model
      */
     public function isKaryawan(): bool
     {
-        return $this->name === self::KARYAWAN;
+        return strtolower($this->name) === self::KARYAWAN;
     }
 
     /**
@@ -98,7 +98,7 @@ class Role extends Model
      */
     public function isKasir(): bool
     {
-        return $this->name === self::KASIR;
+        return strtolower($this->name) === self::KASIR;
     }
 
     /**
@@ -108,7 +108,7 @@ class Role extends Model
      */
     public function isPelanggan(): bool
     {
-        return $this->name === self::PELANGGAN;
+        return strtolower($this->name) === self::PELANGGAN;
     }
 
     /**
@@ -118,6 +118,6 @@ class Role extends Model
      */
     public function isOwner(): bool
     {
-        return $this->name === self::OWNER;
+        return strtolower($this->name) === self::OWNER;
     }
 }

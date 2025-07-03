@@ -147,4 +147,4 @@ class ReportSubmissionSeeder extends Seeder
 
         $this->command->info('Report submissions seeded successfully!');
     }
-} 
+}

@@ -25,7 +25,7 @@ class RoleMiddleware
 
         // Check if user has any of the required roles
         foreach ($roles as $role) {
-            if ($user->hasRole($role)) {
+            if ($user->hasRole(strtolower($role))) {
                 return $next($request);
             }
         }

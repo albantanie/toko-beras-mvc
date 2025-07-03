@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import dayjs from 'dayjs';
 import { BreadcrumbItem } from '@/types';
 import { formatCurrency, formatDateTime, StatusBadge, Icons } from '@/utils/formatters';
 
@@ -49,12 +50,65 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function LaporanIndex({ auth, summary, top_products, sales_chart }: LaporanIndexProps) {
     const maxSales = Math.max(...sales_chart.map(item => item.sales));
 
+    // Filter tanggal state & logic
+    const { data, setData, get, processing } = useForm({
+        date_from: '',
+        date_to: '',
+    });
+
+    const handleFilter = (e: React.FormEvent) => {
+        e.preventDefault();
+        get(route('laporan.index'), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard Laporan" />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    {/* Filter Tanggal */}
+                    <form onSubmit={handleFilter} className="mb-6 flex flex-col sm:flex-row gap-4 items-end">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
+                            <input
+                                type="date"
+                                className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                value={data.date_from}
+                                onChange={e => setData('date_from', e.target.value)}
+                                max={data.date_to || undefined}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+                            <input
+                                type="date"
+                                className="form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                value={data.date_to}
+                                onChange={e => setData('date_to', e.target.value)}
+                                min={data.date_from || undefined}
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                            disabled={processing}
+                        >
+                            Filter
+                        </button>
+                        <button
+                            type="button"
+                            className="ml-2 text-sm text-gray-500 underline"
+                            onClick={() => { setData('date_from', ''); setData('date_to', ''); get(route('laporan.index'), { preserveState: true, preserveScroll: true }); }}
+                            disabled={processing}
+                        >
+                            Reset
+                        </button>
+                    </form>
+
                     <div className="mb-6">
                         <h3 className="text-lg font-medium text-gray-900">Dashboard Laporan</h3>
                         <p className="mt-1 text-sm text-gray-600">

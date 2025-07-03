@@ -116,8 +116,8 @@ class UserController extends Controller
                 'email_verified_at' => now(),
             ]);
 
-            // Attach role to user
-            $user->roles()->attach($request->role_id);
+            // Set user role (hanya satu role)
+            $user->roles()->sync([$request->role_id]);
 
             return redirect()->route('admin.users.index')
                 ->with('success', 'User berhasil dibuat.');
@@ -207,7 +207,7 @@ class UserController extends Controller
 
             $user->update($updateData);
 
-            // Update user role
+            // Update user role (hanya satu role)
             $user->roles()->sync([$request->role_id]);
 
             return redirect()->route('admin.users.index')
