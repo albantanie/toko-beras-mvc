@@ -5,6 +5,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HandleMethodSpoofing;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\RedirectBasedOnRole;
+use App\Http\Middleware\RoleBasedUIRestriction;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             HandleMethodSpoofing::class,
+            RoleBasedUIRestriction::class,
             AddLinkHeadersForPreloadedAssets::class,
             RedirectBasedOnRole::class,
         ]);

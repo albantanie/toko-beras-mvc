@@ -48,7 +48,7 @@ export default function PayrollConfigurationPage({ configurations, filters }: Pr
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [editingConfig, setEditingConfig] = useState<PayrollConfiguration | null>(null);
 
-    const { data: formData, setData: setFormData, post, put, processing, reset, errors } = useForm({
+    const { data: formData, setData: setFormData, post, put, patch, delete: destroy, processing, reset, errors } = useForm({
         config_key: '',
         config_name: '',
         config_type: '',
@@ -133,16 +133,12 @@ export default function PayrollConfigurationPage({ configurations, filters }: Pr
     };
 
     const handleToggleActive = (config: PayrollConfiguration) => {
-        post(`/owner/keuangan/payroll-configuration/${config.id}/toggle-active`, {}, {
-            method: 'patch',
-        });
+        patch(`/owner/keuangan/payroll-configuration/${config.id}/toggle-active`);
     };
 
     const handleDelete = (config: PayrollConfiguration) => {
         if (confirm('Apakah Anda yakin ingin menghapus konfigurasi ini?')) {
-            post(`/owner/keuangan/payroll-configuration/${config.id}`, {}, {
-                method: 'delete',
-            });
+            destroy(`/owner/keuangan/payroll-configuration/${config.id}`);
         }
     };
 

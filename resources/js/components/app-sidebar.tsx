@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type User } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, Package, ShoppingCart, BarChart3, FileText, Warehouse, History, DollarSign } from 'lucide-react';
+import { LayoutGrid, Users, Package, ShoppingCart, BarChart3, FileText, Warehouse, History, DollarSign } from 'lucide-react';
 import AppLogo from './app-logo';
 
 // Helper function to get user role
@@ -37,17 +37,7 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/barang',
                     icon: Package,
                 },
-                {
-                    title: 'Transaksi',
-                    href: '/penjualan',
-                    icon: ShoppingCart,
-                },
-                {
-                    title: 'Riwayat Transaksi',
-                    href: '/penjualan/history',
-                    icon: History,
-                },
-                // Admin tidak memiliki akses ke laporan owner
+                // Admin hanya bisa kelola barang dan pengguna, tidak ada transaksi dan laporan
             ];
 
         case 'owner':
@@ -59,8 +49,8 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     icon: DollarSign,
                 },
                 {
-                    title: 'Laporan',
-                    href: '/owner/laporan',
+                    title: 'Laporan Penjualan',
+                    href: '/owner/laporan/penjualan',
                     icon: BarChart3,
                 },
                 {

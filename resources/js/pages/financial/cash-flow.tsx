@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Download } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { formatCurrency, formatCompactNumber, currencyTooltipFormatter, monthTooltipFormatter } from '@/utils/chart-formatters';
 
 interface CashFlowStatement {
     period: {
@@ -95,13 +96,7 @@ export default function CashFlowPage({ cashFlowStatement, analytics, projections
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
+
 
     const handleFilterSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -313,8 +308,11 @@ export default function CashFlowPage({ cashFlowStatement, analytics, projections
                                         <BarChart data={analytics.monthly_trends}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="month" />
-                                            <YAxis />
-                                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                            <YAxis tickFormatter={formatCompactNumber} />
+                                            <Tooltip
+                                                formatter={currencyTooltipFormatter}
+                                                labelFormatter={monthTooltipFormatter}
+                                            />
                                             <Bar dataKey="inflows" fill="#10B981" name="Kas Masuk" />
                                             <Bar dataKey="outflows" fill="#EF4444" name="Kas Keluar" />
                                         </BarChart>

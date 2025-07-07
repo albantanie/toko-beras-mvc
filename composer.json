@@ -1,11 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "toko-beras/mvc-system",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Sistem Manajemen Toko Beras berbasis Laravel dan React.",
     "keywords": [
+        "toko-beras",
         "laravel",
-        "framework"
+        "react",
+        "mvc",
+        "inventory-management"
     ],
     "license": "MIT",
     "require": {

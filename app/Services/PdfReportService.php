@@ -65,17 +65,41 @@ class PdfReportService
         $fileName = PdfReport::generateFileName(PdfReport::TYPE_FINANCIAL, $reportDate, $periodFrom, $periodTo);
         $filePath = "reports/{$fileName}";
 
-        // Generate PDF
-        $pdf = Pdf::loadView('pdf.financial-report', [
-            'reportData' => $reportData,
-            'transactions' => $penjualans,
-            'periodFrom' => $periodFrom,
-            'periodTo' => $periodTo,
-            'generatedAt' => $reportDate,
-        ]);
+        // Ensure reports directory exists
+        if (!Storage::exists('reports')) {
+            Storage::makeDirectory('reports');
+            \Log::info('Created reports directory', ['path' => storage_path('app/reports')]);
+        }
 
-        // Save PDF to storage
-        Storage::put($filePath, $pdf->output());
+        try {
+            // Generate PDF
+            $pdf = Pdf::loadView('pdf.financial-report', [
+                'reportData' => $reportData,
+                'transactions' => $penjualans,
+                'periodFrom' => $periodFrom,
+                'periodTo' => $periodTo,
+                'generatedAt' => $reportDate,
+            ]);
+
+            // Save PDF to storage
+            Storage::put($filePath, $pdf->output());
+
+            \Log::info('Financial report PDF generated successfully', [
+                'file_path' => $filePath,
+                'full_path' => storage_path('app/' . $filePath),
+                'file_exists' => Storage::exists($filePath),
+                'generated_by' => $generatedBy
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate financial report PDF', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file_path' => $filePath,
+                'generated_by' => $generatedBy
+            ]);
+            throw $e;
+        }
 
         // Create database record
         $report = PdfReport::create([
@@ -144,16 +168,40 @@ class PdfReportService
         $fileName = PdfReport::generateFileName(PdfReport::TYPE_STOCK, $reportDate);
         $filePath = "reports/{$fileName}";
 
-        // Generate PDF
-        $pdf = Pdf::loadView('pdf.stock-report', [
-            'reportData' => $reportData,
-            'barangs' => $barangs,
-            'stockMovements' => $stockMovements,
-            'generatedAt' => $reportDate,
-        ]);
+        // Ensure reports directory exists
+        if (!Storage::exists('reports')) {
+            Storage::makeDirectory('reports');
+            \Log::info('Created reports directory', ['path' => storage_path('app/reports')]);
+        }
 
-        // Save PDF to storage
-        Storage::put($filePath, $pdf->output());
+        try {
+            // Generate PDF
+            $pdf = Pdf::loadView('pdf.stock-report', [
+                'reportData' => $reportData,
+                'barangs' => $barangs,
+                'stockMovements' => $stockMovements,
+                'generatedAt' => $reportDate,
+            ]);
+
+            // Save PDF to storage
+            Storage::put($filePath, $pdf->output());
+
+            \Log::info('Stock report PDF generated successfully', [
+                'file_path' => $filePath,
+                'full_path' => storage_path('app/' . $filePath),
+                'file_exists' => Storage::exists($filePath),
+                'generated_by' => $generatedBy
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate stock report PDF', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file_path' => $filePath,
+                'generated_by' => $generatedBy
+            ]);
+            throw $e;
+        }
 
         // Create database record
         $report = PdfReport::create([
@@ -206,6 +254,11 @@ class PdfReportService
      */
     public function downloadReport(int $reportId, int $userId)
     {
+        \Log::info('Download report attempt', [
+            'report_id' => $reportId,
+            'user_id' => $userId
+        ]);
+
         // Owner can download any report, others can only download their own
         $user = \App\Models\User::find($userId);
         if ($user && $user->isOwner()) {
@@ -216,8 +269,23 @@ class PdfReportService
                 ->firstOrFail();
         }
 
+        \Log::info('Report found', [
+            'report_id' => $report->id,
+            'file_path' => $report->file_path,
+            'full_path' => $report->getFullPath(),
+            'file_exists' => $report->fileExists(),
+            'storage_exists' => \Storage::exists($report->file_path)
+        ]);
+
         if (!$report->fileExists()) {
-            throw new \Exception('Report file not found');
+            \Log::error('Report file not found', [
+                'report_id' => $reportId,
+                'file_path' => $report->file_path,
+                'full_path' => $report->getFullPath(),
+                'storage_exists' => \Storage::exists($report->file_path),
+                'file_exists_check' => file_exists($report->getFullPath())
+            ]);
+            throw new \Exception('Report file not found: ' . $report->file_path);
         }
 
         return response()->download($report->getFullPath(), $report->file_name);

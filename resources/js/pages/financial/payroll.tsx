@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +71,7 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
     const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
     const [showGenerateDialog, setShowGenerateDialog] = useState(false);
     const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
 
     const { data: generateData, setData: setGenerateData, post: postGenerate, processing: generatingPayroll } = useForm({
         period: new Date().toISOString().slice(0, 7), // YYYY-MM format
@@ -79,6 +80,11 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
 
     const { data: paymentData, setData: setPaymentData, post: postPayment, processing: processingPayment } = useForm({
         account_id: '',
+        payment_notes: '',
+    });
+
+    const { data: cancelData, setData: setCancelData, post: postCancel, processing: processingCancel } = useForm({
+        cancellation_reason: '',
     });
 
     const formatCurrency = (amount: number) => {
@@ -93,7 +99,7 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
         switch (status) {
             case 'paid': return 'bg-green-100 text-green-800';
             case 'approved': return 'bg-blue-100 text-blue-800';
-            case 'draft': return 'bg-gray-100 text-gray-800';
+            case 'draft': return 'bg-yellow-100 text-yellow-800';
             case 'cancelled': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -101,9 +107,9 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'paid': return 'Dibayar';
-            case 'approved': return 'Disetujui';
-            case 'draft': return 'Draft';
+            case 'paid': return 'Sudah Dibayar';
+            case 'approved': return 'Disetujui - Siap Dibayar';
+            case 'draft': return 'Menunggu Persetujuan';
             case 'cancelled': return 'Dibatalkan';
             default: return status;
         }
@@ -120,6 +126,19 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
         });
     };
 
+    const handleApprovePayroll = (payrollId: number) => {
+        if (confirm('Apakah Anda yakin ingin menyetujui gaji ini?')) {
+            router.post(`/owner/keuangan/payroll/${payrollId}/approve`, {}, {
+                onSuccess: () => {
+                    // Page will reload automatically
+                },
+                onError: (errors) => {
+                    console.error('Approve failed:', errors);
+                }
+            });
+        }
+    };
+
     const handleProcessPayment = (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedPayroll) {
@@ -128,6 +147,20 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
                     setShowPaymentDialog(false);
                     setSelectedPayroll(null);
                     setPaymentData('account_id', '');
+                    setPaymentData('payment_notes', '');
+                },
+            });
+        }
+    };
+
+    const handleCancelPayroll = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (selectedPayroll) {
+            postCancel(`/owner/keuangan/payroll/${selectedPayroll.id}/cancel`, {
+                onSuccess: () => {
+                    setShowCancelDialog(false);
+                    setSelectedPayroll(null);
+                    setCancelData('cancellation_reason', '');
                 },
             });
         }
@@ -141,8 +174,22 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
                 {/* Header */}
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Manajemen Gaji</h1>
-                        <p className="text-gray-600">Kelola gaji dan tunjangan karyawan</p>
+                        <h1 className="text-3xl font-bold text-gray-900">💰 Manajemen Gaji Karyawan</h1>
+                        <p className="text-gray-600">Kelola pembayaran gaji dan tunjangan karyawan dengan mudah</p>
+                        <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-sm text-yellow-800">
+                                ⚠️ <strong>Penting:</strong> Gaji hanya bisa di-generate sekali per bulan untuk setiap karyawan.
+                                Pastikan data sudah benar sebelum melakukan pembayaran.
+                            </p>
+                        </div>
+                        <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800">
+                                📋 <strong>Alur Pembayaran Gaji:</strong><br/>
+                                1️⃣ Generate gaji → Status: <span className="font-semibold text-yellow-600">Menunggu Persetujuan</span><br/>
+                                2️⃣ Setujui gaji → Status: <span className="font-semibold text-blue-600">Disetujui - Siap Dibayar</span><br/>
+                                3️⃣ Bayar gaji → Status: <span className="font-semibold text-green-600">Sudah Dibayar</span> (masuk ke pengeluaran)
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center space-x-4">
                         <Button variant="outline" asChild>
@@ -309,19 +356,53 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => setSelectedPayroll(payroll)}
+                                                    title="Lihat Detail"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
+
+                                                {/* Tombol Setujui - hanya untuk status draft */}
+                                                {payroll.status === 'draft' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                                        onClick={() => handleApprovePayroll(payroll.id)}
+                                                        title="Setujui Gaji"
+                                                    >
+                                                        ✓
+                                                    </Button>
+                                                )}
+
+                                                {/* Tombol Bayar - hanya untuk status approved */}
                                                 {payroll.status === 'approved' && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
+                                                        className="text-green-600 border-green-600 hover:bg-green-50"
                                                         onClick={() => {
                                                             setSelectedPayroll(payroll);
                                                             setShowPaymentDialog(true);
                                                         }}
+                                                        title="Bayar Gaji"
                                                     >
                                                         <CreditCard className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+
+                                                {/* Tombol Batal - untuk status draft dan approved */}
+                                                {(payroll.status === 'draft' || payroll.status === 'approved') && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-red-600 border-red-600 hover:bg-red-50"
+                                                        onClick={() => {
+                                                            setSelectedPayroll(payroll);
+                                                            setShowCancelDialog(true);
+                                                        }}
+                                                        title="Batalkan Gaji"
+                                                    >
+                                                        ✕
                                                     </Button>
                                                 )}
                                             </div>
@@ -412,6 +493,17 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                    <div>
+                                        <Label htmlFor="payment_notes">Catatan Pembayaran (Opsional)</Label>
+                                        <textarea
+                                            id="payment_notes"
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            rows={2}
+                                            value={paymentData.payment_notes}
+                                            onChange={(e) => setPaymentData('payment_notes', e.target.value)}
+                                            placeholder="Catatan tambahan untuk pembayaran..."
+                                        />
+                                    </div>
                                     <div className="flex justify-end space-x-2">
                                         <Button type="button" variant="outline" onClick={() => setShowPaymentDialog(false)}>
                                             Batal
@@ -423,6 +515,40 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
                                 </form>
                             </div>
                         )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* Cancel Payroll Dialog */}
+                <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Batalkan Gaji</DialogTitle>
+                            <DialogDescription>
+                                Batalkan gaji untuk {selectedPayroll?.user.name} periode {selectedPayroll?.period_month}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleCancelPayroll} className="space-y-4">
+                            <div>
+                                <Label htmlFor="cancellation_reason">Alasan Pembatalan</Label>
+                                <textarea
+                                    id="cancellation_reason"
+                                    className="w-full p-2 border border-gray-300 rounded-md"
+                                    rows={3}
+                                    value={cancelData.cancellation_reason}
+                                    onChange={(e) => setCancelData('cancellation_reason', e.target.value)}
+                                    placeholder="Masukkan alasan pembatalan gaji..."
+                                    required
+                                />
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                                <Button type="button" variant="outline" onClick={() => setShowCancelDialog(false)}>
+                                    Batal
+                                </Button>
+                                <Button type="submit" variant="destructive" disabled={processingCancel}>
+                                    {processingCancel ? 'Membatalkan...' : 'Batalkan Gaji'}
+                                </Button>
+                            </div>
+                        </form>
                     </DialogContent>
                 </Dialog>
 

@@ -59,6 +59,7 @@ class PayrollService
                 'insurance_amount' => $payrollData['insurance_amount'],
                 'other_deductions' => $payrollData['other_deductions'],
                 'net_salary' => $payrollData['net_salary'],
+                'status' => Payroll::STATUS_DRAFT, // Default status: menunggu persetujuan
                 'breakdown' => $payrollData['breakdown'],
             ]);
 
@@ -266,43 +267,72 @@ class PayrollService
     /**
      * Process payroll payment
      */
-    public function processPayment($payrollId, $accountId, $userId)
+    public function processPayment($payrollId, $accountId, $userId, $notes = null)
     {
-        return DB::transaction(function() use ($payrollId, $accountId, $userId) {
+        return DB::transaction(function() use ($payrollId, $accountId, $userId, $notes) {
             $payroll = Payroll::findOrFail($payrollId);
-            
-            if ($payroll->status !== 'approved') {
-                throw new \Exception('Payroll must be approved before payment');
+
+            // Validasi status menggunakan method baru
+            if (!$payroll->canBePaid()) {
+                throw new \Exception('Gaji harus disetujui terlebih dahulu sebelum dapat dibayar');
             }
 
-            // Create financial transaction
+            // Validasi saldo akun
+            $account = FinancialAccount::findOrFail($accountId);
+            if ($account->current_balance < $payroll->net_salary) {
+                throw new \Exception('Saldo akun tidak mencukupi untuk pembayaran gaji');
+            }
+
+            // Create financial transaction untuk pengeluaran gaji
             $transaction = FinancialTransaction::create([
                 'transaction_code' => $this->generateTransactionCode(),
                 'transaction_type' => 'expense',
-                'category' => 'salary',
-                'subcategory' => 'basic_salary',
+                'category' => 'payroll',
+                'subcategory' => 'salary_payment',
                 'amount' => $payroll->net_salary,
                 'from_account_id' => $accountId,
                 'reference_type' => 'payroll',
                 'reference_id' => $payroll->id,
-                'description' => "Pembayaran gaji {$payroll->user->name} periode {$payroll->period_month}",
+                'description' => "Pembayaran gaji {$payroll->user->name} periode {$payroll->period_month}" .
+                               ($notes ? " - {$notes}" : ""),
                 'transaction_date' => now()->toDateString(),
                 'status' => 'completed',
                 'created_by' => $userId,
                 'approved_by' => $userId,
                 'approved_at' => now(),
+                'metadata' => [
+                    'payroll_code' => $payroll->payroll_code,
+                    'employee_name' => $payroll->user->name,
+                    'period' => $payroll->period_month,
+                    'basic_salary' => $payroll->basic_salary,
+                    'overtime_amount' => $payroll->overtime_amount,
+                    'bonus_amount' => $payroll->bonus_amount,
+                    'allowance_amount' => $payroll->allowance_amount,
+                    'gross_salary' => $payroll->gross_salary,
+                    'tax_amount' => $payroll->tax_amount,
+                    'insurance_amount' => $payroll->insurance_amount,
+                    'deduction_amount' => $payroll->deduction_amount,
+                    'net_salary' => $payroll->net_salary,
+                ],
             ]);
 
             // Update account balance
-            $account = FinancialAccount::findOrFail($accountId);
             $account->updateBalance($payroll->net_salary, 'subtract');
 
-            // Mark payroll as paid
-            $payroll->markAsPaid($userId);
+            // Mark payroll as paid dengan link ke transaksi
+            $payroll->markAsPaid($userId, $transaction->id);
+
+            \Log::info('Payroll payment completed', [
+                'payroll_id' => $payroll->id,
+                'transaction_id' => $transaction->id,
+                'amount' => $payroll->net_salary,
+                'account_balance_after' => $account->fresh()->current_balance
+            ]);
 
             return [
                 'payroll' => $payroll->fresh(),
                 'transaction' => $transaction,
+                'account' => $account->fresh(),
             ];
         });
     }

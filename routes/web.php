@@ -258,7 +258,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Payroll Management
             Route::get('payroll', [App\Http\Controllers\FinancialController::class, 'payroll'])->name('payroll');
             Route::post('payroll/generate', [App\Http\Controllers\FinancialController::class, 'generatePayroll'])->name('payroll.generate');
+            Route::post('payroll/{payroll}/approve', [App\Http\Controllers\FinancialController::class, 'approvePayroll'])->name('payroll.approve');
             Route::post('payroll/{payroll}/payment', [App\Http\Controllers\FinancialController::class, 'processPayrollPayment'])->name('payroll.payment');
+            Route::post('payroll/{payroll}/cancel', [App\Http\Controllers\FinancialController::class, 'cancelPayroll'])->name('payroll.cancel');
 
             // Payroll Configuration
             Route::get('payroll-configuration', [App\Http\Controllers\PayrollConfigurationController::class, 'index'])->name('payroll-configuration');
@@ -353,10 +355,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('barang/{barang}/update', [BarangController::class, 'update'])->name('barang.update.post');
         Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
 
-        // Stock movements - riwayat perubahan stok
+        // Stock movements - riwayat perubahan stok (view only)
         Route::get('barang/{barang}/stock-movements', [BarangController::class, 'stockMovements'])->name('barang.stock-movements');
+    });
 
-        // Update stock barang - untuk adjustment stock manual
+    // KASIR ONLY - Stock Management (Inventory Control)
+    Route::middleware(['role:' . Role::KASIR])->group(function () {
+        // Update stock barang - KASIR only dapat mengelola stok
         Route::patch('barang/{barang}/stock', [BarangController::class, 'updateStock'])->name('barang.update-stock');
     });
 
@@ -365,24 +370,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
      * PENJUALAN (SALES) MANAGEMENT ROUTES
      * ===================================================================
      * Routes untuk manajemen penjualan dan transaksi
-     * Akses: Admin, Owner, Kasir (TIDAK TERMASUK KARYAWAN)
      *
-     * Fitur:
-     * - Transaction processing (walk-in & online)
-     * - Payment confirmation
-     * - Order status management
-     * - Receipt generation
-     * - Pickup management
-     *
-     * CATATAN: Karyawan tidak perlu mengakses data transaksi penjualan
+     * PEMBAGIAN AKSES BERDASARKAN ROLE:
+     * - KASIR: Full access (create, update, delete transactions)
+     * - ADMIN: Full access (create, update, delete transactions)
+     * - OWNER: View only (reports and monitoring, NO direct transaction creation)
+     * - KARYAWAN: NO ACCESS (fokus inventory management)
      */
-    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KASIR])->group(function () {
+
+    // KASIR ONLY - Transaction Creation and Management
+    Route::middleware(['role:' . Role::KASIR])->group(function () {
+        // Transaction creation and management - KASIR only
+        Route::get('penjualan/create', [PenjualanController::class, 'create'])->name('penjualan.create');
+        Route::post('penjualan', [PenjualanController::class, 'store'])->name('penjualan.store');
+        Route::get('penjualan/{penjualan}/edit', [PenjualanController::class, 'edit'])->name('penjualan.edit');
+        Route::put('penjualan/{penjualan}', [PenjualanController::class, 'update'])->name('penjualan.update');
+        Route::delete('penjualan/{penjualan}', [PenjualanController::class, 'destroy'])->name('penjualan.destroy');
+
+        // Online order management - KASIR only
+        Route::get('penjualan/online', [PenjualanController::class, 'online'])->name('penjualan.online');
+        Route::post('penjualan/{penjualan}/confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
+        Route::post('penjualan/{penjualan}/reject-payment', [PenjualanController::class, 'rejectPayment'])->name('penjualan.reject-payment');
+        Route::post('penjualan/{penjualan}/ready-pickup', [PenjualanController::class, 'readyPickup'])->name('penjualan.ready-pickup');
+        Route::post('penjualan/{penjualan}/complete', [PenjualanController::class, 'complete'])->name('penjualan.complete');
+    });
+
+    // OWNER & KASIR ONLY - View Access Only (Admin tidak ada akses transaksi)
+    Route::middleware(['role:' . Role::OWNER . ',' . Role::KASIR])->group(function () {
         // History transaksi - riwayat lengkap semua transaksi dengan role-based access
         Route::get('penjualan/history', [PenjualanController::class, 'history'])->name('penjualan.history');
 
-        // Resource routes untuk CRUD penjualan (index, create, store, show, edit, update, destroy)
-        Route::resource('penjualan', PenjualanController::class);
-        Route::post('penjualan/{penjualan}/update', [PenjualanController::class, 'update'])->name('penjualan.update.post');
+        // View only routes - semua role bisa melihat transaksi
+        Route::get('penjualan', [PenjualanController::class, 'index'])->name('penjualan.index');
+        Route::get('penjualan/{penjualan}', [PenjualanController::class, 'show'])->name('penjualan.show');
 
         // Print invoice/receipt untuk transaksi
         Route::get('penjualan/{penjualan}/print', [PenjualanController::class, 'print'])->name('penjualan.print');
@@ -442,8 +462,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
      * ===================================================================
      * Routes untuk laporan dengan sistem approval sesuai diagram activity
      */
-    // Reports with Approval Flow - accessible by all roles
-    Route::middleware(['role:admin,owner,karyawan'])->prefix('reports')->name('reports.')->group(function () {
+    // Reports with Approval Flow - accessible by owner and karyawan only (admin tidak ada akses laporan)
+    Route::middleware(['role:owner,karyawan'])->prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\ReportController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('store');
@@ -479,3 +499,23 @@ require __DIR__.'/auth.php';
  * Route untuk download dokumentasi PDF
  */
 Route::get('/documentation/download', [\App\Http\Controllers\DocumentationController::class, 'downloadPdf'])->name('documentation.download');
+
+// Debug route for barang update
+Route::post('/debug/barang/{barang}/update', function (Request $request, \App\Models\Barang $barang) {
+    \Log::info('Debug barang update', [
+        'user_id' => auth()->id(),
+        'user_roles' => auth()->user()->roles->pluck('name'),
+        'barang_id' => $barang->id,
+        'request_all' => $request->all(),
+        'request_input' => $request->input(),
+        'request_files' => $request->allFiles(),
+        'content_type' => $request->header('Content-Type'),
+        'method' => $request->method()
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Debug data logged',
+        'data' => $request->all()
+    ]);
+})->middleware(['auth', 'verified']);

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { PageProps, Penjualan } from '@/types';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import { useEffect } from 'react';
+import { route } from 'ziggy-js';
 
 interface PenjualanPrintProps extends PageProps {
     penjualan: Penjualan & {
@@ -181,7 +182,20 @@ export default function PenjualanPrint({ penjualan }: PenjualanPrintProps) {
                         Print Receipt
                     </button>
                     <button
-                        onClick={() => window.close()}
+                        onClick={() => {
+                            // Try to close window, if it fails, redirect to penjualan index
+                            try {
+                                window.close();
+                                // If window.close() doesn't work (e.g., not opened by script), redirect
+                                setTimeout(() => {
+                                    if (!window.closed) {
+                                        window.location.href = route('penjualan.index');
+                                    }
+                                }, 100);
+                            } catch (error) {
+                                window.location.href = route('penjualan.index');
+                            }
+                        }}
                         className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                         Close

@@ -106,8 +106,14 @@ export default function StockValuationPage({ valuations, summary, filters }: Pro
                 {/* Header */}
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Valuasi Stok</h1>
-                        <p className="text-gray-600">Penilaian nilai inventory dan analisis profitabilitas</p>
+                        <h1 className="text-3xl font-bold text-gray-900">📦 Valuasi Stok Barang</h1>
+                        <p className="text-gray-600">Hitung nilai total barang di gudang dan potensi keuntungan</p>
+                        <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800">
+                                💡 <strong>Penjelasan:</strong> Valuasi stok membantu Anda mengetahui berapa nilai total barang yang ada di gudang.
+                                Ini penting untuk mengetahui aset toko dan merencanakan pembelian barang baru.
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center space-x-4">
                         <Button onClick={() => setShowGenerateDialog(true)}>
@@ -166,7 +172,10 @@ export default function StockValuationPage({ valuations, summary, filters }: Pro
                                 {formatCurrency(summary.total_potential_profit)}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Margin rata-rata: {summary.average_margin.toFixed(1)}%
+                                Margin rata-rata: {typeof summary.average_margin === 'number'
+                                    ? summary.average_margin.toFixed(1)
+                                    : parseFloat(summary.average_margin || '0').toFixed(1)
+                                }%
                             </p>
                         </CardContent>
                     </Card>
@@ -246,12 +255,15 @@ export default function StockValuationPage({ valuations, summary, filters }: Pro
                                         </TableCell>
                                         <TableCell>
                                             <Badge className={getMarginColor(valuation.profit_margin_percentage)}>
-                                                {valuation.profit_margin_percentage.toFixed(1)}%
+                                                {typeof valuation.profit_margin_percentage === 'number'
+                                                    ? valuation.profit_margin_percentage.toFixed(1)
+                                                    : parseFloat(valuation.profit_margin_percentage || '0').toFixed(1)
+                                                }%
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline">
-                                                {valuation.valuation_method.toUpperCase()}
+                                                {(valuation.valuation_method || '').toString().toUpperCase()}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>
@@ -279,10 +291,15 @@ export default function StockValuationPage({ valuations, summary, filters }: Pro
                 <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Generate Valuasi Stok</DialogTitle>
+                            <DialogTitle>📊 Buat Laporan Valuasi Stok</DialogTitle>
                             <DialogDescription>
-                                Buat valuasi stok untuk semua produk berdasarkan tanggal dan metode yang dipilih
+                                Hitung nilai total semua barang di gudang berdasarkan tanggal dan metode perhitungan yang dipilih
                             </DialogDescription>
+                            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                <p className="text-sm text-yellow-800">
+                                    <strong>Catatan:</strong> Valuasi stok akan menghitung nilai semua barang berdasarkan stok yang tersedia saat ini.
+                                </p>
+                            </div>
                         </DialogHeader>
                         <form onSubmit={handleGenerateValuation} className="space-y-4">
                             <div>
@@ -296,20 +313,23 @@ export default function StockValuationPage({ valuations, summary, filters }: Pro
                                 />
                             </div>
                             <div>
-                                <Label htmlFor="valuation_method">Metode Valuasi</Label>
+                                <Label htmlFor="valuation_method">Metode Perhitungan</Label>
                                 <Select
                                     value={generateData.valuation_method}
                                     onValueChange={(value) => setGenerateData('valuation_method', value)}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Pilih metode valuasi" />
+                                        <SelectValue placeholder="Pilih metode perhitungan" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="fifo">FIFO (First In First Out)</SelectItem>
-                                        <SelectItem value="lifo">LIFO (Last In First Out)</SelectItem>
-                                        <SelectItem value="average">Weighted Average</SelectItem>
+                                        <SelectItem value="fifo">FIFO - Barang Lama Keluar Dulu</SelectItem>
+                                        <SelectItem value="lifo">LIFO - Barang Baru Keluar Dulu</SelectItem>
+                                        <SelectItem value="average">Rata-rata - Harga Rata-rata</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                    <strong>Rekomendasi:</strong> Gunakan FIFO untuk toko beras karena barang lama harus dijual dulu agar tidak rusak.
+                                </div>
                             </div>
                             <div className="flex justify-end space-x-2">
                                 <Button type="button" variant="outline" onClick={() => setShowGenerateDialog(false)}>

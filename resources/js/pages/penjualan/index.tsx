@@ -16,6 +16,17 @@ interface PenjualanIndexProps extends PageProps {
         sort?: string;
         direction?: string;
     };
+    uiPermissions?: {
+        canCreateTransactions: boolean;
+        canEditTransactions: boolean;
+        canDeleteTransactions: boolean;
+        canViewTransactionHistory: boolean;
+        canProcessPayments: boolean;
+        isOwner: boolean;
+        isKasir: boolean;
+        isAdmin: boolean;
+    };
+    userRole?: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -25,7 +36,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function PenjualanIndex({ auth, penjualans, filters = {} }: PenjualanIndexProps) {
+export default function PenjualanIndex({ auth, penjualans, filters = {}, uiPermissions, userRole }: PenjualanIndexProps) {
     const formatDateTime = (dateString: string) => {
         return new Date(dateString).toLocaleString('id-ID', {
             year: 'numeric',
@@ -53,10 +64,14 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
 
     const getStatusVariant = (status: string) => {
         switch (status) {
-            case 'selesai':
-                return 'success';
             case 'pending':
                 return 'warning';
+            case 'dibayar':
+                return 'info';
+            case 'siap_pickup':
+                return 'success';
+            case 'selesai':
+                return 'success';
             case 'dibatalkan':
                 return 'danger';
             default:
@@ -162,44 +177,54 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
             label: 'Status',
             sortable: true,
             render: (value) => (
-                <StatusBadge 
+                <StatusBadge
                     status={
                         value === 'pending' ? 'Menunggu Pembayaran' :
+                        value === 'dibayar' ? 'Sudah Dibayar' :
+                        value === 'siap_pickup' ? 'Siap Pickup' :
                         value === 'selesai' ? 'Selesai' :
                         value === 'dibatalkan' ? 'Dibatalkan' :
                         'Status Tidak Diketahui'
                     }
-                    variant={getStatusVariant(value)} 
+                    variant={getStatusVariant(value)}
                 />
             ),
         },
         {
             key: 'actions',
             label: 'Aksi',
-            render: (_, row) => (
-                <ActionButtons
-                    actions={[
-                        {
-                            label: 'Lihat Detail',
-                            href: route('penjualan.show', row.id),
-                            variant: 'secondary',
-                            icon: <Icons.view />,
-                        },
-                        ...(row.status === 'pending' ? [{
-                            label: 'Ubah Transaksi',
-                            href: route('penjualan.edit', row.id),
-                            variant: 'primary' as const,
-                            icon: <Icons.edit />,
-                        }] : []),
-                        {
-                            label: 'Hapus',
-                            onClick: () => handleDelete(row.id, row.nomor_transaksi),
-                            variant: 'danger' as const,
-                            icon: <Icons.delete />,
-                        },
-                    ]}
-                />
-            ),
+            render: (_, row) => {
+                const rowActions: any[] = [
+                    {
+                        label: 'Lihat Detail',
+                        href: route('penjualan.show', row.id),
+                        variant: 'secondary' as const,
+                        icon: <Icons.view />,
+                    }
+                ];
+
+                // Only KASIR and ADMIN can edit transactions
+                if (uiPermissions?.canEditTransactions && row.status === 'pending') {
+                    rowActions.push({
+                        label: 'Ubah Transaksi',
+                        href: route('penjualan.edit', row.id),
+                        variant: 'primary' as const,
+                        icon: <Icons.edit />,
+                    });
+                }
+
+                // Only KASIR and ADMIN can delete transactions
+                if (uiPermissions?.canDeleteTransactions) {
+                    rowActions.push({
+                        label: 'Hapus',
+                        onClick: () => handleDelete(row.id, row.nomor_transaksi),
+                        variant: 'danger' as const,
+                        icon: <Icons.delete />,
+                    });
+                }
+
+                return <ActionButtons actions={rowActions} />;
+            },
         },
     ];
 
@@ -225,14 +250,28 @@ export default function PenjualanIndex({ auth, penjualans, filters = {} }: Penju
         },
     ];
 
-    const actions = [
-        {
+    // Role-based actions - only show actions based on user permissions
+    const actions = [];
+
+    // Only KASIR and ADMIN can create new transactions
+    if (uiPermissions?.canCreateTransactions) {
+        actions.push({
             label: 'Transaksi Penjualan Baru',
             href: route('penjualan.create'),
             className: 'inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
             icon: Icons.add,
-        },
-    ];
+        });
+    }
+
+    // All roles can view transaction history
+    if (uiPermissions?.canViewTransactionHistory) {
+        actions.push({
+            label: 'Riwayat Transaksi',
+            href: route('penjualan.history'),
+            className: 'inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150',
+            icon: Icons.history,
+        });
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

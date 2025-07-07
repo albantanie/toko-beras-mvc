@@ -25,41 +25,34 @@ use Illuminate\Support\Facades\DB;
 class DashboardController extends Controller
 {
     /**
-     * Dashboard Admin dengan analytics penjualan dan manajemen
+     * Dashboard Admin dengan fokus pada manajemen barang dan pengguna
      *
-     * @return Response Halaman dashboard admin dengan data analytics
+     * @return Response Halaman dashboard admin dengan data yang sesuai role
      */
     public function adminDashboard(): Response
     {
-        // Trend penjualan hari ini (data per jam)
-        $todaysSalesTrend = $this->getTodaysSalesTrend();
+        // Total pengguna (exclude walk-in system user)
+        $totalUsers = User::where('email', '!=', 'walkin@tokoberas.internal')->count();
 
-        // Distribusi metode pembayaran
-        $paymentMethods = $this->getPaymentMethodsData();
+        // Total barang
+        $totalBarangs = Barang::count();
 
-        // Ringkasan penjualan
-        $salesSummary = $this->getSalesSummary();
-
-        // Produk terlaris
-        $topProducts = $this->getTopProducts();
-
-        // Transaksi terbaru
-        $recentTransactions = $this->getRecentTransactions();
-
-        // Produk tanpa harga
+        // Barang yang belum ada harga (admin perlu input harga)
         $barangsNoPrice = Barang::where(function($q) {
             $q->whereNull('harga_beli')->orWhere('harga_beli', 0)
               ->orWhereNull('harga_jual')->orWhere('harga_jual', 0);
-        })->get(['id', 'nama', 'kode_barang']);
+        })->get(['id', 'nama', 'kode_barang', 'kategori', 'stok', 'harga_beli', 'harga_jual']);
 
-        // Render dashboard admin dengan semua data analytics
+        // Barang dengan stok rendah (untuk informasi, admin tidak bisa update stok)
+        $barangsLowStock = Barang::whereRaw('stok <= stok_minimum')
+            ->get(['id', 'nama', 'stok', 'stok_minimum']);
+
+        // Render dashboard admin dengan data yang sesuai role
         return Inertia::render('admin/dashboard', [
-            'todaysSalesTrend' => $todaysSalesTrend,
-            'paymentMethods' => $paymentMethods,
-            'salesSummary' => $salesSummary,
-            'topProducts' => $topProducts,
-            'recentTransactions' => $recentTransactions,
+            'totalUsers' => $totalUsers,
+            'totalBarangs' => $totalBarangs,
             'barangsNoPrice' => $barangsNoPrice,
+            'barangsLowStock' => $barangsLowStock,
         ]);
     }
 

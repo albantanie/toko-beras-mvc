@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, PiggyBank, Users, Package, BarChart3 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { formatCurrency, formatCompactNumber, currencyTooltipFormatter, dateTooltipFormatter } from '@/utils/chart-formatters';
 
 interface DashboardData {
     cash_summary: {
@@ -92,13 +93,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 export default function FinancialDashboard({ dashboardData, period }: Props) {
     const [selectedPeriod, setSelectedPeriod] = useState(period);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
+
 
     const formatNumber = (num: number) => {
         return new Intl.NumberFormat('id-ID').format(num);
@@ -127,7 +122,19 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Dashboard Keuangan</h1>
-                        <p className="text-gray-600">Overview komprehensif kondisi keuangan toko beras</p>
+                        <p className="text-gray-600">Pantau kondisi keuangan toko beras Anda dengan mudah</p>
+                        <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800">
+                                💡 <strong>Panduan:</strong> Dashboard ini menampilkan ringkasan keuangan toko Anda.
+                                Gunakan menu di bawah untuk mengelola kas, gaji karyawan, dan laporan keuangan.
+                            </p>
+                        </div>
+                        <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-sm text-green-800">
+                                🏦 <strong>Info Pembayaran:</strong> Semua pembayaran non-tunai (transfer, debit, kredit)
+                                masuk ke rekening Bank BCA. Pembayaran tunai masuk ke kas toko.
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center space-x-4">
                         <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
@@ -151,7 +158,7 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                     {/* Total Liquid Cash */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Kas & Bank</CardTitle>
+                            <CardTitle className="text-sm font-medium">💰 Total Uang Tunai</CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -159,16 +166,19 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                 {dashboardData.cash_summary.formatted_total_liquid}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Kas: {formatCurrency(dashboardData.cash_summary.total_cash)} | 
-                                Bank: {formatCurrency(dashboardData.cash_summary.total_bank)}
+                                Kas: {formatCurrency(dashboardData.cash_summary.total_cash)} |
+                                Bank BCA: {formatCurrency(dashboardData.cash_summary.bca_balance || dashboardData.cash_summary.total_bank)}
                             </p>
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                <strong>Penjelasan:</strong> Total uang yang tersedia di kas toko dan rekening Bank BCA untuk operasional sehari-hari.
+                            </div>
                         </CardContent>
                     </Card>
 
                     {/* Net Profit */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Laba Bersih</CardTitle>
+                            <CardTitle className="text-sm font-medium">📈 Keuntungan Bersih</CardTitle>
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -178,13 +188,16 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                             <p className="text-xs text-muted-foreground">
                                 Margin: {dashboardData.profit_summary.net_margin.toFixed(1)}%
                             </p>
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                <strong>Penjelasan:</strong> Keuntungan setelah dikurangi semua biaya operasional, gaji, dan pajak.
+                            </div>
                         </CardContent>
                     </Card>
 
                     {/* Total Revenue */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Penjualan</CardTitle>
+                            <CardTitle className="text-sm font-medium">💵 Total Penjualan</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -194,13 +207,16 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                             <p className="text-xs text-muted-foreground">
                                 {formatNumber(dashboardData.revenue_summary.total_transactions)} transaksi
                             </p>
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                <strong>Penjelasan:</strong> Total uang yang masuk dari penjualan beras dan produk lainnya.
+                            </div>
                         </CardContent>
                     </Card>
 
                     {/* Stock Value */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nilai Stok</CardTitle>
+                            <CardTitle className="text-sm font-medium">📦 Nilai Stok Barang</CardTitle>
                             <Package className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -210,6 +226,9 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                             <p className="text-xs text-muted-foreground">
                                 Potensi untung: {formatCurrency(dashboardData.stock_valuation_summary.total_potential_profit)}
                             </p>
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                <strong>Penjelasan:</strong> Total nilai barang yang ada di gudang berdasarkan harga jual saat ini.
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -227,8 +246,11 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                 <LineChart data={dashboardData.revenue_summary.daily_breakdown}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="date" />
-                                    <YAxis />
-                                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                    <YAxis tickFormatter={formatCompactNumber} />
+                                    <Tooltip
+                                        formatter={currencyTooltipFormatter}
+                                        labelFormatter={dateTooltipFormatter}
+                                    />
                                     <Line type="monotone" dataKey="total" stroke="#3B82F6" strokeWidth={2} />
                                 </LineChart>
                             </ResponsiveContainer>

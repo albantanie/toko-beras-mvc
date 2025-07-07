@@ -274,7 +274,7 @@ class Barang extends Model
      */
     public function recordStockMovement($type, $quantity, $description, $userId = null, $referenceType = null, $referenceId = null, $unitPrice = null, $metadata = [])
     {
-        $userId = $userId ?? auth()->id();
+        $userId = $userId ?? auth()->id() ?? 1; // Fallback to user ID 1 (system)
         $stockBefore = $this->stok;
         
         // Calculate new stock based on type

@@ -40,6 +40,17 @@ interface BarangIndexProps {
         sort?: string;
         direction?: string;
     };
+    uiPermissions?: {
+        canCreateTransactions: boolean;
+        canEditTransactions: boolean;
+        canDeleteTransactions: boolean;
+        canManageStock: boolean;
+        canViewStockReports: boolean;
+        isOwner: boolean;
+        isKasir: boolean;
+        isAdmin: boolean;
+    };
+    userRole?: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -49,7 +60,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndexProps) {
+export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions, userRole }: BarangIndexProps) {
     const handleDelete = (id: number, productName: string) => {
         RiceStoreAlerts.product.confirmDelete(productName).then((result) => {
             if (result.isConfirmed) {
@@ -153,6 +164,10 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                             <Link href={route('barang.edit', row.id)} className="text-green-600 hover:underline">Ubah</Link>
                             <button onClick={() => handleDelete(row.id, row.nama)} className="text-red-600 hover:underline">Hapus</button>
                         </>
+                    )}
+                    {/* Only KASIR can manage stock */}
+                    {uiPermissions?.canManageStock && (
+                        <Link href={`/stock-movements/kelola?barang_id=${row.id}`} className="text-purple-600 hover:underline">Kelola Stok</Link>
                     )}
                 </div>
             ),

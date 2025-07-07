@@ -1,9 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
-import LineChart from '@/components/Charts/LineChart';
-import DoughnutChart from '@/components/Charts/DoughnutChart';
-import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
+import { BreadcrumbItem } from '@/types';
+import { Icons } from '@/utils/formatters';
 import { Link } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -13,116 +11,43 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface AdminDashboardProps extends PageProps {
-    todaysSalesTrend: Array<{
-        hour: string;
-        transactions: number;
-        revenue: number;
-    }>;
-    paymentMethods: Array<{
-        method: string;
-        count: number;
-        total: number;
-    }>;
-    salesSummary: {
-        today: { revenue: number; transactions: number };
-        yesterday: { revenue: number; transactions: number };
-        this_month: { revenue: number; transactions: number };
-        last_month: { revenue: number; transactions: number };
+interface AdminDashboardProps {
+    auth: {
+        user: {
+            id: number;
+            name: string;
+            email: string;
+            roles: Array<{ name: string }>;
+        };
     };
-    topProducts: Array<{
+    barangsNoPrice: Array<{
+        id: number;
         nama: string;
+        kode_barang: string;
         kategori: string;
-        total_sold: number;
-        total_revenue: number;
+        stok: number;
+        harga_beli: number | null;
+        harga_jual: number | null;
     }>;
-    recentTransactions: any[];
+    totalUsers: number;
+    totalBarangs: number;
+    barangsLowStock: Array<{
+        id: number;
+        nama: string;
+        stok: number;
+        stok_minimum: number;
+    }>;
 }
 
 export default function AdminDashboard({
-    auth,
-    todaysSalesTrend,
-    paymentMethods,
-    salesSummary,
-    topProducts,
-    recentTransactions,
-    barangsNoPrice = [], // <-- Tambahkan default prop
-}: AdminDashboardProps & { barangsNoPrice?: any[] }) {
-    // Prepare chart data
-    const salesTrendData = {
-        labels: todaysSalesTrend?.map(item => item.hour) || [],
-        datasets: [
-            {
-                label: 'Pendapatan',
-                data: todaysSalesTrend?.map(item => item.revenue) || [],
-                borderColor: 'rgb(34, 197, 94)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                fill: true,
-                tension: 0.4,
-            },
-            {
-                label: 'Transaksi',
-                data: todaysSalesTrend?.map(item => item.transactions) || [],
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                fill: false,
-                tension: 0.4,
-                yAxisID: 'y1',
-            },
-        ],
-    };
-
-    const paymentMethodsData = {
-        labels: paymentMethods?.map(item => item.method) || [],
-        datasets: [
-            {
-                data: paymentMethods?.map(item => item.count) || [],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(168, 85, 247, 0.8)',
-                    'rgba(245, 158, 11, 0.8)',
-                    'rgba(239, 68, 68, 0.8)',
-                ],
-                borderColor: [
-                    'rgb(34, 197, 94)',
-                    'rgb(59, 130, 246)',
-                    'rgb(168, 85, 247)',
-                    'rgb(245, 158, 11)',
-                    'rgb(239, 68, 68)',
-                ],
-                borderWidth: 2,
-            },
-        ],
-    };
-
-    const salesTrendOptions = {
-        scales: {
-            y: {
-                type: 'linear' as const,
-                display: true,
-                position: 'left' as const,
-                title: {
-                    display: true,
-                    text: 'Pendapatan (Rp)',
-                },
-            },
-            y1: {
-                type: 'linear' as const,
-                display: true,
-                position: 'right' as const,
-                title: {
-                    display: true,
-                    text: 'Transaksi',
-                },
-                grid: {
-                    drawOnChartArea: false,
-                },
-            },
-        },
-    };
-
-    // Card warning produk tanpa harga
+    barangsNoPrice = [],
+    totalUsers = 0,
+    totalBarangs = 0,
+    barangsLowStock = [],
+}: AdminDashboardProps) {
+    // Calculate statistics for admin dashboard
+    const barangsNeedingPrice = barangsNoPrice.length;
+    const lowStockCount = barangsLowStock.length;
     const showPriceWarning = barangsNoPrice.length > 0;
 
     return (
@@ -131,152 +56,225 @@ export default function AdminDashboard({
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                    {/* Card Warning Produk Tanpa Harga */}
+                    {/* Header */}
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div className="p-6">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Admin</h3>
+                            <p className="text-gray-600">Selamat datang, Administrator! Kelola barang dan pengguna sistem toko beras.</p>
+                        </div>
+                    </div>
+
+                    {/* Warning untuk barang tanpa harga */}
                     {showPriceWarning && (
-                        <div className="mb-6">
-                            <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded flex items-center justify-between">
-                                <div>
-                                    <b>PERHATIAN:</b> Ada {barangsNoPrice.length} produk yang belum diinput harga beli/jual. Segera lengkapi harga pada produk tersebut!
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-center">
+                                <Icons.alertTriangle className="h-5 w-5 text-red-400 mr-3" />
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-medium text-red-800">
+                                        Perhatian: Ada {barangsNeedingPrice} barang yang belum diinput harga
+                                    </h3>
+                                    <p className="text-sm text-red-700 mt-1">
+                                        Segera lengkapi harga beli dan harga jual untuk barang-barang tersebut.
+                                    </p>
                                 </div>
                                 <Link
-                                    href={route('barang.index', { price_status: 'no_price' })}
-                                    className="ml-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                    href="/barang?filter=no_price"
+                                    className="ml-4 px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
                                 >
-                                    Lihat Produk Tanpa Harga
+                                    Lihat Barang
                                 </Link>
                             </div>
                         </div>
                     )}
 
-                    {/* Header */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Admin</h3>
-                            <p className="text-gray-600">Selamat datang, Administrator! Kelola sistem toko beras dengan akses penuh.</p>
-                        </div>
-                    </div>
-
-                    {/* Stats Cards */}
+                    {/* Statistics Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Total Pengguna */}
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div className="p-6">
                                 <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-green-100">
-                                        <Icons.money className="h-6 w-6 text-green-600" />
+                                    <div className="flex-shrink-0">
+                                        <Icons.users className="h-8 w-8 text-blue-600" />
                                     </div>
                                     <div className="ml-4 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-600">Pendapatan Hari Ini</p>
-                                        <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(salesSummary?.today?.revenue || 0)}>
-                                            {formatCompactNumber(salesSummary?.today?.revenue || 0, 'currency')}
-                                        </p>
+                                        <p className="text-sm font-medium text-gray-600">Total Pengguna</p>
+                                        <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Total Barang */}
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div className="p-6">
                                 <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-blue-100">
-                                        <Icons.transactions className="h-6 w-6 text-blue-600" />
+                                    <div className="flex-shrink-0">
+                                        <Icons.package className="h-8 w-8 text-green-600" />
                                     </div>
                                     <div className="ml-4 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-600">Transaksi Hari Ini</p>
-                                        <p className="text-xl font-bold text-gray-900 truncate" title={(salesSummary?.today?.transactions || 0).toString()}>
-                                            {formatCompactNumber(salesSummary?.today?.transactions || 0)}
-                                        </p>
+                                        <p className="text-sm font-medium text-gray-600">Total Barang</p>
+                                        <p className="text-2xl font-bold text-gray-900">{totalBarangs}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Barang Tanpa Harga */}
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div className="p-6">
                                 <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-purple-100">
-                                        <Icons.calendar className="h-6 w-6 text-purple-600" />
+                                    <div className="flex-shrink-0">
+                                        <Icons.alertTriangle className="h-8 w-8 text-red-600" />
                                     </div>
                                     <div className="ml-4 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-600">Pendapatan Bulan Ini</p>
-                                        <p className="text-xl font-bold text-gray-900 truncate" title={formatCurrency(salesSummary?.this_month?.revenue || 0)}>
-                                            {formatCompactNumber(salesSummary?.this_month?.revenue || 0, 'currency')}
-                                        </p>
+                                        <p className="text-sm font-medium text-gray-600">Barang Tanpa Harga</p>
+                                        <p className="text-2xl font-bold text-red-600">{barangsNeedingPrice}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Barang Stok Rendah */}
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div className="p-6">
                                 <div className="flex items-center">
-                                    <div className="p-3 rounded-full bg-orange-100">
-                                        <Icons.package className="h-6 w-6 text-orange-600" />
+                                    <div className="flex-shrink-0">
+                                        <Icons.trendingDown className="h-8 w-8 text-orange-600" />
                                     </div>
                                     <div className="ml-4 flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-600">Transaksi Bulan Ini</p>
-                                        <p className="text-xl font-bold text-gray-900 truncate" title={(salesSummary?.this_month?.transactions || 0).toString()}>
-                                            {formatCompactNumber(salesSummary?.this_month?.transactions || 0)}
-                                        </p>
+                                        <p className="text-sm font-medium text-gray-600">Stok Rendah</p>
+                                        <p className="text-2xl font-bold text-orange-600">{lowStockCount}</p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Charts */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Today's Sales Trend */}
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                            <div className="p-6">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Tren Penjualan Hari Ini</h4>
-                                <LineChart data={salesTrendData} options={salesTrendOptions} height={300} />
-                            </div>
-                        </div>
-
-                        {/* Payment Methods */}
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                            <div className="p-6">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Metode Pembayaran</h4>
-                                <DoughnutChart data={paymentMethodsData} height={300} />
                             </div>
                         </div>
                     </div>
 
                     {/* Quick Actions */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-blue-50 p-6 rounded-lg">
-                            <h4 className="font-semibold text-blue-800 mb-2">Kelola Pengguna</h4>
-                            <p className="text-blue-600 mb-4">Tambah, edit, dan hapus pengguna sistem</p>
-                            <a
-                                href={route('admin.users.index')}
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                            >
-                                Kelola Pengguna
-                            </a>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Kelola Pengguna */}
+                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-medium text-gray-900">Kelola Pengguna</h3>
+                                        <p className="text-sm text-gray-600 mt-1">Tambah, edit, dan hapus pengguna sistem</p>
+                                    </div>
+                                    <Icons.users className="h-8 w-8 text-blue-600" />
+                                </div>
+                                <div className="mt-4">
+                                    <Link
+                                        href="/admin/users"
+                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        Kelola Pengguna
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="bg-green-50 p-6 rounded-lg">
-                            <h4 className="font-semibold text-green-800 mb-2">Inventori</h4>
-                            <p className="text-green-600 mb-4">Kelola stok beras dan produk</p>
-                            <a
-                                href={route('barang.index')}
-                                className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                            >
-                                Kelola Barang
-                            </a>
-                        </div>
-
-                        <div className="bg-purple-50 p-6 rounded-lg">
-                            <h4 className="font-semibold text-purple-800 mb-2">Sistem</h4>
-                            <p className="text-purple-600 mb-4">Kelola pengaturan dan konfigurasi sistem</p>
-                            <a
-                                href={route('admin.users.index')}
-                                className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                            >
-                                Kelola Users
-                            </a>
+                        {/* Kelola Barang */}
+                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-medium text-gray-900">Kelola Barang</h3>
+                                        <p className="text-sm text-gray-600 mt-1">Input harga dan kelola data barang</p>
+                                    </div>
+                                    <Icons.package className="h-8 w-8 text-green-600" />
+                                </div>
+                                <div className="mt-4">
+                                    <Link
+                                        href="/barang"
+                                        className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                                    >
+                                        Kelola Barang
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Barang yang perlu input harga */}
+                    {barangsNoPrice.length > 0 && (
+                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                            <div className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                                    Barang yang Perlu Input Harga ({barangsNoPrice.length})
+                                </h3>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Kode Barang
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Nama Barang
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Kategori
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status Harga
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Aksi
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {barangsNoPrice.slice(0, 5).map((barang) => (
+                                                <tr key={barang.id}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                        {barang.kode_barang}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {barang.nama}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {barang.kategori}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex space-x-2">
+                                                            {!barang.harga_beli && (
+                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                    Harga Beli
+                                                                </span>
+                                                            )}
+                                                            {!barang.harga_jual && (
+                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                    Harga Jual
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <Link
+                                                            href={`/barang/${barang.id}/edit`}
+                                                            className="text-blue-600 hover:text-blue-900"
+                                                        >
+                                                            Input Harga
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {barangsNoPrice.length > 5 && (
+                                    <div className="mt-4 text-center">
+                                        <Link
+                                            href="/barang?filter=no_price"
+                                            className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                                        >
+                                            Lihat semua {barangsNoPrice.length} barang →
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </AppLayout>

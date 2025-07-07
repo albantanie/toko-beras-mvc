@@ -23,12 +23,12 @@ class StockValuation extends Model
 
     protected $casts = [
         'valuation_date' => 'date',
-        'unit_cost' => 'decimal:2',
-        'unit_price' => 'decimal:2',
-        'total_cost_value' => 'decimal:2',
-        'total_market_value' => 'decimal:2',
-        'potential_profit' => 'decimal:2',
-        'profit_margin_percentage' => 'decimal:2',
+        'unit_cost' => 'float',
+        'unit_price' => 'float',
+        'total_cost_value' => 'float',
+        'total_market_value' => 'float',
+        'potential_profit' => 'float',
+        'profit_margin_percentage' => 'float',
     ];
 
     // Relationships

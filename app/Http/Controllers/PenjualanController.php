@@ -6,6 +6,7 @@ use App\Models\Barang;
 use App\Models\DetailPenjualan;
 use App\Models\Penjualan;
 use App\Models\User;
+use App\Services\SalesFinancialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,12 @@ use Inertia\Response;
  */
 class PenjualanController extends Controller
 {
+    protected $salesFinancialService;
+
+    public function __construct(SalesFinancialService $salesFinancialService)
+    {
+        $this->salesFinancialService = $salesFinancialService;
+    }
     /**
      * Menampilkan daftar transaksi penjualan
      *
@@ -91,6 +98,16 @@ class PenjualanController extends Controller
 
         // Pagination with 5 items per page
         $penjualans = $query->paginate(5)->withQueryString();
+
+        // Debug logging untuk troubleshooting pagination
+        \Log::info('Penjualan pagination debug', [
+            'total_count' => $penjualans->total(),
+            'current_page' => $penjualans->currentPage(),
+            'per_page' => $penjualans->perPage(),
+            'data_count' => count($penjualans->items()),
+            'search' => $search,
+            'status' => $status,
+        ]);
 
         return Inertia::render('penjualan/index', [
             'penjualans' => $penjualans,
@@ -295,10 +312,11 @@ class PenjualanController extends Controller
 
                 $total += $detailPenjualan->subtotal;
 
-                // Record stock movement
+                // Record stock movement dan kurangi stok sekaligus
+                // recordStockMovement akan otomatis mengurangi stok untuk type 'out'
                 $barang->recordStockMovement(
                     type: 'out',
-                    quantity: -$item['jumlah'], // Negative for stock out
+                    quantity: $item['jumlah'], // Positive quantity, recordStockMovement akan handle pengurangan
                     description: "Penjualan - {$penjualan->nomor_transaksi}",
                     userId: auth()->id(),
                     referenceType: 'App\Models\DetailPenjualan',
@@ -316,10 +334,33 @@ class PenjualanController extends Controller
             // Update total
             $penjualan->update(['total' => $total]);
 
+            // Record and complete financial transaction (offline sales are immediately completed)
+            try {
+                $financialResult = $this->salesFinancialService->recordSalesTransaction($penjualan);
+
+                // Since offline sales are immediately completed, also complete the transaction
+                $completionResult = $this->salesFinancialService->completeTransaction($penjualan);
+
+                \Log::info('Offline sales financial transaction created and completed', [
+                    'penjualan_id' => $penjualan->id,
+                    'transaction_id' => $financialResult['transaction']->id,
+                    'amount' => $total,
+                    'payment_method' => $request->metode_pembayaran,
+                    'account_balance' => $financialResult['account']->current_balance,
+                    'status' => 'completed_immediately'
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to record/complete sales financial transaction', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the sale, just log the error
+            }
+
             DB::commit();
 
             return redirect()->route('penjualan.show', $penjualan)
-                ->with('success', 'Transaksi berhasil dibuat dan stok diperbarui');
+                ->with('success', 'Transaksi berhasil dibuat, stok diperbarui, dan keuangan tercatat');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -562,10 +603,11 @@ class PenjualanController extends Controller
                     'catatan' => $item['catatan'] ?? null,
                 ]);
 
-                // Record stock movement for new items
+                // Record stock movement for new items dan kurangi stok sekaligus
+                // recordStockMovement akan otomatis mengurangi stok untuk type 'out'
                 $barang->recordStockMovement(
                     type: 'out',
-                    quantity: -$item['jumlah'], // Negative for stock out
+                    quantity: $item['jumlah'], // Positive quantity, recordStockMovement akan handle pengurangan
                     description: "Edit Transaksi - Penjualan baru dari transaksi {$penjualan->nomor_transaksi}",
                     userId: auth()->id(),
                     referenceType: 'App\Models\DetailPenjualan',
@@ -753,14 +795,50 @@ class PenjualanController extends Controller
                 'payment_confirmed_by' => auth()->id(),
             ]);
 
+            // Confirm payment in financial system
+            try {
+                $this->salesFinancialService->confirmPayment($penjualan);
+
+                \Log::info('Payment confirmed in financial system', [
+                    'penjualan_id' => $penjualan->id,
+                    'amount' => $penjualan->total,
+                    'payment_method' => $penjualan->metode_pembayaran,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to confirm payment in financial system', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the confirmation, just log the error
+            }
+
+            // Log status change for synchronization tracking
+            \Log::info('Payment confirmed for transaction', [
+                'penjualan_id' => $penjualan->id,
+                'kode_transaksi' => $penjualan->kode_transaksi,
+                'old_status' => $penjualan->getOriginal('status'),
+                'new_status' => 'dibayar',
+                'confirmed_by' => auth()->user()->name,
+                'confirmed_by_role' => auth()->user()->roles->first()->name ?? 'unknown',
+                'timestamp' => now(),
+                'customer_id' => $penjualan->pelanggan_id,
+            ]);
+
             // Add flash message to session before redirect
-            session()->flash('success', 'Pembayaran berhasil dikonfirmasi. Pesanan siap untuk diproses.');
-            
+            session()->flash('success', 'Pembayaran berhasil dikonfirmasi dan tercatat di sistem keuangan. Pesanan siap untuk diproses.');
+
             return Inertia::location(route('penjualan.online'));
         } catch (\Exception $e) {
+            // Log error for debugging
+            \Log::error('Failed to confirm payment', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+                'user' => auth()->user()->name,
+            ]);
+
             // Add error flash message to session before redirect
             session()->flash('error', 'Gagal mengkonfirmasi pembayaran: ' . $e->getMessage());
-            
+
             return Inertia::location(route('penjualan.online'));
         }
     }
@@ -787,6 +865,23 @@ class PenjualanController extends Controller
                 'payment_rejection_reason' => $validated['rejection_reason'],
             ]);
 
+            // Reject payment in financial system
+            try {
+                $this->salesFinancialService->rejectPayment($penjualan, $validated['rejection_reason']);
+
+                \Log::info('Payment rejected in financial system', [
+                    'penjualan_id' => $penjualan->id,
+                    'amount' => $penjualan->total,
+                    'reason' => $validated['rejection_reason'],
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to reject payment in financial system', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the rejection, just log the error
+            }
+
             \Log::info('Payment rejected', [
                 'penjualan_id' => $penjualan->id,
                 'rejection_reason' => $validated['rejection_reason'],
@@ -794,8 +889,8 @@ class PenjualanController extends Controller
             ]);
 
             // Add flash message to session before redirect
-            session()->flash('success', 'Bukti pembayaran ditolak. Pelanggan akan diingatkan untuk upload ulang.');
-            
+            session()->flash('success', 'Bukti pembayaran ditolak dan transaksi keuangan dibatalkan. Pelanggan akan diingatkan untuk upload ulang.');
+
             return Inertia::location(route('penjualan.online'));
         } catch (\Exception $e) {
             \Log::error('Failed to reject payment', [
@@ -835,14 +930,34 @@ class PenjualanController extends Controller
                     ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
             ]);
 
+            // Log status change for synchronization tracking
+            \Log::info('Order marked as ready for pickup', [
+                'penjualan_id' => $penjualan->id,
+                'kode_transaksi' => $penjualan->kode_transaksi,
+                'old_status' => 'dibayar',
+                'new_status' => 'siap_pickup',
+                'processed_by' => auth()->user()->name,
+                'processed_by_role' => auth()->user()->roles->first()->name ?? 'unknown',
+                'timestamp' => now(),
+                'customer_id' => $penjualan->pelanggan_id,
+                'catatan_kasir' => $request->catatan_kasir,
+            ]);
+
             // Add flash message to session before redirect
             session()->flash('success', 'Pesanan siap untuk pickup. Status diubah menjadi "Siap Pickup"');
-            
+
             return Inertia::location(route('penjualan.online'));
         } catch (\Exception $e) {
+            // Log error for debugging
+            \Log::error('Failed to mark order as ready for pickup', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+                'user' => auth()->user()->name,
+            ]);
+
             // Add error flash message to session before redirect
             session()->flash('error', 'Gagal mengubah status pesanan: ' . $e->getMessage());
-            
+
             return Inertia::location(route('penjualan.online'));
         }
     }
@@ -869,11 +984,33 @@ class PenjualanController extends Controller
                 'status' => 'selesai',
                 'catatan' => $penjualan->catatan .
                     ($request->catatan_kasir ? "\n\nCatatan Kasir: " . $request->catatan_kasir : ''),
+                'completed_at' => now(),
+                'completed_by' => auth()->id(),
             ]);
 
+            // Complete transaction in financial system
+            try {
+                $financialResult = $this->salesFinancialService->completeTransaction($penjualan);
+
+                \Log::info('Transaction completed in financial system', [
+                    'penjualan_id' => $penjualan->id,
+                    'transaction_id' => $financialResult['transaction']->id,
+                    'amount' => $penjualan->total,
+                    'payment_method' => $penjualan->metode_pembayaran,
+                    'account_balance' => $financialResult['account'] ? $financialResult['account']->current_balance : null,
+                    'completed_by' => auth()->user()->name,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to complete transaction in financial system', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the completion, just log the error
+            }
+
             // Add flash message to session before redirect
-            session()->flash('success', 'Transaksi berhasil diselesaikan. Pesanan telah diambil pelanggan');
-            
+            session()->flash('success', 'Transaksi berhasil diselesaikan dan keuangan terupdate. Pesanan telah diambil pelanggan');
+
             return Inertia::location(route('penjualan.online'));
         } catch (\Exception $e) {
             // Add error flash message to session before redirect

@@ -53,6 +53,7 @@ class FinancialService
             $summary['accounts_breakdown'][] = [
                 'account_name' => $account->account_name,
                 'account_type' => $account->account_type,
+                'bank_name' => $account->bank_name,
                 'balance' => $account->current_balance,
                 'formatted_balance' => $account->formatted_balance,
             ];
@@ -66,6 +67,16 @@ class FinancialService
 
         $summary['total_liquid'] = $summary['total_cash'] + $summary['total_bank'];
         $summary['formatted_total_liquid'] = 'Rp ' . number_format($summary['total_liquid'], 0, ',', '.');
+
+        // Add specific BCA balance info
+        $bcaAccounts = $accounts->filter(function ($account) {
+            return $account->account_type === 'bank' &&
+                   $account->bank_name &&
+                   stripos($account->bank_name, 'BCA') !== false;
+        });
+
+        $summary['bca_balance'] = $bcaAccounts->sum('current_balance');
+        $summary['formatted_bca_balance'] = 'Rp ' . number_format($summary['bca_balance'], 0, ',', '.');
 
         return $summary;
     }
@@ -89,6 +100,21 @@ class FinancialService
         // Daily breakdown
         $dailySales = $sales->groupBy(function($sale) {
             return Carbon::parse($sale->tanggal_transaksi)->format('Y-m-d');
+        });
+
+        // Group by payment method from sales data
+        $byPaymentMethod = $sales->groupBy('metode_pembayaran');
+        $revenue['cash_sales'] = $byPaymentMethod->get('tunai', collect())->sum('total');
+        $revenue['transfer_sales'] = $byPaymentMethod->get('transfer', collect())->sum('total');
+        $revenue['debit_sales'] = $byPaymentMethod->get('debit', collect())->sum('total');
+        $revenue['kredit_sales'] = $byPaymentMethod->get('kredit', collect())->sum('total');
+
+        $revenue['by_payment_method'] = $byPaymentMethod->map(function ($transactions) {
+            return [
+                'count' => $transactions->count(),
+                'total' => $transactions->sum('total'),
+                'formatted_total' => 'Rp ' . number_format($transactions->sum('total'), 0, ',', '.'),
+            ];
         });
 
         foreach ($dailySales as $date => $daySales) {
@@ -284,14 +310,54 @@ class FinancialService
     }
 
     /**
-     * Get recent transactions
+     * Get recent transactions (includes both financial transactions and sales)
      */
     public function getRecentTransactions($limit = 10)
     {
-        return FinancialTransaction::with(['fromAccount', 'toAccount', 'creator'])
+        // Get financial transactions
+        $financialTransactions = FinancialTransaction::with(['fromAccount', 'toAccount', 'creator'])
+            ->select([
+                'id',
+                'transaction_code',
+                'transaction_type',
+                'category',
+                'amount',
+                'description',
+                'status',
+                'created_at',
+                'transaction_date',
+                DB::raw("'financial' as source_type")
+            ])
             ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
+            ->limit($limit * 2); // Get more to ensure we have enough after merging
+
+        // Get sales transactions that are completed
+        $salesTransactions = \App\Models\Penjualan::with(['user'])
+            ->where('status', 'selesai')
+            ->select([
+                'id',
+                'nomor_transaksi as transaction_code',
+                DB::raw("'income' as transaction_type"),
+                DB::raw("'sales' as category"),
+                'total as amount',
+                DB::raw("CONCAT('Penjualan - ', nomor_transaksi, ' (', COALESCE(nama_pelanggan, 'Walk-in Customer'), ')') as description"),
+                DB::raw("'completed' as status"),
+                'created_at',
+                'tanggal_transaksi as transaction_date',
+                DB::raw("'sales' as source_type")
+            ])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit * 2); // Get more to ensure we have enough after merging
+
+        // Combine and sort by created_at
+        $allTransactions = collect()
+            ->merge($financialTransactions->get())
+            ->merge($salesTransactions->get())
+            ->sortByDesc('created_at')
+            ->take($limit)
+            ->values();
+
+        return $allTransactions;
     }
 
     /**

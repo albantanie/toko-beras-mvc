@@ -1,9 +1,19 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
-import { PageProps, BreadcrumbItem } from '@/types';
+import { BreadcrumbItem } from '@/types';
 import { FormEventHandler, useState } from 'react';
 import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
-import { hasRole } from '@/utils/role';
+
+interface PageProps {
+    auth: {
+        user: {
+            id: number;
+            name: string;
+            email: string;
+            roles: Array<{ name: string }>;
+        };
+    };
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -47,9 +57,9 @@ export default function CreateBarang({ auth }: PageProps) {
         gambar: null as File | null,
     });
 
-    const isKaryawan = hasRole(auth.user, 'karyawan');
-    const isAdmin = hasRole(auth.user, 'admin');
-    const isOwner = hasRole(auth.user, 'owner');
+    const isKaryawan = auth.user.roles?.some((role: any) => role.name === 'karyawan') || false;
+    const isAdmin = auth.user.roles?.some((role: any) => role.name === 'admin') || false;
+    const isOwner = auth.user.roles?.some((role: any) => role.name === 'owner') || false;
 
     const generateKodeBarang = () => {
         const timestamp = Date.now().toString().slice(-6);
@@ -82,7 +92,12 @@ export default function CreateBarang({ auth }: PageProps) {
             },
             onError: (errors) => {
                 if (Object.keys(errors).length > 0) {
-                    SweetAlert.error.validation(errors);
+                    // Convert errors to the expected format
+                    const formattedErrors: Record<string, string[]> = {};
+                    Object.entries(errors).forEach(([key, value]) => {
+                        formattedErrors[key] = Array.isArray(value) ? value : [value];
+                    });
+                    SweetAlert.error.validation(formattedErrors);
                 }
             },
         });
@@ -194,6 +209,54 @@ export default function CreateBarang({ auth }: PageProps) {
                                     {/* Pricing and Stock */}
                                     <div className="space-y-4">
                                         <h4 className="text-md font-semibold text-gray-800">Pricing & Stock</h4>
+
+                                        {/* Info untuk karyawan */}
+                                        {isKaryawan && !isOwner && (
+                                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                                                <div className="flex">
+                                                    <div className="flex-shrink-0">
+                                                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <h3 className="text-sm font-medium text-blue-800">
+                                                            Informasi untuk Karyawan
+                                                        </h3>
+                                                        <div className="mt-2 text-sm text-blue-700">
+                                                            <p>
+                                                                Sebagai karyawan, Anda dapat menambahkan produk baru dengan informasi dasar dan stok.
+                                                                Harga beli dan harga jual akan diatur oleh admin atau owner nanti.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Info untuk admin */}
+                                        {isAdmin && !isOwner && (
+                                            <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                                                <div className="flex">
+                                                    <div className="flex-shrink-0">
+                                                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <h3 className="text-sm font-medium text-green-800">
+                                                            Informasi untuk Admin
+                                                        </h3>
+                                                        <div className="mt-2 text-sm text-green-700">
+                                                            <p>
+                                                                Sebagai admin, Anda dapat menambahkan produk baru dengan informasi lengkap termasuk harga.
+                                                                Stok awal akan diset ke 0 dan dapat dikelola oleh kasir nanti.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="grid grid-cols-2 gap-4">
                                             {/* Buy Price hanya untuk admin/owner */}
                                             {!(isKaryawan && !isOwner) && (
@@ -221,28 +284,27 @@ export default function CreateBarang({ auth }: PageProps) {
                                                 </div>
                                             )}
 
-                                            <div>
-                                                <label htmlFor="harga_jual" className="block text-sm font-medium text-gray-700">
-                                                    Sell Price
-                                                </label>
-                                                <input
-                                                    id="harga_jual"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={data.harga_jual}
-                                                    onChange={(e) => setData('harga_jual', e.target.value)}
-                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                    placeholder="0"
-                                                    disabled={isKaryawan && !isOwner}
-                                                />
-                                                {isKaryawan && !isOwner && (
-                                                    <p className="mt-1 text-xs text-yellow-600">Hanya admin/owner yang bisa input harga jual.</p>
-                                                )}
-                                                {errors.harga_jual && (
-                                                    <p className="mt-1 text-sm text-red-600">{errors.harga_jual}</p>
-                                                )}
-                                            </div>
+                                            {/* Sell Price hanya untuk admin/owner */}
+                                            {!(isKaryawan && !isOwner) && (
+                                                <div>
+                                                    <label htmlFor="harga_jual" className="block text-sm font-medium text-gray-700">
+                                                        Sell Price
+                                                    </label>
+                                                    <input
+                                                        id="harga_jual"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={data.harga_jual}
+                                                        onChange={(e) => setData('harga_jual', e.target.value)}
+                                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                        placeholder="0"
+                                                    />
+                                                    {errors.harga_jual && (
+                                                        <p className="mt-1 text-sm text-red-600">{errors.harga_jual}</p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
@@ -261,6 +323,9 @@ export default function CreateBarang({ auth }: PageProps) {
                                                     placeholder="0"
                                                     disabled={isAdmin && !isOwner}
                                                 />
+                                                {isAdmin && !isOwner && (
+                                                    <p className="mt-1 text-xs text-yellow-600">Stok awal akan diset ke 0. Kasir akan mengelola stok nanti.</p>
+                                                )}
                                                 {errors.stok && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.stok}</p>
                                                 )}

@@ -240,15 +240,75 @@ class FinancialController extends Controller
             'user_ids.*' => 'exists:users,id',
         ]);
 
+        // Validasi: Cek apakah sudah ada payroll untuk periode ini
+        $existingPayrolls = Payroll::where('period_month', $validated['period']);
+
+        if ($validated['user_ids'] ?? null) {
+            $existingPayrolls->whereIn('user_id', $validated['user_ids']);
+        }
+
+        $existingCount = $existingPayrolls->count();
+
+        if ($existingCount > 0) {
+            $userNames = $existingPayrolls->with('user')->get()->pluck('user.name')->join(', ');
+            return redirect()->back()->with('error',
+                "Gaji untuk periode {$validated['period']} sudah pernah di-generate untuk: {$userNames}. " .
+                "Gaji hanya bisa di-generate sekali per bulan untuk setiap karyawan."
+            );
+        }
+
         try {
+            \Log::info('Generate payroll attempt', [
+                'period' => $validated['period'],
+                'user_ids' => $validated['user_ids'] ?? null,
+                'user' => auth()->user()->name
+            ]);
+
             $payrolls = $this->payrollService->generatePayroll(
                 $validated['period'],
                 $validated['user_ids'] ?? null
             );
 
-            return redirect()->back()->with('success', count($payrolls) . ' payroll berhasil dibuat');
+            \Log::info('Generate payroll success', [
+                'period' => $validated['period'],
+                'payrolls_count' => count($payrolls)
+            ]);
+
+            return redirect()->back()->with('success',
+                count($payrolls) . ' gaji berhasil di-generate untuk periode ' . $validated['period']
+            );
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal membuat payroll: ' . $e->getMessage());
+            \Log::error('Generate payroll failed', [
+                'period' => $validated['period'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()->with('error', 'Gagal membuat gaji: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approve payroll
+     */
+    public function approvePayroll(Request $request, Payroll $payroll)
+    {
+        if (!$payroll->canBeApproved()) {
+            return redirect()->back()->with('error', 'Gaji tidak dapat disetujui pada status saat ini');
+        }
+
+        try {
+            $payroll->approve(auth()->id());
+
+            \Log::info('Payroll approved', [
+                'payroll_id' => $payroll->id,
+                'payroll_code' => $payroll->payroll_code,
+                'approved_by' => auth()->user()->name
+            ]);
+
+            return redirect()->back()->with('success', 'Gaji berhasil disetujui dan siap untuk dibayar');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menyetujui gaji: ' . $e->getMessage());
         }
     }
 
@@ -257,20 +317,70 @@ class FinancialController extends Controller
      */
     public function processPayrollPayment(Request $request, Payroll $payroll)
     {
+        if (!$payroll->canBePaid()) {
+            return redirect()->back()->with('error', 'Gaji harus disetujui terlebih dahulu sebelum dapat dibayar');
+        }
+
         $validated = $request->validate([
             'account_id' => 'required|exists:financial_accounts,id',
+            'payment_notes' => 'nullable|string|max:500',
         ]);
 
         try {
             $result = $this->payrollService->processPayment(
                 $payroll->id,
                 $validated['account_id'],
-                auth()->id()
+                auth()->id(),
+                $validated['payment_notes'] ?? null
             );
 
-            return redirect()->back()->with('success', 'Pembayaran gaji berhasil diproses');
+            \Log::info('Payroll payment processed', [
+                'payroll_id' => $payroll->id,
+                'payroll_code' => $payroll->payroll_code,
+                'amount' => $payroll->net_salary,
+                'account_id' => $validated['account_id'],
+                'paid_by' => auth()->user()->name
+            ]);
+
+            return redirect()->back()->with('success',
+                'Pembayaran gaji berhasil diproses. Transaksi telah dicatat sebagai pengeluaran.'
+            );
         } catch (\Exception $e) {
+            \Log::error('Payroll payment failed', [
+                'payroll_id' => $payroll->id,
+                'error' => $e->getMessage()
+            ]);
+
             return redirect()->back()->with('error', 'Gagal memproses pembayaran: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cancel payroll
+     */
+    public function cancelPayroll(Request $request, Payroll $payroll)
+    {
+        if (!$payroll->canBeCancelled()) {
+            return redirect()->back()->with('error', 'Gaji tidak dapat dibatalkan pada status saat ini');
+        }
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'required|string|max:500',
+        ]);
+
+        try {
+            $payroll->cancel(auth()->id(), $validated['cancellation_reason']);
+
+            \Log::info('Payroll cancelled', [
+                'payroll_id' => $payroll->id,
+                'payroll_code' => $payroll->payroll_code,
+                'reason' => $validated['cancellation_reason'],
+                'cancelled_by' => auth()->user()->name
+            ]);
+
+            return redirect()->back()->with('success', 'Gaji berhasil dibatalkan');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membatalkan gaji: ' . $e->getMessage());
         }
     }
 
@@ -306,10 +416,33 @@ class FinancialController extends Controller
         ]);
 
         try {
+            \Log::info('Generate stock valuation attempt', [
+                'valuation_date' => $validated['valuation_date'],
+                'valuation_method' => $validated['valuation_method'],
+                'user' => auth()->user()->name
+            ]);
+
             $barangs = Barang::where('stok', '>', 0)->get();
+            \Log::info('Found barangs for valuation', ['count' => $barangs->count()]);
+
+            if ($barangs->isEmpty()) {
+                return redirect()->back()->with('error', 'Tidak ada barang dengan stok untuk divaluasi');
+            }
+
             $valuations = [];
 
             foreach ($barangs as $barang) {
+                // Skip barang tanpa harga
+                if (!$barang->harga_beli || !$barang->harga_jual) {
+                    \Log::warning('Skipping barang without price', [
+                        'barang_id' => $barang->id,
+                        'nama' => $barang->nama,
+                        'harga_beli' => $barang->harga_beli,
+                        'harga_jual' => $barang->harga_jual
+                    ]);
+                    continue;
+                }
+
                 $valuation = StockValuation::create([
                     'barang_id' => $barang->id,
                     'valuation_date' => $validated['valuation_date'],
@@ -323,8 +456,17 @@ class FinancialController extends Controller
                 $valuations[] = $valuation;
             }
 
+            \Log::info('Generate stock valuation success', [
+                'valuations_count' => count($valuations)
+            ]);
+
             return redirect()->back()->with('success', count($valuations) . ' valuasi stok berhasil dibuat');
         } catch (\Exception $e) {
+            \Log::error('Generate stock valuation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return redirect()->back()->with('error', 'Gagal membuat valuasi stok: ' . $e->getMessage());
         }
     }

@@ -351,18 +351,18 @@ export default function DataTable<T = any>({
 
                         {/* Desktop pagination */}
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                            <div>
-                                <p className="text-sm text-gray-700">
-                                    Showing <span className="font-medium">{data?.meta?.from || 0}</span> to{' '}
-                                    <span className="font-medium">{data?.meta?.to || 0}</span> of{' '}
-                                    <span className="font-medium">{data?.meta?.total || 0}</span> results
-                                    {data?.meta && (
+                            {data?.meta?.total > 0 && (
+                                <div>
+                                    <p className="text-sm text-gray-700">
+                                        Menampilkan <span className="font-medium">{data.meta.from}</span> sampai{' '}
+                                        <span className="font-medium">{data.meta.to}</span> dari{' '}
+                                        <span className="font-medium">{data.meta.total}</span> hasil
                                         <span className="text-gray-500 ml-2">
-                                            (Page {data.meta.current_page} of {data.meta.last_page})
+                                            (Halaman {data.meta.current_page} dari {data.meta.last_page})
                                         </span>
-                                    )}
-                                </p>
-                            </div>
+                                    </p>
+                                </div>
+                            )}
                             <div>
                                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                                     {data?.links?.map((link, index) => {

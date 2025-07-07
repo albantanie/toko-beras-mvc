@@ -50,8 +50,19 @@ class LaporanController extends Controller
     public function index(Request $request): Response
     {
         // Ambil filter tanggal dari request
-        $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $dateTo = $request->get('date_to', Carbon::now()->format('Y-m-d'));
+        // Only set default dates if no date parameters are provided at all
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        // Set defaults only if both are empty (first visit)
+        if (empty($dateFrom) && empty($dateTo)) {
+            $dateFrom = Carbon::now()->subDays(7)->format('Y-m-d'); // Last 7 days
+            $dateTo = Carbon::now()->format('Y-m-d');
+        } elseif (empty($dateFrom)) {
+            $dateFrom = Carbon::now()->subDays(7)->format('Y-m-d');
+        } elseif (empty($dateTo)) {
+            $dateTo = Carbon::now()->format('Y-m-d');
+        }
 
         // Summary cards - ringkasan penjualan
         $todaySales = Penjualan::completed()->whereDate('tanggal_transaksi', $dateTo)->sum('total');
@@ -130,8 +141,20 @@ class LaporanController extends Controller
      */
     public function penjualan(Request $request): Response
     {
-        $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $dateTo = $request->get('date_to', Carbon::now()->format('Y-m-d'));
+        // Only set default dates if no date parameters are provided at all
+        // This prevents filter reset when user has set custom dates
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        // Set defaults only if both are empty (first visit)
+        if (empty($dateFrom) && empty($dateTo)) {
+            $dateFrom = Carbon::now()->subDays(7)->format('Y-m-d'); // Last 7 days instead of month
+            $dateTo = Carbon::now()->format('Y-m-d');
+        } elseif (empty($dateFrom)) {
+            $dateFrom = Carbon::now()->subDays(7)->format('Y-m-d');
+        } elseif (empty($dateTo)) {
+            $dateTo = Carbon::now()->format('Y-m-d');
+        }
         $search = $request->get('search');
         $sort = $request->get('sort', 'tanggal_transaksi');
         $direction = $request->get('direction', 'desc');
@@ -682,7 +705,12 @@ class LaporanController extends Controller
         $date = Carbon::now()->format('Y-m-d_His');
         $fileName = "laporan_penjualan_{$dateFrom}_to_{$dateTo}_{$date}.pdf";
         $filePath = "reports/{$fileName}";
-        
+
+        // Ensure reports directory exists
+        if (!\Storage::exists('reports')) {
+            \Storage::makeDirectory('reports');
+        }
+
         // Generate PDF
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-penjualan', [
             'penjualans' => $penjualans,
@@ -690,7 +718,7 @@ class LaporanController extends Controller
             'period_from' => $dateFrom,
             'period_to' => $dateTo,
         ]);
-        
+
         // Simpan PDF sementara
         \Storage::put($filePath, $pdf->output());
         

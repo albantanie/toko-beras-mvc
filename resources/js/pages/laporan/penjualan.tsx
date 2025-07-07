@@ -49,10 +49,24 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
     const [dateTo, setDateTo] = useState(filters.date_to || '');
 
     const handleDateFilter = () => {
-        const params = new URLSearchParams(window.location.search);
-        if (dateFrom) params.set('date_from', dateFrom);
-        if (dateTo) params.set('date_to', dateTo);
-        
+        const params = new URLSearchParams();
+
+        // Always include date parameters to prevent reset
+        if (dateFrom) {
+            params.set('date_from', dateFrom);
+        }
+        if (dateTo) {
+            params.set('date_to', dateTo);
+        }
+
+        // Preserve other existing parameters
+        const currentParams = new URLSearchParams(window.location.search);
+        for (const [key, value] of currentParams.entries()) {
+            if (key !== 'date_from' && key !== 'date_to') {
+                params.set(key, value);
+            }
+        }
+
         window.location.href = `${window.location.pathname}?${params.toString()}`;
     };
 
@@ -225,8 +239,13 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                                             <dt className="text-sm font-medium text-gray-500 truncate">
                                                 Total Penjualan
                                             </dt>
-                                            <dd className="text-lg font-medium text-gray-900">
-                                                {formatCurrency(summary.total_sales)}
+                                            <dd className="text-lg font-medium text-gray-900" title={formatCurrency(summary.total_sales)}>
+                                                {summary.total_sales >= 1000000
+                                                    ? `Rp ${(summary.total_sales / 1000000).toFixed(summary.total_sales % 1000000 === 0 ? 0 : 1)}jt`
+                                                    : summary.total_sales >= 1000
+                                                    ? `Rp ${(summary.total_sales / 1000).toFixed(summary.total_sales % 1000 === 0 ? 0 : 1)}K`
+                                                    : formatCurrency(summary.total_sales)
+                                                }
                                             </dd>
                                         </dl>
                                     </div>
@@ -267,8 +286,13 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                                                 <dt className="text-sm font-medium text-gray-500 truncate">
                                                     Total Profit
                                                 </dt>
-                                                <dd className="text-lg font-medium text-green-600">
-                                                    {formatCurrency(summary.total_profit)}
+                                                <dd className="text-lg font-medium text-green-600" title={formatCurrency(summary.total_profit)}>
+                                                    {summary.total_profit >= 1000000
+                                                        ? `Rp ${(summary.total_profit / 1000000).toFixed(summary.total_profit % 1000000 === 0 ? 0 : 1)}jt`
+                                                        : summary.total_profit >= 1000
+                                                        ? `Rp ${(summary.total_profit / 1000).toFixed(summary.total_profit % 1000 === 0 ? 0 : 1)}K`
+                                                        : formatCurrency(summary.total_profit)
+                                                    }
                                                 </dd>
                                             </dl>
                                         </div>
@@ -315,7 +339,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                         data={penjualans}
                         columns={columns}
                         searchPlaceholder="Search by transaction number, customer, or cashier..."
-                        routeName="laporan.penjualan"
+                        routeName="owner.laporan.penjualan"
                         currentSearch={filters?.search}
                         currentSort={filters?.sort}
                         currentDirection={filters?.direction}

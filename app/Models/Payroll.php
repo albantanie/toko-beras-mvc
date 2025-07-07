@@ -56,6 +56,39 @@ class Payroll extends Model
         'breakdown' => 'array',
     ];
 
+    // Status constants untuk flow yang jelas
+    const STATUS_DRAFT = 'draft';           // Baru di-generate, belum disetujui
+    const STATUS_APPROVED = 'approved';     // Sudah disetujui, siap dibayar
+    const STATUS_PAID = 'paid';            // Sudah dibayar, masuk ke pengeluaran
+    const STATUS_CANCELLED = 'cancelled';   // Dibatalkan
+
+    public static function getStatusOptions()
+    {
+        return [
+            self::STATUS_DRAFT => 'Menunggu Persetujuan',
+            self::STATUS_APPROVED => 'Disetujui - Siap Dibayar',
+            self::STATUS_PAID => 'Sudah Dibayar',
+            self::STATUS_CANCELLED => 'Dibatalkan',
+        ];
+    }
+
+    public function getStatusLabelAttribute()
+    {
+        $statuses = self::getStatusOptions();
+        return $statuses[$this->status] ?? 'Unknown';
+    }
+
+    public function getStatusColorAttribute()
+    {
+        return match($this->status) {
+            self::STATUS_DRAFT => 'yellow',
+            self::STATUS_APPROVED => 'blue',
+            self::STATUS_PAID => 'green',
+            self::STATUS_CANCELLED => 'red',
+            default => 'gray'
+        };
+    }
+
     // Relationships
     public function user(): BelongsTo
     {
@@ -104,20 +137,67 @@ class Payroll extends Model
     public function approve($userId)
     {
         $this->update([
-            'status' => 'approved',
+            'status' => self::STATUS_APPROVED,
             'approved_by' => $userId,
             'approved_at' => now(),
         ]);
     }
 
-    public function markAsPaid($userId)
+    public function markAsPaid($userId, $financialTransactionId = null)
     {
         $this->update([
-            'status' => 'paid',
+            'status' => self::STATUS_PAID,
             'paid_by' => $userId,
             'paid_at' => now(),
             'payment_date' => now()->toDateString(),
+            'financial_transaction_id' => $financialTransactionId, // Link ke transaksi keuangan
         ]);
+    }
+
+    public function cancel($userId, $reason = null)
+    {
+        $this->update([
+            'status' => self::STATUS_CANCELLED,
+            'cancelled_by' => $userId,
+            'cancelled_at' => now(),
+            'cancellation_reason' => $reason,
+        ]);
+    }
+
+    // Helper methods untuk status checking
+    public function isDraft()
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function isApproved()
+    {
+        return $this->status === self::STATUS_APPROVED;
+    }
+
+    public function isPaid()
+    {
+        return $this->status === self::STATUS_PAID;
+    }
+
+    public function isCancelled()
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
+
+    public function canBeApproved()
+    {
+        return $this->isDraft();
+    }
+
+    public function canBePaid()
+    {
+        return $this->isApproved();
+    }
+
+    public function canBeCancelled()
+    {
+        return $this->isDraft() || $this->isApproved();
     }
 
     public function getFormattedNetSalaryAttribute()

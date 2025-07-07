@@ -10,6 +10,7 @@ use Inertia\Response;
 use App\Models\Barang;
 use App\Models\Penjualan;
 use App\Models\DetailPenjualan;
+use App\Services\SalesFinancialService;
 
 /**
  * Controller untuk mengelola shopping cart pelanggan
@@ -23,6 +24,12 @@ use App\Models\DetailPenjualan;
  */
 class CartController extends Controller
 {
+    protected $salesFinancialService;
+
+    public function __construct(SalesFinancialService $salesFinancialService)
+    {
+        $this->salesFinancialService = $salesFinancialService;
+    }
     /**
      * Menampilkan halaman keranjang belanja
      *
@@ -346,12 +353,11 @@ class CartController extends Controller
                     'subtotal' => $item['subtotal'],
                 ]);
 
-                // Kurangi stok barang
-                $item['barang']->decrement('stok', $item['jumlah']);
-                // Catat history stock movement
+                // Catat stock movement dan kurangi stok sekaligus
+                // recordStockMovement akan otomatis mengurangi stok untuk type 'out'
                 $item['barang']->recordStockMovement(
                     'out',
-                    $item['jumlah'],
+                    $item['jumlah'], // Positive quantity, recordStockMovement akan handle pengurangan
                     "Penjualan (checkout online) - {$penjualan->nomor_transaksi}",
                     auth()->id(),
                     'App\\Models\\Penjualan',
@@ -365,6 +371,25 @@ class CartController extends Controller
                 );
             }
 
+            // Record financial transaction for online sales
+            try {
+                $financialResult = $this->salesFinancialService->recordSalesTransaction($penjualan);
+
+                \Log::info('Online sales financial transaction created', [
+                    'penjualan_id' => $penjualan->id,
+                    'transaction_id' => $financialResult['transaction']->id,
+                    'amount' => $total,
+                    'payment_method' => $request->metode_pembayaran,
+                    'account_balance' => $financialResult['account']->current_balance
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to record online sales financial transaction', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the sale, just log the error
+            }
+
             // Commit transaction jika semua berhasil
             DB::commit();
 
@@ -372,7 +397,7 @@ class CartController extends Controller
             session()->forget('cart');
 
             // Redirect dengan pesan sukses
-            $message = $request->metode_pembayaran === 'tunai' 
+            $message = $request->metode_pembayaran === 'tunai'
                 ? "Pesanan berhasil dibuat! Silakan datang ke toko untuk mengambil pesanan Anda."
                 : "Pesanan berhasil dibuat! Silakan lakukan pembayaran transfer dan upload bukti pembayaran.";
 

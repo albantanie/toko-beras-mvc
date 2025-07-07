@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Report</title>
+    <title>Laporan Stok</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -138,54 +138,54 @@
 <body>
     <div class="header">
         <h1>TOKO BERAS</h1>
-        <h2>Stock Report</h2>
+        <h2>Laporan Stok</h2>
     </div>
 
     <div class="report-date">
-        <strong>Report Date: {{ \Carbon\Carbon::parse($reportData['report_date'])->format('d M Y') }}</strong>
+        <strong>Tanggal Laporan: {{ \Carbon\Carbon::parse($reportData['report_date'])->format('d M Y') }}</strong>
     </div>
 
     <div class="summary">
         <div class="summary-grid">
             <div class="summary-card">
-                <h3>Total Items</h3>
+                <h3>Total Barang</h3>
                 <div class="value">{{ number_format($reportData['total_items']) }}</div>
             </div>
             <div class="summary-card">
-                <h3>In Stock</h3>
+                <h3>Stok Tersedia</h3>
                 <div class="value success">{{ number_format($reportData['in_stock_items']) }}</div>
             </div>
             <div class="summary-card">
-                <h3>Low Stock</h3>
+                <h3>Stok Menipis</h3>
                 <div class="value warning">{{ number_format($reportData['low_stock_items']) }}</div>
             </div>
             <div class="summary-card">
-                <h3>Out of Stock</h3>
+                <h3>Stok Habis</h3>
                 <div class="value danger">{{ number_format($reportData['out_of_stock_items']) }}</div>
             </div>
             <div class="summary-card">
-                <h3>Stock Value (Sell)</h3>
+                <h3>Nilai Stok (Jual)</h3>
                 <div class="value">Rp {{ number_format($reportData['total_stock_value_sell'], 0, ',', '.') }}</div>
             </div>
             <div class="summary-card">
-                <h3>Potential Profit</h3>
+                <h3>Potensi Keuntungan</h3>
                 <div class="value success">Rp {{ number_format($reportData['potential_profit'], 0, ',', '.') }}</div>
             </div>
         </div>
     </div>
 
-    <h3 class="section-title">Current Stock Status</h3>
+    <h3 class="section-title">Status Stok Saat Ini</h3>
     <table class="stock-table">
         <thead>
             <tr>
-                <th>Item Code</th>
-                <th>Item Name</th>
-                <th>Category</th>
-                <th class="text-right">Current Stock</th>
-                <th class="text-right">Min Stock</th>
+                <th>Kode Barang</th>
+                <th>Nama Barang</th>
+                <th>Kategori</th>
+                <th class="text-right">Stok Saat Ini</th>
+                <th class="text-right">Stok Minimum</th>
                 <th class="text-center">Status</th>
-                <th class="text-right">Sell Price</th>
-                <th class="text-right">Stock Value</th>
+                <th class="text-right">Harga Jual</th>
+                <th class="text-right">Nilai Stok</th>
             </tr>
         </thead>
         <tbody>
@@ -198,9 +198,9 @@
                 <td class="text-right">{{ number_format($barang->stok_minimum) }}</td>
                 <td class="text-center">
                     @if($barang->stok <= 0)
-                        <span class="stock-status out">Out</span>
+                        <span class="stock-status out">Habis</span>
                     @elseif($barang->stok <= $barang->stok_minimum)
-                        <span class="stock-status low">Low</span>
+                        <span class="stock-status low">Menipis</span>
                     @else
                         <span class="stock-status normal">Normal</span>
                     @endif
@@ -213,16 +213,16 @@
     </table>
 
     @if($stockMovements->count() > 0)
-    <h3 class="section-title">Recent Stock Movements (Last 30 Days)</h3>
+    <h3 class="section-title">Pergerakan Stok Terbaru (30 Hari Terakhir)</h3>
     <table class="stock-table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Item</th>
-                <th>Type</th>
-                <th class="text-right">Quantity</th>
-                <th>User</th>
-                <th>Notes</th>
+                <th>Tanggal</th>
+                <th>Barang</th>
+                <th>Jenis</th>
+                <th class="text-right">Jumlah</th>
+                <th>Pengguna</th>
+                <th>Catatan</th>
             </tr>
         </thead>
         <tbody>
@@ -243,8 +243,8 @@
     @endif
 
     <div class="footer">
-        <p>Generated on {{ $generatedAt->format('d M Y H:i:s') }}</p>
-        <p>This is a computer-generated report. No signature required.</p>
+        <p>Dibuat pada {{ $generatedAt->format('d M Y H:i:s') }}</p>
+        <p>Ini adalah laporan yang dibuat oleh sistem. Tidak memerlukan tanda tangan.</p>
     </div>
 </body>
 </html>

@@ -140,6 +140,16 @@ class BarangController extends Controller
          */
         $barangs = $query->paginate(5)->withQueryString();
 
+        // Debug logging untuk troubleshooting pagination
+        \Log::info('Barang pagination debug', [
+            'total_count' => $barangs->total(),
+            'current_page' => $barangs->currentPage(),
+            'per_page' => $barangs->perPage(),
+            'data_count' => count($barangs->items()),
+            'search' => $search,
+            'filter' => $filter,
+        ]);
+
         /**
          * KONVERSI PAGINATION UNTUK INERTIA
          * Convert ke array untuk memastikan serialization yang proper
@@ -214,20 +224,51 @@ class BarangController extends Controller
         $isKaryawan = $user->hasRole('karyawan');
         $isAdmin = $user->hasRole('admin');
         $isOwner = $user->hasRole('owner');
+
+        // Debug logging
+        \Log::info('Barang store attempt', [
+            'user_id' => $user->id,
+            'user_roles' => $user->roles->pluck('name'),
+            'isKaryawan' => $isKaryawan,
+            'isAdmin' => $isAdmin,
+            'isOwner' => $isOwner,
+            'request_data' => $request->all()
+        ]);
+
         try {
+            // Base validation rules
             $rules = [
                 'nama' => 'required|string|max:255',
                 'deskripsi' => 'nullable|string',
                 'kategori' => 'required|string|max:255',
-                'harga_beli' => 'nullable|numeric|min:0',
-                'harga_jual' => 'nullable|numeric|min:0|gt:harga_beli',
-                'stok' => ($isAdmin && !$isOwner) ? 'nullable' : 'required|integer|min:0',
                 'stok_minimum' => 'required|integer|min:0',
                 'satuan' => 'required|string|max:50',
                 'berat_per_unit' => 'required|numeric|min:0.01',
                 'kode_barang' => 'required|string|max:255|unique:barangs',
                 'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             ];
+
+            // Role-based validation rules
+            if ($isKaryawan) {
+                // Karyawan tidak boleh input harga, tapi boleh input stok
+                $rules['stok'] = 'required|integer|min:0';
+                // Harga akan diset ke null atau default value
+            } elseif ($isAdmin && !$isOwner) {
+                // Admin boleh input harga tapi tidak boleh input stok
+                $rules['harga_beli'] = 'nullable|numeric|min:0';
+                $rules['harga_jual'] = 'nullable|numeric|min:0';
+                // Stok akan diset ke 0 atau default value
+            } else {
+                // Owner atau role lain boleh input semua
+                $rules['harga_beli'] = 'nullable|numeric|min:0';
+                $rules['harga_jual'] = 'nullable|numeric|min:0';
+                $rules['stok'] = 'required|integer|min:0';
+            }
+
+            // Add conditional validation for harga_jual > harga_beli only if both are provided and user can input prices
+            if (!$isKaryawan && $request->filled('harga_beli') && $request->filled('harga_jual')) {
+                $rules['harga_jual'] = 'nullable|numeric|min:0|gt:harga_beli';
+            }
             $request->validate($rules, [
                 'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
                 'kode_barang.unique' => 'Kode barang sudah digunakan.',
@@ -238,13 +279,26 @@ class BarangController extends Controller
             $data['created_by'] = $user->id;
             $data['updated_by'] = $user->id;
             $data['is_active'] = $request->boolean('is_active', true);
-            // Proteksi field sesuai role
-            if ($isKaryawan && !$isOwner) {
-                unset($data['harga_beli'], $data['harga_jual']);
+
+            // Role-based field processing
+            if ($isKaryawan) {
+                // Karyawan tidak boleh set harga, set ke null untuk diisi admin/owner nanti
+                $data['harga_beli'] = null;
+                $data['harga_jual'] = null;
+                // Karyawan boleh input stok
+                \Log::info('Karyawan creating barang without prices', [
+                    'user_id' => $user->id,
+                    'barang_name' => $data['nama']
+                ]);
+            } elseif ($isAdmin && !$isOwner) {
+                // Admin tidak boleh set stok awal, set ke 0
+                $data['stok'] = 0;
+                \Log::info('Admin creating barang without initial stock', [
+                    'user_id' => $user->id,
+                    'barang_name' => $data['nama']
+                ]);
             }
-            if ($isAdmin && !$isOwner) {
-                unset($data['stok']);
-            }
+            // Owner boleh set semua field
             if ($request->hasFile('gambar')) {
                 $data['gambar'] = $this->imageService->compressAndStore(
                     $request->file('gambar'), 'barang', 800, 600, 80
@@ -253,7 +307,18 @@ class BarangController extends Controller
             }
             Barang::create($data);
             return redirect()->route('barang.index')->with('success', 'Barang berhasil ditambahkan');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Barang store validation error', [
+                'errors' => $e->errors(),
+                'user_id' => $user->id
+            ]);
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
+            \Log::error('Barang store error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id
+            ]);
             return redirect()->back()->with('error', 'Gagal menambahkan barang: ' . $e->getMessage())->withInput();
         }
     }
@@ -294,15 +359,25 @@ class BarangController extends Controller
         $isKaryawan = $user->hasRole('karyawan');
         $isAdmin = $user->hasRole('admin');
         $isOwner = $user->hasRole('owner');
+
+        // Debug logging
+        \Log::info('Barang update attempt', [
+            'user_id' => $user->id,
+            'user_roles' => $user->roles->pluck('name'),
+            'isKaryawan' => $isKaryawan,
+            'isAdmin' => $isAdmin,
+            'isOwner' => $isOwner,
+            'barang_id' => $barang->id,
+            'request_data' => $request->all()
+        ]);
+
         // Semua role bisa update, field harga tetap di-protect untuk karyawan
         try {
+            // Base validation rules
             $rules = [
                 'nama' => 'required|string|max:255',
                 'deskripsi' => 'nullable|string',
                 'kategori' => 'required|string|max:255',
-                'harga_beli' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0',
-                'harga_jual' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0|gt:harga_beli',
-                'stok' => ($isAdmin && !$isOwner) ? 'nullable' : 'required|integer|min:0',
                 'stok_minimum' => 'required|integer|min:0',
                 'satuan' => 'required|string|max:50',
                 'berat_per_unit' => 'required|numeric|min:0.01',
@@ -310,6 +385,33 @@ class BarangController extends Controller
                 'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
                 'is_active' => 'boolean',
             ];
+
+            // Role-based validation rules
+            if ($isKaryawan && !$isOwner) {
+                // Karyawan tidak boleh update harga
+                $rules['harga_beli'] = 'nullable';
+                $rules['harga_jual'] = 'nullable';
+                $rules['stok'] = 'required|integer|min:0';
+            } elseif ($isAdmin && !$isOwner) {
+                // Admin boleh update harga tapi tidak boleh update stok
+                $rules['harga_beli'] = 'nullable|numeric|min:0';
+                $rules['harga_jual'] = 'nullable|numeric|min:0';
+                $rules['stok'] = 'nullable';
+            } else {
+                // Owner boleh update semua
+                $rules['harga_beli'] = 'nullable|numeric|min:0';
+                $rules['harga_jual'] = 'nullable|numeric|min:0';
+                $rules['stok'] = 'required|integer|min:0';
+            }
+
+            // Add conditional validation for harga_jual > harga_beli only if both are provided and not empty
+            if (!($isKaryawan && !$isOwner) && $request->filled('harga_beli') && $request->filled('harga_jual')) {
+                $hargaBeli = (float) $request->input('harga_beli');
+                $hargaJual = (float) $request->input('harga_jual');
+                if ($hargaBeli > 0 && $hargaJual > 0) {
+                    $rules['harga_jual'] = 'nullable|numeric|min:0|gt:harga_beli';
+                }
+            }
             $request->validate($rules, [
                 'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
                 'kode_barang.unique' => 'Kode barang sudah digunakan.',
@@ -318,12 +420,32 @@ class BarangController extends Controller
             ]);
             $data = $request->all();
             $data['updated_by'] = $user->id;
+
+            // Role-based field processing
             if ($isKaryawan && !$isOwner) {
+                // Karyawan tidak boleh update harga
                 unset($data['harga_beli'], $data['harga_jual']);
+                \Log::info('Karyawan updating barang - removed price fields', [
+                    'user_id' => $user->id,
+                    'barang_id' => $barang->id
+                ]);
             }
             if ($isAdmin && !$isOwner) {
+                // Admin tidak boleh update stok
                 unset($data['stok']);
+                \Log::info('Admin updating barang - removed stock field', [
+                    'user_id' => $user->id,
+                    'barang_id' => $barang->id,
+                    'harga_beli' => $data['harga_beli'] ?? 'not set',
+                    'harga_jual' => $data['harga_jual'] ?? 'not set'
+                ]);
             }
+
+            \Log::info('Final data to update', [
+                'user_id' => $user->id,
+                'barang_id' => $barang->id,
+                'data' => $data
+            ]);
             if ($request->hasFile('gambar')) {
                 if ($barang->gambar) {
                     $this->imageService->deleteImage($barang->gambar);
@@ -334,8 +456,28 @@ class BarangController extends Controller
                 $this->imageService->createThumbnail($request->file('gambar'));
             }
             $barang->update($data);
+
+            \Log::info('Barang updated successfully', [
+                'user_id' => $user->id,
+                'barang_id' => $barang->id,
+                'barang_name' => $barang->nama
+            ]);
+
             return redirect()->route('barang.index')->with('success', 'Barang berhasil diupdate');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Barang update validation error', [
+                'errors' => $e->errors(),
+                'user_id' => $user->id,
+                'barang_id' => $barang->id
+            ]);
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
+            \Log::error('Barang update error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id,
+                'barang_id' => $barang->id
+            ]);
             return redirect()->back()->with('error', 'Gagal mengupdate barang: ' . $e->getMessage())->withInput();
         }
     }
