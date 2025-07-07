@@ -19,7 +19,8 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
+            // Use fallback for ziggy-js to handle Docker build context
+            'ziggy-js': resolve(__dirname, 'resources/js/utils/ziggy-fallback.ts'),
         },
     },
     build: {

@@ -14,8 +14,14 @@ COPY package*.json ./
 # Install npm dependencies (including dev dependencies for build)
 RUN npm ci
 
-# Copy the rest of the application files
-COPY . .
+# Copy only necessary files for build (avoid copying vendor directory)
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tailwind.config.js ./
+COPY components.json ./
+COPY eslint.config.js ./
 
 # Build assets using Vite
 RUN npm run build

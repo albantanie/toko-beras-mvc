@@ -1,5 +1,12 @@
 import { LucideIcon } from 'lucide-react';
-import type { Config } from 'ziggy-js';
+
+// Ziggy config type definition
+interface ZiggyConfig {
+    url: string;
+    port: number | null;
+    defaults: Record<string, any>;
+    routes: Record<string, any>;
+}
 
 export interface Auth {
     user: User;
@@ -27,7 +34,7 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
-    ziggy: Config & { location: string };
+    ziggy: ZiggyConfig & { location: string };
     sidebarOpen: boolean;
     [key: string]: unknown;
 }

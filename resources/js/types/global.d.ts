@@ -1,5 +1,4 @@
-import type { route as routeFn } from 'ziggy-js';
-
+// Global route function type definition
 declare global {
-    const route: typeof routeFn;
+    const route: (name: string, params?: any, absolute?: boolean) => string;
 }

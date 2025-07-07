@@ -2,7 +2,15 @@ import { Head } from '@inertiajs/react';
 import { PageProps, Penjualan } from '@/types';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import { useEffect } from 'react';
-import { route } from 'ziggy-js';
+// Simple route function for print page
+const route = (name: string, params?: any): string => {
+    const routes: Record<string, string> = {
+        'penjualan.index': '/kasir/penjualan',
+        'dashboard': '/dashboard',
+        'kasir.dashboard': '/kasir/dashboard',
+    };
+    return routes[name] || `/${name.replace('.', '/')}`;
+};
 
 interface PenjualanPrintProps extends PageProps {
     penjualan: Penjualan & {
