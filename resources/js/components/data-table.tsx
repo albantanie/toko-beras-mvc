@@ -74,7 +74,7 @@ export default function DataTable<T = any>({
     currentDirection = 'asc'
 }: DataTableProps<T>) {
 
-    const [search, setSearch] = useState(currentSearch);
+    const [search, setSearch] = useState(currentSearch || '');
     const [localFilters, setLocalFilters] = useState(currentFilters);
     const [sort, setSort] = useState(currentSort);
     const [direction, setDirection] = useState(currentDirection);

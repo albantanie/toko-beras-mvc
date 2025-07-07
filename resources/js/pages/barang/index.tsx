@@ -65,7 +65,9 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
         });
     };
 
+    // Cek role untuk aksi
     const isAdminOrOwner = auth.user.roles.some((role: any) => role.name === 'admin' || role.name === 'owner');
+    const isKaryawan = auth.user.roles.some((role: any) => role.name === 'karyawan');
 
     const columns: Column[] = [
         {
@@ -146,7 +148,7 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
             render: (_, row) => (
                 <div className="whitespace-nowrap text-sm text-gray-500 flex gap-2">
                     <Link href={route('barang.show', row.id)} className="text-blue-600 hover:underline">Lihat</Link>
-                    {isAdminOrOwner && (
+                    {(isAdminOrOwner || isKaryawan) && (
                         <>
                             <Link href={route('barang.edit', row.id)} className="text-green-600 hover:underline">Ubah</Link>
                             <button onClick={() => handleDelete(row.id, row.nama)} className="text-red-600 hover:underline">Hapus</button>
@@ -168,9 +170,18 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                 { value: 'inactive', label: 'Tidak Aktif' },
             ],
         },
+        {
+            key: 'price_status',
+            label: 'Status Harga',
+            options: [
+                { value: '', label: 'Semua' },
+                { value: 'no_price', label: 'Belum Ada Harga' },
+                { value: 'has_price', label: 'Sudah Ada Harga' },
+            ],
+        },
     ];
 
-    const actions = isAdminOrOwner ? [
+    const actions = (isAdminOrOwner || isKaryawan) ? [
         {
             label: 'Tambah Produk Baru',
             href: route('barang.create'),
@@ -178,6 +189,9 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
             icon: <Icons.add />,
         },
     ] : [];
+
+    // Card warning untuk admin jika ada produk tanpa harga
+    const showPriceWarning = isAdminOrOwner && barangs.data.some((b: any) => !b.harga_beli || !b.harga_jual);
 
     return (
         <>
@@ -191,6 +205,11 @@ export default function BarangIndex({ auth, barangs, filters = {} }: BarangIndex
                             <p className="mt-1 text-sm text-gray-600">
                                 Kelola data produk, harga, dan stok barang di toko Anda.
                             </p>
+                            {showPriceWarning && (
+                                <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                                    <b>PERHATIAN:</b> Ada produk yang belum diinput harga beli/jual. Segera lengkapi harga pada produk tersebut!
+                                </div>
+                            )}
                         </div>
 
                         <DataTable

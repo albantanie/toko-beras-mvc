@@ -50,11 +50,11 @@ interface HistoryTransactionReportProps extends PageProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Laporan',
-        href: '/laporan',
+        href: '/owner/laporan',
     },
     {
         title: 'Laporan Riwayat Transaksi',
-        href: '/laporan/history-transaction',
+        href: '/owner/laporan/history-transaction',
     },
 ];
 
@@ -432,7 +432,7 @@ export default function HistoryTransactionReport({
                                 columns={columns}
                                 searchPlaceholder="Search by transaction number, customer, or cashier..."
                                 filters={tableFilters}
-                                routeName="laporan.history-transaction"
+                                routeName="owner.laporan.history-transaction"
                                 currentSearch={filters?.search}
                                 currentFilters={{ 
                                     status: filters?.status,

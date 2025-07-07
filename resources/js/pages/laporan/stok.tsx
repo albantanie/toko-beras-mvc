@@ -31,11 +31,11 @@ interface LaporanStokProps extends PageProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Laporan',
-        href: '/laporan',
+        href: '/owner/laporan',
     },
     {
         title: 'Laporan Stok',
-        href: '/laporan/stok',
+        href: '/owner/laporan/stok',
     },
 ];
 
@@ -44,7 +44,7 @@ export default function LaporanStok({ auth, barangs, summary, filters = {}, user
     const [dateTo, setDateTo] = useState('');
 
     const handleDateFilter = () => {
-        router.get(route('laporan.stok'), {
+        router.get(route('owner.laporan.stok'), {
             ...filters,
             date_from: dateFrom,
             date_to: dateTo,

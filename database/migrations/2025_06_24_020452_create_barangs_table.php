@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('nama');
             $table->text('deskripsi')->nullable();
             $table->string('kategori')->default('beras');
-            $table->decimal('harga_beli', 15, 2);
-            $table->decimal('harga_jual', 15, 2);
+            $table->decimal('harga_beli', 15, 2)->nullable();
+            $table->decimal('harga_jual', 15, 2)->nullable();
             $table->integer('stok')->default(0);
             $table->integer('stok_minimum')->default(10);
             $table->string('satuan')->default('kg');

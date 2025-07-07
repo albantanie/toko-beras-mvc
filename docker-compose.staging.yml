@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: toko-beras-staging-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    environment:
+      - APP_ENV=staging
+      - APP_DEBUG=true
+      - APP_URL=http://staging.faiz-dev.com:8081
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=toko_beras_staging
+      - DB_USERNAME=toko_beras_user
+      - DB_PASSWORD=${DB_PASSWORD:-staging_password_123}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - toko-beras-staging
+
+  nginx:
+    image: nginx:alpine
+    container_name: toko-beras-staging-nginx
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./public:/var/www/html/public:ro
+      - ./docker/nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - toko-beras-staging
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: toko-beras-staging-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: toko_beras_staging
+      POSTGRES_USER: toko_beras_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-staging_password_123}
+    volumes:
+      - staging_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - toko-beras-staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toko_beras_user -d toko_beras_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: toko-beras-staging-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-staging_redis_123}
+    volumes:
+      - staging_redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - toko-beras-staging
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: toko-beras-staging-queue
+    restart: unless-stopped
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    working_dir: /var/www/html
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    environment:
+      - APP_ENV=staging
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=toko_beras_staging
+      - DB_USERNAME=toko_beras_user
+      - DB_PASSWORD=${DB_PASSWORD:-staging_password_123}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - toko-beras-staging
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: toko-beras-staging-scheduler
+    restart: unless-stopped
+    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    working_dir: /var/www/html
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    environment:
+      - APP_ENV=staging
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=toko_beras_staging
+      - DB_USERNAME=toko_beras_user
+      - DB_PASSWORD=${DB_PASSWORD:-staging_password_123}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - toko-beras-staging
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: toko-beras-staging-mailhog
+    restart: unless-stopped
+    ports:
+      - "8026:8025"  # Web UI
+      - "1026:1025"  # SMTP
+    networks:
+      - toko-beras-staging
+
+volumes:
+  staging_db_data:
+    driver: local
+  staging_redis_data:
+    driver: local
+
+networks:
+  toko-beras-staging:
+    driver: bridge

@@ -212,10 +212,10 @@ export default function OwnerDashboard({
                                     <p className="text-gray-600">Kelola bisnis toko beras dengan analitik lengkap dan rekomendasi cerdas</p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Link href={route('report-submissions.owner-approval-list')}>
+                                    <Link href={route('owner.laporan.reports')}>
                                         <Button variant="outline" className="relative">
                                             <FileText className="w-4 h-4 mr-2" />
-                                            Approval Laporan
+                                            Laporan PDF
                                             {pendingReports > 0 && (
                                                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                                                     {pendingReports}
@@ -223,7 +223,7 @@ export default function OwnerDashboard({
                                             )}
                                         </Button>
                                     </Link>
-                                    <Link href={route('laporan.index')}>
+                                    <Link href={route('owner.laporan.index')}>
                                         <Button variant="outline">
                                             <BarChart3 className="w-4 h-4 mr-2" />
                                             Laporan

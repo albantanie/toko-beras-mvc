@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Laporan Stok Barang</title>
+    <title>Laporan Mutasi Stok Barang</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -93,8 +93,9 @@
 </head>
 <body>
     <div class="header">
-        <h1>LAPORAN STOK BARANG</h1>
-        <p>Dibuat pada: {{ $generatedAt }}</p>
+        <h1>LAPORAN MUTASI STOK BARANG</h1>
+        <p>Periode: {{ \Carbon\Carbon::parse($period_from)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($period_to)->format('d M Y') }}</p>
+        <p>Dibuat pada: {{ \Carbon\Carbon::now()->format('d M Y H:i') }}</p>
     </div>
 
     <div class="summary">
@@ -102,24 +103,64 @@
         <div class="summary-grid">
             <div class="summary-item">
                 <h4>Total Barang</h4>
-                <div class="value">{{ number_format($totalItems) }}</div>
+                <div class="value">{{ number_format($summary['total_items']) }}</div>
             </div>
             <div class="summary-item">
-                <h4>Stok Menipis (≤10)</h4>
-                <div class="value">{{ number_format($lowStockItems) }}</div>
+                <h4>Total Mutasi</h4>
+                <div class="value">{{ number_format($summary['total_movements']) }}</div>
             </div>
             <div class="summary-item">
-                <h4>Habis Stok</h4>
-                <div class="value">{{ number_format($outOfStockItems) }}</div>
+                <h4>Mutasi Masuk</h4>
+                <div class="value">{{ number_format($summary['in_movements']) }}</div>
             </div>
             <div class="summary-item">
-                <h4>Total Nilai Stok</h4>
-                <div class="value">Rp {{ number_format($totalValue) }}</div>
+                <h4>Mutasi Keluar</h4>
+                <div class="value">{{ number_format($summary['out_movements']) }}</div>
             </div>
         </div>
     </div>
 
-    @if($barang->count() > 0)
+    <!-- Tabel Mutasi Stok -->
+    @if($movements->count() > 0)
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Tanggal</th>
+                    <th>Kode</th>
+                    <th>Nama Barang</th>
+                    <th>Tipe</th>
+                    <th>Qty</th>
+                    <th>Stok Awal</th>
+                    <th>Stok Akhir</th>
+                    <th>Keterangan</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($movements as $index => $movement)
+                    <tr class="{{ $movement->quantity < 0 ? 'low-stock' : '' }}">
+                        <td class="text-center">{{ $index + 1 }}</td>
+                        <td>{{ \Carbon\Carbon::parse($movement->created_at)->format('d/m/Y H:i') }}</td>
+                        <td>{{ $movement->barang->kode_barang ?? '-' }}</td>
+                        <td>{{ $movement->barang->nama ?? 'Barang tidak ditemukan' }}</td>
+                        <td>{{ $movement->type }}</td>
+                        <td class="text-center">{{ number_format($movement->quantity) }}</td>
+                        <td class="text-center">{{ number_format($movement->stock_before) }}</td>
+                        <td class="text-center">{{ number_format($movement->stock_after) }}</td>
+                        <td>{{ $movement->description }}</td>
+                        <td>{{ $movement->user->name ?? 'System' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p>Tidak ada data mutasi stok dalam periode ini.</p>
+    @endif
+    
+    <!-- Tabel Stok Terkini -->
+    <h3>Status Stok Terkini</h3>
+    @if($barangs->count() > 0)
         <table>
             <thead>
                 <tr>
@@ -128,25 +169,18 @@
                     <th>Nama Barang</th>
                     <th>Kategori</th>
                     <th>Stok</th>
-                    @if($isAdminOrOwner)
-                        <th>Harga Beli</th>
-                    @endif
                     <th>Harga Jual</th>
-                    <th>Nilai Stok</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($barang as $index => $b)
-                    <tr class="@if($b->stok == 0) out-of-stock @elseif($b->stok <= 10) low-stock @endif">
+                @foreach($barangs as $index => $b)
+                    <tr class="@if($b->stok == 0) out-of-stock @elseif($b->stok <= $b->stok_minimum) low-stock @endif">
                         <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ $b->kode }}</td>
+                        <td>{{ $b->kode_barang }}</td>
                         <td>{{ $b->nama }}</td>
                         <td>{{ $b->kategori }}</td>
                         <td class="text-center">{{ number_format($b->stok) }}</td>
-                        @if($isAdminOrOwner)
-                            <td class="text-right">Rp {{ number_format($b->harga_beli) }}</td>
-                        @endif
                         <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
                         <td class="text-right">Rp {{ number_format($b->stok * $b->harga_jual) }}</td>
                         <td class="text-center">

@@ -102,6 +102,9 @@ export default function LaporanBarangIndex({ reports, filters }: Props) {
         }
     };
 
+    // Halaman ini tidak lagi digunakan, hanya owner yang bisa generate laporan
+    return <div className="text-center text-red-500 mt-10">Akses laporan hanya untuk owner. Fitur ini sudah tidak tersedia untuk karyawan.</div>;
+
     return (
         <AppLayout>
             <Head title="Laporan Barang - Karyawan" />

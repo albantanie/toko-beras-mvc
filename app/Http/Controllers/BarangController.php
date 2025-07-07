@@ -101,6 +101,18 @@ class BarangController extends Controller
                 break;
         }
 
+        // Tambahan filter untuk produk yang belum/sudah ada harga
+        $priceStatus = $request->get('price_status', null); // 'no_price', 'has_price', null
+        if ($priceStatus === 'no_price') {
+            $query->where(function($q) {
+                $q->whereNull('harga_beli')->orWhere('harga_beli', 0)
+                  ->orWhereNull('harga_jual')->orWhere('harga_jual', 0);
+            });
+        } elseif ($priceStatus === 'has_price') {
+            $query->whereNotNull('harga_beli')->where('harga_beli', '>', 0)
+                  ->whereNotNull('harga_jual')->where('harga_jual', '>', 0);
+        }
+
         /**
          * SORTING PRODUK
          * Urutkan berdasarkan field yang diizinkan dengan validasi role-based
@@ -207,8 +219,8 @@ class BarangController extends Controller
                 'nama' => 'required|string|max:255',
                 'deskripsi' => 'nullable|string',
                 'kategori' => 'required|string|max:255',
-                'harga_beli' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0',
-                'harga_jual' => ($isKaryawan && !$isOwner) ? 'nullable' : 'required|numeric|min:0|gt:harga_beli',
+                'harga_beli' => 'nullable|numeric|min:0',
+                'harga_jual' => 'nullable|numeric|min:0|gt:harga_beli',
                 'stok' => ($isAdmin && !$isOwner) ? 'nullable' : 'required|integer|min:0',
                 'stok_minimum' => 'required|integer|min:0',
                 'satuan' => 'required|string|max:50',
@@ -267,9 +279,7 @@ class BarangController extends Controller
      */
     public function edit(Barang $barang): Response
     {
-        if (!auth()->user()->hasRole('admin') && !auth()->user()->hasRole('owner')) {
-            abort(403, 'Hanya admin atau owner yang dapat mengedit produk');
-        }
+        // Semua role (admin, owner, karyawan) bisa akses edit, field harga tetap di-protect di frontend
         return Inertia::render('barang/edit', [
             'barang' => $barang,
         ]);
@@ -284,9 +294,7 @@ class BarangController extends Controller
         $isKaryawan = $user->hasRole('karyawan');
         $isAdmin = $user->hasRole('admin');
         $isOwner = $user->hasRole('owner');
-        if (!$isAdmin && !$isOwner) {
-            abort(403, 'Hanya admin atau owner yang dapat mengupdate produk');
-        }
+        // Semua role bisa update, field harga tetap di-protect untuk karyawan
         try {
             $rules = [
                 'nama' => 'required|string|max:255',
@@ -337,6 +345,11 @@ class BarangController extends Controller
      */
     public function destroy(Barang $barang): RedirectResponse
     {
+        $user = auth()->user();
+        $isKaryawan = $user->hasRole('karyawan');
+        $isAdmin = $user->hasRole('admin');
+        $isOwner = $user->hasRole('owner');
+        // Semua role bisa hapus barang, kecuali jika ada riwayat penjualan
         try {
             // Check if barang has sales history
             if ($barang->detailPenjualans()->exists()) {

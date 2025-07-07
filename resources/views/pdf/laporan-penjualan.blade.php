@@ -4,11 +4,20 @@
     <meta charset="utf-8">
     <title>Laporan Penjualan</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
+        body { 
+            font-family: Arial, sans-serif; 
+            font-size: 12px; 
+            line-height: 1.4; 
             color: #333;
+        }
+        h1 { 
+            font-size: 18px; 
+            margin-bottom: 10px; 
+            text-align: center; 
+        }
+        h2 { 
+            font-size: 16px; 
+            margin-bottom: 8px; 
         }
         .header {
             text-align: center;
@@ -35,11 +44,6 @@
             margin: 0 0 10px 0;
             color: #333;
         }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
         .summary-item {
             text-align: center;
             padding: 10px;
@@ -57,26 +61,32 @@
             font-weight: bold;
             color: #333;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 6px 8px; 
+            text-align: left; 
         }
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
+        th { 
+            background: #f5f5f5; 
         }
-        .text-right {
-            text-align: right;
+        .text-right { 
+            text-align: right; 
         }
-        .text-center {
-            text-align: center;
+        .text-center { 
+            text-align: center; 
         }
+        .footer { 
+            margin-top: 30px; 
+            font-size: 10px; 
+            color: #666; 
+            text-align: center; 
+        }
+    </style>
         .footer {
             margin-top: 30px;
             text-align: center;
@@ -88,103 +98,96 @@
 <body>
     <div class="header">
         <h1>LAPORAN PENJUALAN</h1>
-        <p>Periode: {{ \Carbon\Carbon::parse($periodFrom)->format('d M Y') }} - {{ \Carbon\Carbon::parse($periodTo)->format('d M Y') }}</p>
-        <p>Dibuat pada: {{ now()->format('d M Y H:i:s') }}</p>
+        <p>Periode: {{ \Carbon\Carbon::parse($period_from)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($period_to)->format('d M Y') }}</p>
+        <p>Dibuat pada: {{ \Carbon\Carbon::now()->format('d M Y H:i') }}</p>
     </div>
 
     <div class="summary">
-        <h3>Ringkasan</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <h4>Total Transaksi</h4>
-                <div class="value">{{ number_format($totalTransaksi) }}</div>
-            </div>
-            <div class="summary-item">
-                <h4>Total Pendapatan</h4>
-                <div class="value">Rp {{ number_format($totalRevenue) }}</div>
-            </div>
-            <div class="summary-item">
-                <h4>Total Item Terjual</h4>
-                <div class="value">{{ number_format($totalItems) }}</div>
-            </div>
-        </div>
+        <h3>Ringkasan Penjualan</h3>
+        <table>
+            <tr>
+                <th>Total Penjualan</th>
+                <td class="text-right">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <th>Jumlah Transaksi</th>
+                <td class="text-right">{{ number_format($summary['total_transaksi'], 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <th>Rata-rata Nilai Transaksi</th>
+                <td class="text-right">Rp {{ number_format($summary['rata_rata_transaksi'], 0, ',', '.') }}</td>
+            </tr>
+        </table>
     </div>
 
-    @if($penjualan->count() > 0)
-        <table>
-            <thead>
+    <h2>Detail Transaksi</h2>
+    @if(isset($penjualans) && count($penjualans) > 0)
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Tanggal</th>
+                <th>No. Transaksi</th>
+                <th>Customer</th>
+                <th>User</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($penjualans as $index => $t)
                 <tr>
-                    <th>No</th>
-                    <th>Tanggal</th>
-                    <th>No Transaksi</th>
-                    <th>Kasir</th>
-                    <th>Total Item</th>
-                    <th>Total Harga</th>
-                    <th>Status</th>
+                    <td class="text-center">{{ $index + 1 }}</td>
+                    <td>{{ \Carbon\Carbon::parse($t->tanggal_transaksi)->format('d/m/Y') }}</td>
+                    <td>{{ $t->nomor_transaksi }}</td>
+                    <td>{{ $t->nama_pelanggan ?? 'Umum' }}</td>
+                    <td>{{ $t->user->name ?? 'System' }}</td>
+                    <td class="text-right">Rp {{ number_format($t->total, 0, ',', '.') }}</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach($penjualan as $index => $p)
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="5" class="text-right">TOTAL</th>
+                <th class="text-right">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <h2>Detail Item Terjual</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>No. Transaksi</th>
+                <th>Nama Barang</th>
+                <th>Jumlah</th>
+                <th>Harga</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php $counter = 1; @endphp
+            @foreach($penjualans as $penjualan)
+                @foreach($penjualan->detailPenjualans as $detail)
                     <tr>
-                        <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ \Carbon\Carbon::parse($p->tanggal_transaksi)->format('d/m/Y') }}</td>
-                        <td>{{ $p->nomor_transaksi }}</td>
-                        <td>{{ $p->user->name ?? 'N/A' }}</td>
-                        <td class="text-center">{{ $p->detailPenjualans->sum('jumlah') }}</td>
-                        <td class="text-right">Rp {{ number_format($p->total) }}</td>
-                        <td class="text-center">{{ ucfirst($p->status) }}</td>
+                        <td class="text-center">{{ $counter++ }}</td>
+                        <td>{{ $penjualan->nomor_transaksi }}</td>
+                        <td>{{ $detail->barang->nama ?? 'Barang tidak ditemukan' }}</td>
+                        <td class="text-center">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($detail->harga, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
-            </tbody>
-        </table>
-
-        @if($penjualan->count() > 10)
-            <div style="margin-top: 20px;">
-                <h4>Detail Item Terjual:</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Tanggal</th>
-                            <th>Barang</th>
-                            <th>Jumlah</th>
-                            <th>Harga Satuan</th>
-                            <th>Total</th>
-                            @if($isAdminOrOwner)
-                                <th>Profit</th>
-                            @endif
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php $itemIndex = 1; @endphp
-                        @foreach($penjualan as $p)
-                            @foreach($p->detailPenjualans as $detail)
-                                <tr>
-                                    <td class="text-center">{{ $itemIndex++ }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($p->tanggal_transaksi)->format('d/m/Y') }}</td>
-                                    <td>{{ $detail->barang->nama ?? 'N/A' }}</td>
-                                    <td class="text-center">{{ $detail->jumlah }}</td>
-                                    <td class="text-right">Rp {{ number_format($detail->harga_satuan) }}</td>
-                                    <td class="text-right">Rp {{ number_format($detail->subtotal) }}</td>
-                                    @if($isAdminOrOwner && isset($detail->barang->harga_beli))
-                                        <td class="text-right">Rp {{ number_format(($detail->harga_satuan - $detail->barang->harga_beli) * $detail->jumlah) }}</td>
-                                    @endif
-                                </tr>
-                            @endforeach
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+            @endforeach
+        </tbody>
+    </table>
     @else
-        <div style="text-align: center; padding: 40px; color: #666;">
-            <h3>Tidak ada data penjualan untuk periode ini</h3>
-        </div>
+        <p>Tidak ada transaksi dalam periode ini.</p>
     @endif
-
+    
     <div class="footer">
-        <p>Laporan ini dibuat secara otomatis oleh sistem</p>
-        <p>Halaman 1</p>
+        <p>Laporan ini dihasilkan secara otomatis oleh Sistem Toko Beras.</p>
+        <p>© {{ date('Y') }} Toko Beras System</p>
     </div>
 </body>
 </html> 

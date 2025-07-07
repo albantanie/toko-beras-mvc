@@ -36,11 +36,11 @@ interface LaporanPenjualanProps extends PageProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Laporan',
-        href: '/laporan',
+        href: '/owner/laporan',
     },
     {
         title: 'Laporan Penjualan',
-        href: '/laporan/penjualan',
+        href: '/owner/laporan/penjualan',
     },
 ];
 

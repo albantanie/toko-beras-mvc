@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type User } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, Package, ShoppingCart, BarChart3, FileText, TrendingUp, Warehouse, History } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Users, Package, ShoppingCart, BarChart3, FileText, Warehouse, History, DollarSign } from 'lucide-react';
 import AppLogo from './app-logo';
 
 // Helper function to get user role
@@ -47,54 +47,30 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/penjualan/history',
                     icon: History,
                 },
-                {
-                    title: 'Laporan',
-                    href: '/laporan',
-                    icon: BarChart3,
-                },
-                {
-                    title: 'Admin Approval',
-                    href: '/report-submissions/admin-approval-list',
-                    icon: FileText,
-                },
+                // Admin tidak memiliki akses ke laporan owner
             ];
 
         case 'owner':
             return [
                 ...baseItems,
                 {
-                    title: 'Kelola Barang',
-                    href: '/barang',
-                    icon: Package,
+                    title: 'Manajemen Keuangan',
+                    href: '/owner/keuangan/dashboard',
+                    icon: DollarSign,
                 },
                 {
-                    title: 'Transaksi',
-                    href: '/penjualan',
-                    icon: ShoppingCart,
-                },
-                {
-                    title: 'Riwayat Transaksi',
-                    href: '/penjualan/history',
-                    icon: History,
-                },
-                {
-                    title: 'Laporan Bisnis',
-                    href: '/laporan',
+                    title: 'Laporan',
+                    href: '/owner/laporan',
                     icon: BarChart3,
                 },
                 {
-                    title: 'Laporan Penjualan',
-                    href: '/laporan/penjualan',
-                    icon: TrendingUp,
-                },
-                {
                     title: 'Laporan Stok',
-                    href: '/laporan/stok',
+                    href: '/owner/laporan/stok',
                     icon: Warehouse,
                 },
                 {
-                    title: 'Owner Approval',
-                    href: '/report-submissions/owner-approval-list',
+                    title: 'Laporan PDF',
+                    href: '/owner/reports',
                     icon: FileText,
                 },
             ];
@@ -106,21 +82,6 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     title: 'Kelola Barang',
                     href: '/barang',
                     icon: Package,
-                },
-                {
-                    title: 'Chart Barang',
-                    href: '/laporan/stok',
-                    icon: BarChart3,
-                },
-                {
-                    title: 'Laporan Saya',
-                    href: '/report-submissions/my-reports',
-                    icon: FileText,
-                },
-                {
-                    title: 'Crosscheck Laporan',
-                    href: '/report-submissions/crosscheck-list',
-                    icon: FileText,
                 },
             ];
 
@@ -136,16 +97,6 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     title: 'Riwayat Transaksi',
                     href: '/penjualan/history',
                     icon: History,
-                },
-                {
-                    title: 'Laporan Saya',
-                    href: '/report-submissions/my-reports',
-                    icon: FileText,
-                },
-                {
-                    title: 'Crosscheck Laporan',
-                    href: '/report-submissions/crosscheck-list',
-                    icon: FileText,
                 },
             ];
 

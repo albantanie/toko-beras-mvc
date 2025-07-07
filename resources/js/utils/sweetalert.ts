@@ -7,8 +7,8 @@ export const SweetAlert = {
         create: (itemName: string = 'item') => {
             return Swal.fire({
                 icon: 'success',
-                title: 'Created Successfully!',
-                text: `${itemName} has been created successfully.`,
+                title: 'Berhasil Dibuat!',
+                text: `${itemName} berhasil dibuat.`,
                 timer: 3000,
                 timerProgressBar: true,
                 showConfirmButton: false,
@@ -23,8 +23,8 @@ export const SweetAlert = {
         update: (itemName: string = 'item') => {
             return Swal.fire({
                 icon: 'success',
-                title: 'Updated Successfully!',
-                text: `${itemName} has been updated successfully.`,
+                title: 'Berhasil Diperbarui!',
+                text: `${itemName} berhasil diperbarui.`,
                 timer: 3000,
                 timerProgressBar: true,
                 showConfirmButton: false,
@@ -39,8 +39,8 @@ export const SweetAlert = {
         delete: (itemName: string = 'item') => {
             return Swal.fire({
                 icon: 'success',
-                title: 'Deleted Successfully!',
-                text: `${itemName} has been deleted successfully.`,
+                title: 'Berhasil Dihapus!',
+                text: `${itemName} berhasil dihapus.`,
                 timer: 3000,
                 timerProgressBar: true,
                 showConfirmButton: false,
@@ -74,9 +74,9 @@ export const SweetAlert = {
         create: (itemName: string = 'item', error?: string) => {
             return Swal.fire({
                 icon: 'error',
-                title: 'Creation Failed!',
-                text: error || `Failed to create ${itemName}. Please try again.`,
-                confirmButtonText: 'Try Again',
+                title: 'Gagal Dibuat!',
+                text: error || `Gagal membuat ${itemName}. Silakan coba lagi.`,
+                confirmButtonText: 'Coba Lagi',
                 confirmButtonColor: '#dc2626',
                 background: '#fef2f2',
                 color: '#7f1d1d',
@@ -86,9 +86,9 @@ export const SweetAlert = {
         update: (itemName: string = 'item', error?: string) => {
             return Swal.fire({
                 icon: 'error',
-                title: 'Update Failed!',
-                text: error || `Failed to update ${itemName}. Please try again.`,
-                confirmButtonText: 'Try Again',
+                title: 'Gagal Diperbarui!',
+                text: error || `Gagal memperbarui ${itemName}. Silakan coba lagi.`,
+                confirmButtonText: 'Coba Lagi',
                 confirmButtonColor: '#dc2626',
                 background: '#fef2f2',
                 color: '#7f1d1d',
@@ -98,9 +98,9 @@ export const SweetAlert = {
         delete: (itemName: string = 'item', error?: string) => {
             return Swal.fire({
                 icon: 'error',
-                title: 'Deletion Failed!',
-                text: error || `Failed to delete ${itemName}. Please try again.`,
-                confirmButtonText: 'Try Again',
+                title: 'Gagal Dihapus!',
+                text: error || `Gagal menghapus ${itemName}. Silakan coba lagi.`,
+                confirmButtonText: 'Coba Lagi',
                 confirmButtonColor: '#dc2626',
                 background: '#fef2f2',
                 color: '#7f1d1d',
@@ -111,9 +111,9 @@ export const SweetAlert = {
             const errorMessages = Object.values(errors).flat().join('\n');
             return Swal.fire({
                 icon: 'error',
-                title: 'Validation Error!',
+                title: 'Error Validasi!',
                 text: errorMessages,
-                confirmButtonText: 'Fix Errors',
+                confirmButtonText: 'Perbaiki Error',
                 confirmButtonColor: '#dc2626',
                 background: '#fef2f2',
                 color: '#7f1d1d',
@@ -138,11 +138,11 @@ export const SweetAlert = {
         delete: (itemName: string = 'item') => {
             return Swal.fire({
                 icon: 'warning',
-                title: 'Are you sure?',
-                text: `You are about to delete this ${itemName}. This action cannot be undone!`,
+                title: 'Apakah Anda yakin?',
+                text: `Anda akan menghapus ${itemName} ini. Tindakan ini tidak dapat dibatalkan!`,
                 showCancelButton: true,
-                confirmButtonText: 'Yes, Delete!',
-                cancelButtonText: 'Cancel',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#6b7280',
                 reverseButtons: true,
@@ -267,29 +267,29 @@ export const SweetAlert = {
 // Specific alerts for rice store operations
 export const RiceStoreAlerts = {
     product: {
-        created: (productName: string) => SweetAlert.success.create(`Product "${productName}"`),
-        updated: (productName: string) => SweetAlert.success.update(`Product "${productName}"`),
-        deleted: (productName: string) => SweetAlert.success.delete(`Product "${productName}"`),
-        confirmDelete: (productName: string) => SweetAlert.confirm.delete(`product "${productName}"`),
+        created: (productName: string) => SweetAlert.success.create(`Produk "${productName}"`),
+        updated: (productName: string) => SweetAlert.success.update(`Produk "${productName}"`),
+        deleted: (productName: string) => SweetAlert.success.delete(`Produk "${productName}"`),
+        confirmDelete: (productName: string) => SweetAlert.confirm.delete(`produk "${productName}"`),
     },
     
     transaction: {
-        created: (orderNumber: string) => SweetAlert.success.custom('Transaction Created!', `Order #${orderNumber} has been created successfully.`),
-        updated: (orderNumber: string) => SweetAlert.success.custom('Transaction Updated!', `Order #${orderNumber} has been updated successfully.`),
-        deleted: (orderNumber: string) => SweetAlert.success.delete(`Transaction #${orderNumber}`),
-        confirmDelete: (orderNumber: string) => SweetAlert.confirm.delete(`transaction #${orderNumber}`),
+        created: (orderNumber: string) => SweetAlert.success.custom('Transaksi Dibuat!', `Pesanan #${orderNumber} berhasil dibuat.`),
+        updated: (orderNumber: string) => SweetAlert.success.custom('Transaksi Diperbarui!', `Pesanan #${orderNumber} berhasil diperbarui.`),
+        deleted: (orderNumber: string) => SweetAlert.success.delete(`Transaksi #${orderNumber}`),
+        confirmDelete: (orderNumber: string) => SweetAlert.confirm.delete(`transaksi #${orderNumber}`),
     },
     
     user: {
-        created: (userName: string) => SweetAlert.success.create(`User "${userName}"`),
-        updated: (userName: string) => SweetAlert.success.update(`User "${userName}"`),
-        deleted: (userName: string) => SweetAlert.success.delete(`User "${userName}"`),
-        confirmDelete: (userName: string) => SweetAlert.confirm.delete(`user "${userName}"`),
+        created: (userName: string) => SweetAlert.success.create(`Pengguna "${userName}"`),
+        updated: (userName: string) => SweetAlert.success.update(`Pengguna "${userName}"`),
+        deleted: (userName: string) => SweetAlert.success.delete(`Pengguna "${userName}"`),
+        confirmDelete: (userName: string) => SweetAlert.confirm.delete(`pengguna "${userName}"`),
     },
     
     stock: {
-        updated: (productName: string) => SweetAlert.success.custom('Stock Updated!', `Stock for "${productName}" has been updated successfully.`),
-        lowStock: (productName: string, currentStock: number, minStock: number) => 
+        updated: (productName: string) => SweetAlert.success.custom('Stok Diperbarui!', `Stok untuk "${productName}" berhasil diperbarui.`),
+        lowStock: (productName: string, currentStock: number, minStock: number) =>
             SweetAlert.info.stockAlert(productName, currentStock, minStock),
     },
     

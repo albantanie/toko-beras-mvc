@@ -438,13 +438,13 @@ export default function KaryawanDashboard({
                                 </div>
                                 
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-2">Stock Reports</h4>
-                                    <p className="text-gray-600 mb-4">Generate and view detailed stock reports</p>
-                                    <Link 
-                                        href={route('laporan.stok')} 
+                                    <h4 className="font-semibold text-gray-800 mb-2">Inventory Management</h4>
+                                    <p className="text-gray-600 mb-4">Manage stock levels and inventory movements</p>
+                                    <Link
+                                        href={route('karyawan.barang.index')}
                                         className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
-                                        View Reports
+                                        Manage Inventory
                                     </Link>
                                 </div>
                             </div>

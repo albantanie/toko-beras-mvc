@@ -1,0 +1,258 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  PHP_VERSION: '8.2'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: toko_beras_staging
+          POSTGRES_USER: toko_beras_user
+          POSTGRES_PASSWORD: staging_password
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready -U toko_beras_user -d toko_beras_staging" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install PHP dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=pgsql/' .env
+          sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/' .env
+          sed -i 's/# DB_PORT=3306/DB_PORT=5432/' .env
+          sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=toko_beras_staging/' .env
+          sed -i 's/# DB_USERNAME=root/DB_USERNAME=toko_beras_user/' .env
+          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=staging_password/' .env
+          echo "CACHE_DRIVER=redis" >> .env
+          echo "SESSION_DRIVER=redis" >> .env
+          echo "QUEUE_CONNECTION=redis" >> .env
+          echo "REDIS_HOST=127.0.0.1" >> .env
+          echo "REDIS_PORT=6379" >> .env
+
+      - name: Run database migrations
+        run: php artisan migrate --force
+
+      - name: Run database seeders
+        run: php artisan db:seed --force
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Run tests
+        run: php artisan test
+
+  deploy-staging:
+    name: Deploy to Staging Server
+    runs-on: ubuntu-latest
+    needs: test
+    
+    environment:
+      name: staging
+      url: https://staging.toko-beras.faiz-dev.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Staging Server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            
+            echo "🚀 Starting deployment to staging..."
+            
+            # Navigate to staging directory
+            cd /home/faiz/docker/toko-beras-staging
+            
+            # Check if directory exists, create if not
+            if [ ! -d ".git" ]; then
+              echo "📁 Initializing staging environment..."
+              git clone https://github.com/your-username/toko-beras-mvc.git .
+            fi
+            
+            # Pull latest changes from develop branch
+            echo "📥 Pulling latest changes from develop..."
+            git fetch origin
+            git checkout develop
+            git reset --hard origin/develop
+            git clean -fd
+            
+            # Copy staging docker-compose file
+            if [ -f "docker-compose.staging.yml" ]; then
+              cp docker-compose.staging.yml docker-compose.yml
+            fi
+            
+            # Stop containers gracefully
+            echo "🛑 Stopping staging containers..."
+            docker compose down --timeout 30
+            
+            # Pull latest images
+            echo "📦 Pulling latest Docker images..."
+            docker compose pull
+            
+            # Build and start containers
+            echo "🔨 Building and starting staging containers..."
+            docker compose up -d --build --remove-orphans
+            
+            # Wait for containers to be ready
+            echo "⏳ Waiting for containers to be ready..."
+            sleep 30
+            
+            # Run Laravel commands inside container
+            echo "🔧 Running Laravel maintenance commands..."
+            docker compose exec -T app php artisan config:cache
+            docker compose exec -T app php artisan route:cache
+            docker compose exec -T app php artisan view:cache
+            docker compose exec -T app php artisan migrate --force
+            
+            # Seed staging data
+            echo "🌱 Seeding staging data..."
+            docker compose exec -T app php artisan db:seed --force
+            
+            echo "✅ Staging deployment completed successfully!"
+            echo "🌐 Staging application is available at: https://staging.toko-beras.faiz-dev.com"
+          EOF
+
+      - name: Verify Staging Deployment
+        run: |
+          echo "🔍 Verifying staging deployment..."
+          
+          # Wait for the application to fully start
+          sleep 15
+          
+          # Check if the staging application is responding
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://staging.toko-beras.faiz-dev.com || echo "000")
+          
+          if [ "$response" = "200" ] || [ "$response" = "302" ]; then
+            echo "✅ Staging application is responding (HTTP $response)"
+          else
+            echo "❌ Staging application is not responding properly (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Run Staging Tests
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd /home/faiz/docker/toko-beras-staging
+            
+            echo "🧪 Running staging tests..."
+            docker compose exec -T app php artisan test --env=staging
+            
+            echo "🔍 Running basic health checks..."
+            docker compose exec -T app php artisan route:list
+            docker compose exec -T app php artisan config:show database
+          EOF
+
+      - name: Notify Staging Deployment
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Staging deployment completed successfully!"
+            echo "🌐 Staging URL: https://staging.toko-beras.faiz-dev.com"
+            echo "📊 Staging Dashboard: https://staging.toko-beras.faiz-dev.com/dashboard"
+            echo "🧪 Ready for testing and QA"
+          else
+            echo "❌ Staging deployment failed!"
+            echo "🔍 Check the logs above for details"
+          fi
+
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests against staging
+        run: |
+          # Set staging URL for tests
+          export BASE_URL=https://staging.toko-beras.faiz-dev.com
+          
+          # Run Playwright tests if configured
+          if [ -f "playwright.config.js" ]; then
+            npx playwright test
+          else
+            echo "Playwright not configured, running basic smoke tests..."
+            
+            # Basic smoke test
+            response=$(curl -s -o /dev/null -w "%{http_code}" $BASE_URL)
+            if [ "$response" = "200" ] || [ "$response" = "302" ]; then
+              echo "✅ Staging smoke test passed"
+            else
+              echo "❌ Staging smoke test failed"
+              exit 1
+            fi
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-test-results
+          path: test-results/
+          retention-days: 7

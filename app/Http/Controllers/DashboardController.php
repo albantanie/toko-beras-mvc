@@ -46,6 +46,12 @@ class DashboardController extends Controller
         // Transaksi terbaru
         $recentTransactions = $this->getRecentTransactions();
 
+        // Produk tanpa harga
+        $barangsNoPrice = Barang::where(function($q) {
+            $q->whereNull('harga_beli')->orWhere('harga_beli', 0)
+              ->orWhereNull('harga_jual')->orWhere('harga_jual', 0);
+        })->get(['id', 'nama', 'kode_barang']);
+
         // Render dashboard admin dengan semua data analytics
         return Inertia::render('admin/dashboard', [
             'todaysSalesTrend' => $todaysSalesTrend,
@@ -53,6 +59,7 @@ class DashboardController extends Controller
             'salesSummary' => $salesSummary,
             'topProducts' => $topProducts,
             'recentTransactions' => $recentTransactions,
+            'barangsNoPrice' => $barangsNoPrice,
         ]);
     }
 
@@ -125,7 +132,7 @@ class DashboardController extends Controller
         $profitChart = $this->getProfitChart($dateFrom, $dateTo);
 
         // Pending reports count
-        $pendingReports = \App\Models\Report::pendingApproval()->count();
+        $pendingReports = \App\Models\PdfReport::pending()->count();
 
         return Inertia::render('owner/dashboard', [
             'weeklySalesTrend' => $weeklySalesTrend,

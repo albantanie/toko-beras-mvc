@@ -68,6 +68,9 @@ export default function CreateLaporanBarang() {
     // Check if period is required
     const isPeriodRequired = data.type !== 'barang_stok';
 
+    // Halaman ini tidak lagi digunakan, hanya owner yang bisa generate laporan
+    return <div className="text-center text-red-500 mt-10">Akses pembuatan laporan hanya untuk owner. Fitur ini sudah tidak tersedia untuk karyawan.</div>;
+
     return (
         <AppLayout>
             <Head title="Buat Laporan Barang - Karyawan" />

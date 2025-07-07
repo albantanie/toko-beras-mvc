@@ -195,30 +195,35 @@ export default function CreateBarang({ auth }: PageProps) {
                                     <div className="space-y-4">
                                         <h4 className="text-md font-semibold text-gray-800">Pricing & Stock</h4>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label htmlFor="harga_beli" className="block text-sm font-medium text-gray-700">
-                                                    Buy Price *
-                                                </label>
-                                                <input
-                                                    id="harga_beli"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={data.harga_beli}
-                                                    onChange={(e) => setData('harga_beli', e.target.value)}
-                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                    required
-                                                    placeholder="0"
-                                                    disabled={isKaryawan && !isOwner}
-                                                />
-                                                {errors.harga_beli && (
-                                                    <p className="mt-1 text-sm text-red-600">{errors.harga_beli}</p>
-                                                )}
-                                            </div>
+                                            {/* Buy Price hanya untuk admin/owner */}
+                                            {!(isKaryawan && !isOwner) && (
+                                                <div>
+                                                    <label htmlFor="harga_beli" className="block text-sm font-medium text-gray-700">
+                                                        Buy Price
+                                                    </label>
+                                                    <input
+                                                        id="harga_beli"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={data.harga_beli}
+                                                        onChange={(e) => setData('harga_beli', e.target.value)}
+                                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                        placeholder="0"
+                                                        disabled={isKaryawan && !isOwner}
+                                                    />
+                                                    {isKaryawan && !isOwner && (
+                                                        <p className="mt-1 text-xs text-yellow-600">Hanya admin/owner yang bisa input harga beli.</p>
+                                                    )}
+                                                    {errors.harga_beli && (
+                                                        <p className="mt-1 text-sm text-red-600">{errors.harga_beli}</p>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             <div>
                                                 <label htmlFor="harga_jual" className="block text-sm font-medium text-gray-700">
-                                                    Sell Price *
+                                                    Sell Price
                                                 </label>
                                                 <input
                                                     id="harga_jual"
@@ -228,10 +233,12 @@ export default function CreateBarang({ auth }: PageProps) {
                                                     value={data.harga_jual}
                                                     onChange={(e) => setData('harga_jual', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                    required
                                                     placeholder="0"
                                                     disabled={isKaryawan && !isOwner}
                                                 />
+                                                {isKaryawan && !isOwner && (
+                                                    <p className="mt-1 text-xs text-yellow-600">Hanya admin/owner yang bisa input harga jual.</p>
+                                                )}
                                                 {errors.harga_jual && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.harga_jual}</p>
                                                 )}

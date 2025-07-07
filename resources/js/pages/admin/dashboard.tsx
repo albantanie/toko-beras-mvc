@@ -4,6 +4,7 @@ import { PageProps, BreadcrumbItem } from '@/types';
 import LineChart from '@/components/Charts/LineChart';
 import DoughnutChart from '@/components/Charts/DoughnutChart';
 import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
+import { Link } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -44,8 +45,9 @@ export default function AdminDashboard({
     paymentMethods,
     salesSummary,
     topProducts,
-    recentTransactions
-}: AdminDashboardProps) {
+    recentTransactions,
+    barangsNoPrice = [], // <-- Tambahkan default prop
+}: AdminDashboardProps & { barangsNoPrice?: any[] }) {
     // Prepare chart data
     const salesTrendData = {
         labels: todaysSalesTrend?.map(item => item.hour) || [],
@@ -120,12 +122,32 @@ export default function AdminDashboard({
         },
     };
 
+    // Card warning produk tanpa harga
+    const showPriceWarning = barangsNoPrice.length > 0;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard Admin" />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+                    {/* Card Warning Produk Tanpa Harga */}
+                    {showPriceWarning && (
+                        <div className="mb-6">
+                            <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded flex items-center justify-between">
+                                <div>
+                                    <b>PERHATIAN:</b> Ada {barangsNoPrice.length} produk yang belum diinput harga beli/jual. Segera lengkapi harga pada produk tersebut!
+                                </div>
+                                <Link
+                                    href={route('barang.index', { price_status: 'no_price' })}
+                                    className="ml-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                >
+                                    Lihat Produk Tanpa Harga
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6">
@@ -245,13 +267,13 @@ export default function AdminDashboard({
                         </div>
 
                         <div className="bg-purple-50 p-6 rounded-lg">
-                            <h4 className="font-semibold text-purple-800 mb-2">Laporan</h4>
-                            <p className="text-purple-600 mb-4">Lihat laporan penjualan dan keuangan</p>
+                            <h4 className="font-semibold text-purple-800 mb-2">Sistem</h4>
+                            <p className="text-purple-600 mb-4">Kelola pengaturan dan konfigurasi sistem</p>
                             <a
-                                href={route('laporan.index')}
+                                href={route('admin.users.index')}
                                 className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                             >
-                                Lihat Laporan
+                                Kelola Users
                             </a>
                         </div>
                     </div>

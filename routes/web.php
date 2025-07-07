@@ -37,7 +37,7 @@ use App\Models\Role;                              // Model Role untuk konstanta 
 use Illuminate\Support\Facades\Route;            // Laravel Route facade
 use Inertia\Inertia;                             // Inertia.js untuk SPA dengan React
 use Illuminate\Http\Request;
-use App\Http\Controllers\ReportSubmissionController; // Controller untuk report submission
+
 
 /**
  * ===================================================================
@@ -203,27 +203,81 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Dashboard owner - business metrics, KPI, overview
         Route::get('dashboard', [DashboardController::class, 'ownerDashboard'])->name('dashboard');
 
-        /**
-         * LAPORAN (REPORTS) ROUTES FOR OWNER
-         * Owner memiliki akses ke semua laporan bisnis
-         */
-        // Index laporan - overview semua jenis laporan
-        Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
-
-        // Laporan penjualan - sales analytics, revenue, trends
-        Route::get('laporan/penjualan', [LaporanController::class, 'penjualan'])->name('laporan.penjualan');
-
-        // Laporan stok - inventory analytics, stock levels, movements
-        Route::get('laporan/stok', [LaporanController::class, 'stok'])->name('laporan.stok');
+        // NOTE: Laporan routes moved to owner prefix section below for better organization
 
         /**
          * ===================================================================
-         * OWNER EXCLUSIVE ROUTES - DASHBOARD & DOWNLOAD
+         * OWNER EXCLUSIVE ROUTES - DASHBOARD & DOWNLOAD & REPORTS
          * ===================================================================
          * Routes khusus untuk owner: dashboard dan download laporan
          */
-        // Download laporan dalam format PDF/Excel
-        Route::get('download-report', [LaporanController::class, 'downloadReport'])->name('download-report');
+        // Download laporan PDF berdasarkan ID
+        Route::get('download-report/{id}', [LaporanController::class, 'downloadReport'])->name('download-report');
+        
+        // Download laporan PDF berdasarkan type (untuk kompatibilitas)
+        Route::get('download-report', [LaporanController::class, 'downloadReportByType'])->name('download-report-type');
+        
+        // Laporan analytics routes
+        Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
+        Route::get('laporan/penjualan', [LaporanController::class, 'penjualan'])->name('laporan.penjualan');
+        Route::get('laporan/stok', [LaporanController::class, 'stok'])->name('laporan.stok');
+        Route::get('laporan/history-transaction', [LaporanController::class, 'historyTransaction'])->name('laporan.history-transaction');
+
+        // Generate financial report (PDF)
+        Route::post('generate-financial-report', [LaporanController::class, 'generateFinancialReport'])->name('laporan.generate-financial');
+
+        // Generate stock report (PDF)
+        Route::post('generate-stock-report', [LaporanController::class, 'generateStockReport'])->name('laporan.generate-stock');
+
+        // List PDF reports
+        Route::get('reports', [LaporanController::class, 'reports'])->name('laporan.reports');
+
+        // Approve/reject PDF reports
+        Route::post('reports/{id}/approve', [LaporanController::class, 'approveReport'])->name('laporan.approve');
+
+        /**
+         * FINANCIAL MANAGEMENT ROUTES FOR OWNER
+         * Comprehensive financial management system
+         */
+        Route::prefix('keuangan')->name('keuangan.')->group(function () {
+            // Financial Dashboard
+            Route::get('dashboard', [App\Http\Controllers\FinancialController::class, 'dashboard'])->name('dashboard');
+
+            // Cash Flow Management
+            Route::get('cash-flow', [App\Http\Controllers\FinancialController::class, 'cashFlow'])->name('cash-flow');
+
+            // Accounts Management
+            Route::get('accounts', [App\Http\Controllers\FinancialController::class, 'accounts'])->name('accounts');
+            Route::post('accounts', [App\Http\Controllers\FinancialController::class, 'storeAccount'])->name('accounts.store');
+
+            // Transactions Management
+            Route::get('transactions', [App\Http\Controllers\FinancialController::class, 'transactions'])->name('transactions');
+            Route::post('transactions', [App\Http\Controllers\FinancialController::class, 'storeTransaction'])->name('transactions.store');
+            Route::patch('transactions/{transaction}/approve', [App\Http\Controllers\FinancialController::class, 'approveTransaction'])->name('transactions.approve');
+
+            // Payroll Management
+            Route::get('payroll', [App\Http\Controllers\FinancialController::class, 'payroll'])->name('payroll');
+            Route::post('payroll/generate', [App\Http\Controllers\FinancialController::class, 'generatePayroll'])->name('payroll.generate');
+            Route::post('payroll/{payroll}/payment', [App\Http\Controllers\FinancialController::class, 'processPayrollPayment'])->name('payroll.payment');
+
+            // Payroll Configuration
+            Route::get('payroll-configuration', [App\Http\Controllers\PayrollConfigurationController::class, 'index'])->name('payroll-configuration');
+            Route::post('payroll-configuration', [App\Http\Controllers\PayrollConfigurationController::class, 'store'])->name('payroll-configuration.store');
+            Route::put('payroll-configuration/{configuration}', [App\Http\Controllers\PayrollConfigurationController::class, 'update'])->name('payroll-configuration.update');
+            Route::delete('payroll-configuration/{configuration}', [App\Http\Controllers\PayrollConfigurationController::class, 'destroy'])->name('payroll-configuration.destroy');
+            Route::patch('payroll-configuration/{configuration}/toggle-active', [App\Http\Controllers\PayrollConfigurationController::class, 'toggleActive'])->name('payroll-configuration.toggle-active');
+
+            // Stock Valuation
+            Route::get('stock-valuation', [App\Http\Controllers\FinancialController::class, 'stockValuation'])->name('stock-valuation');
+            Route::post('stock-valuation/generate', [App\Http\Controllers\FinancialController::class, 'generateStockValuation'])->name('stock-valuation.generate');
+
+            // Budget Management
+            Route::get('budgets', [App\Http\Controllers\FinancialController::class, 'budgets'])->name('budgets');
+            Route::post('budgets', [App\Http\Controllers\FinancialController::class, 'storeBudget'])->name('budgets.store');
+
+            // Financial Reports
+            Route::get('reports', [App\Http\Controllers\FinancialController::class, 'reports'])->name('reports');
+        });
     });
 
     /**
@@ -368,132 +422,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     /**
      * ===================================================================
-     * LAPORAN (REPORTS) ROUTES
+     * STOCK MOVEMENT ROUTES (Following Activity Diagram)
      * ===================================================================
-     * Routes untuk laporan dan analytics
-     * Akses: Admin, Owner, Karyawan (dengan pembatasan jenis laporan)
-     *
-     * Pembatasan akses:
-     * - Admin/Owner: Semua jenis laporan
-     * - Karyawan: Hanya laporan barang/inventory (tidak dapat akses laporan penjualan)
-     * - Kasir: Tidak dapat akses sistem laporan
-     *
-     * Fitur:
-     * - Sales reports (Admin/Owner only)
-     * - Inventory reports (Admin/Owner/Karyawan)
-     * - Business analytics
-     * - Performance metrics
-     * - Report generation and approval workflow
+     * Routes untuk pengelolaan stok barang sesuai diagram activity
      */
-    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->prefix('laporan')->name('laporan.')->group(function () {
-        // Index laporan - dashboard laporan dengan overview
-        Route::get('/', [LaporanController::class, 'index'])->name('index');
-
-        // Laporan penjualan - detailed sales analytics
-        Route::get('penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
-
-        // Laporan stok - inventory analytics dan stock movements
-        Route::get('stok', [LaporanController::class, 'stok'])->name('stok');
-
-        // ===== REPORT GENERATION & APPROVAL WORKFLOW =====
-        
-        // Daftar laporan yang sudah di-generate
-        Route::get('reports', [LaporanController::class, 'reports'])->name('reports');
-        
-        // Generate laporan baru
-        Route::post('generate', [LaporanController::class, 'generate'])->name('generate');
-        
-        // Show detail laporan
-        Route::get('reports/{report}', [LaporanController::class, 'show'])->name('show');
-        
-        // Submit laporan untuk approval
-        Route::patch('reports/{report}/submit', [LaporanController::class, 'submitForApproval'])->name('submit');
+    // Stock Movement routes - accessible by admin, owner, karyawan
+    Route::middleware(['role:admin,owner,karyawan'])->prefix('stock-movements')->name('stock-movements.')->group(function () {
+        Route::get('/', [App\Http\Controllers\StockMovementController::class, 'index'])->name('index');
+        Route::get('/kelola', [App\Http\Controllers\StockMovementController::class, 'kelola'])->name('kelola');
+        Route::get('/{barang}/update', [App\Http\Controllers\StockMovementController::class, 'showUpdateForm'])->name('update-form');
+        Route::post('/{barang}/update', [App\Http\Controllers\StockMovementController::class, 'updateStok'])->name('update');
+        Route::get('/{barang}/history', [App\Http\Controllers\StockMovementController::class, 'history'])->name('history');
+        Route::get('/new-item', [App\Http\Controllers\StockMovementController::class, 'showNewItemForm'])->name('new-item');
     });
 
     /**
      * ===================================================================
-     * OWNER EXCLUSIVE ROUTES - APPROVAL WORKFLOW
+     * REPORTS WITH APPROVAL FLOW (Following Activity Diagram)
      * ===================================================================
-     * Routes khusus untuk owner: approve/reject laporan
+     * Routes untuk laporan dengan sistem approval sesuai diagram activity
      */
-    Route::middleware(['role:' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
-        // Approve laporan
-        Route::patch('reports/{report}/approve', [LaporanController::class, 'approve'])->name('approve');
-        
-        // Reject laporan
-        Route::patch('reports/{report}/reject', [LaporanController::class, 'reject'])->name('reject');
+    // Reports with Approval Flow - accessible by all roles
+    Route::middleware(['role:admin,owner,karyawan'])->prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [App\Http\Controllers\ReportController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\ReportController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\ReportController::class, 'store'])->name('store');
+        Route::get('/{report}', [App\Http\Controllers\ReportController::class, 'show'])->name('show');
+        Route::get('/{report}/pdf', [App\Http\Controllers\ReportController::class, 'generatePdf'])->name('pdf');
+
+        // Owner only routes for approval
+        Route::middleware(['role:owner'])->group(function () {
+            Route::get('/approval/pending', [App\Http\Controllers\ReportController::class, 'showApproval'])->name('approval');
+            Route::post('/{report}/approval', [App\Http\Controllers\ReportController::class, 'processApproval'])->name('approval.process');
+        });
     });
 
-    /**
-     * ===================================================================
-     * ADMIN/OWNER EXCLUSIVE ROUTES - HISTORY TRANSACTION REPORT
-     * ===================================================================
-     * Routes khusus untuk admin/owner: laporan history transaksi komprehensif
-     */
-    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER])->prefix('laporan')->name('laporan.')->group(function () {
-        // Laporan history transaksi komprehensif dengan analytics
-        Route::get('history-transaction', [LaporanController::class, 'historyTransaction'])->name('history-transaction');
-    });
-
-    /**
-     * ===================================================================
-     * DUAL CROSSCHECK REPORT SYSTEM ROUTES
-     * ===================================================================
-     * Routes untuk sistem dual crosscheck laporan dari kasir dan karyawan
-     */
-    Route::prefix('report-submissions')->name('report-submissions.')->group(function () {
-        // SEMUA ROUTE STRING LITERAL HARUS DI ATAS ROUTE PARAMETER {reportSubmission}
-        
-        // Routes untuk kasir dan karyawan - string literal
-        Route::middleware(['role:' . Role::KASIR . ',' . Role::KARYAWAN])->group(function () {
-            Route::get('my-reports', [ReportSubmissionController::class, 'myReports'])->name('my-reports');
-            Route::get('create', [ReportSubmissionController::class, 'create'])->name('create');
-            Route::post('store', [ReportSubmissionController::class, 'store'])->name('store');
-            Route::get('crosscheck-list', [ReportSubmissionController::class, 'crosscheckList'])->name('crosscheck-list');
-        });
-
-        // Routes untuk owner - string literal
-        Route::middleware(['role:' . Role::OWNER])->group(function () {
-            Route::get('owner-approval-list', [ReportSubmissionController::class, 'ownerApprovalList'])->name('owner-approval-list');
-        });
-
-        // Routes untuk admin - string literal
-        Route::middleware(['role:' . Role::ADMIN])->group(function () {
-            Route::get('admin-approval-list', [ReportSubmissionController::class, 'adminApprovalList'])->name('admin-approval-list');
-        });
-
-        // Route untuk download PDF
-        Route::get('download-pdf/{path}', [ReportSubmissionController::class, 'downloadPdf'])->name('download-pdf')->where('path', '.*');
-
-        // Route show untuk semua role yang relevan (kasir, karyawan, owner, admin)
-        Route::middleware(['role:' . Role::KASIR . ',' . Role::KARYAWAN . ',' . Role::OWNER . ',' . Role::ADMIN])->group(function () {
-            Route::get('{id}', [ReportSubmissionController::class, 'show'])->name('show')->where('id', '[0-9]+');
-        });
-
-        // ROUTE PARAMETER {reportSubmission} HARUS DI BAWAH SEMUA STRING LITERAL
-        
-        // Routes untuk kasir dan karyawan - dengan parameter
-        Route::middleware(['role:' . Role::KASIR . ',' . Role::KARYAWAN])->group(function () {
-            Route::patch('{id}/submit', [ReportSubmissionController::class, 'submitForCrosscheck'])->name('submit')->where('id', '[0-9]+');
-            Route::get('{id}/edit', [ReportSubmissionController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
-            Route::put('{id}', [ReportSubmissionController::class, 'update'])->name('update')->where('id', '[0-9]+');
-            Route::delete('{id}', [ReportSubmissionController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
-            Route::patch('{id}/crosscheck-approve', [ReportSubmissionController::class, 'crosscheckApprove'])->name('crosscheck-approve')->where('id', '[0-9]+');
-            Route::patch('{id}/crosscheck-reject', [ReportSubmissionController::class, 'crosscheckReject'])->name('crosscheck-reject')->where('id', '[0-9]+');
-        });
-
-        // Routes untuk owner - dengan parameter
-        Route::middleware(['role:' . Role::OWNER])->group(function () {
-            Route::patch('{id}/owner-approve', [ReportSubmissionController::class, 'ownerApprove'])->name('owner-approve')->where('id', '[0-9]+');
-            Route::patch('{id}/owner-reject', [ReportSubmissionController::class, 'ownerReject'])->name('owner-reject')->where('id', '[0-9]+');
-        });
-
-        // Routes untuk admin - dengan parameter
-        Route::middleware(['role:' . Role::ADMIN])->group(function () {
-            Route::patch('{id}/admin-approve', [ReportSubmissionController::class, 'adminApprove'])->name('admin-approve')->where('id', '[0-9]+');
-            Route::patch('{id}/admin-reject', [ReportSubmissionController::class, 'adminReject'])->name('admin-reject')->where('id', '[0-9]+');
-        });
-    });
 });
 
 /**

@@ -348,6 +348,21 @@ class CartController extends Controller
 
                 // Kurangi stok barang
                 $item['barang']->decrement('stok', $item['jumlah']);
+                // Catat history stock movement
+                $item['barang']->recordStockMovement(
+                    'out',
+                    $item['jumlah'],
+                    "Penjualan (checkout online) - {$penjualan->nomor_transaksi}",
+                    auth()->id(),
+                    'App\\Models\\Penjualan',
+                    $penjualan->id,
+                    $item['harga_satuan'],
+                    [
+                        'penjualan_id' => $penjualan->id,
+                        'customer_name' => $penjualan->nama_pelanggan ?? null,
+                        'action' => 'checkout',
+                    ]
+                );
             }
 
             // Commit transaction jika semua berhasil

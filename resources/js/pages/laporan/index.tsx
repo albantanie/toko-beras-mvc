@@ -58,7 +58,7 @@ export default function LaporanIndex({ auth, summary, top_products, sales_chart 
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
-        get(route('laporan.index'), {
+        get(route('owner.laporan.index'), {
             preserveState: true,
             preserveScroll: true,
         });
@@ -102,7 +102,7 @@ export default function LaporanIndex({ auth, summary, top_products, sales_chart 
                         <button
                             type="button"
                             className="ml-2 text-sm text-gray-500 underline"
-                            onClick={() => { setData('date_from', ''); setData('date_to', ''); get(route('laporan.index'), { preserveState: true, preserveScroll: true }); }}
+                            onClick={() => { setData('date_from', ''); setData('date_to', ''); get(route('owner.laporan.index'), { preserveState: true, preserveScroll: true }); }}
                             disabled={processing}
                         >
                             Reset
@@ -292,7 +292,7 @@ export default function LaporanIndex({ auth, summary, top_products, sales_chart 
                     {/* Quick Actions */}
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         <Link
-                            href={route('laporan.penjualan')}
+                            href={route('owner.laporan.penjualan')}
                             className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow"
                         >
                             <div>
@@ -318,7 +318,7 @@ export default function LaporanIndex({ auth, summary, top_products, sales_chart 
                         </Link>
 
                         <Link
-                            href={route('laporan.stok')}
+                            href={route('owner.laporan.stok')}
                             className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow"
                         >
                             <div>
@@ -346,7 +346,7 @@ export default function LaporanIndex({ auth, summary, top_products, sales_chart 
                         {/* History Transaction Report - Only for Admin/Owner */}
                         {(auth.user.roles.some((role: any) => role.name === 'admin' || role.name === 'owner')) && (
                             <Link
-                                href={route('laporan.history-transaction')}
+                                href={route('owner.laporan.history-transaction')}
                                 className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow"
                             >
                                 <div>
