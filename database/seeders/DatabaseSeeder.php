@@ -153,7 +153,8 @@ class DatabaseSeeder extends Seeder
         $this->call(BarangSeeder::class);
         // Seed penjualans
         $this->call(PenjualanSeeder::class);
-        // Seed report submissions
-        $this->call(ReportSubmissionSeeder::class);
+
+        // Note: ReportSubmissionSeeder removed as ReportSubmission model no longer exists
+        // The old report submission system has been replaced with a simpler PDF report system
     }
 }
