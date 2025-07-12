@@ -45,6 +45,3 @@ export type Config = {
 
 // Export as default for compatibility
 export default { route };
-
-// Also export route as named export for direct import
-export { route as default };

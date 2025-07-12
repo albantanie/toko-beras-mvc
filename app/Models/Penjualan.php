@@ -58,6 +58,9 @@ class Penjualan extends Model
         'total',
         'bayar',
         'kembalian',
+        'total_cost',
+        'total_profit',
+        'is_financial_recorded',
         'catatan',
         'tanggal_transaksi',
     ];
@@ -76,6 +79,9 @@ class Penjualan extends Model
             'total' => 'decimal:2',
             'bayar' => 'decimal:2',
             'kembalian' => 'decimal:2',
+            'total_cost' => 'decimal:2',
+            'total_profit' => 'decimal:2',
+            'is_financial_recorded' => 'boolean',
             'tanggal_transaksi' => 'datetime',
         ];
     }

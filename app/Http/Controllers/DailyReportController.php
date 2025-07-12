@@ -1,0 +1,353 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\DailyReport;
+use App\Models\Penjualan;
+use App\Models\StockMovement;
+use App\Models\PdfReport;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * Controller DailyReportController - Manages daily reports for kasir and karyawan
+ *
+ * This controller handles:
+ * - Daily transaction reports for kasir
+ * - Daily stock reports for karyawan
+ * - Report viewing and filtering
+ * - Automatic report generation
+ *
+ * @package App\Http\Controllers
+ */
+class DailyReportController extends Controller
+{
+    /**
+     * Display daily transaction reports for kasir
+     */
+    public function kasirDaily(Request $request): Response
+    {
+        $user = auth()->user();
+        
+        // Check if user is kasir
+        if (!$user->hasRole('kasir')) {
+            abort(403, 'Access denied. Kasir role required.');
+        }
+
+        $filters = $request->only(['date_from', 'date_to', 'status']);
+        
+        // Default to current month if no filters
+        $dateFrom = $filters['date_from'] ?? now()->startOfMonth()->format('Y-m-d');
+        $dateTo = $filters['date_to'] ?? now()->format('Y-m-d');
+
+        // Get daily reports for kasir
+        $reports = DailyReport::transactionReports()
+            ->forUser($user->id)
+            ->dateRange($dateFrom, $dateTo)
+            ->when($filters['status'] ?? null, function($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->with(['user', 'approver'])
+            ->orderBy('report_date', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        // Auto-generate today's report if not exists
+        $today = now()->format('Y-m-d');
+        $todayReport = DailyReport::where('report_date', $today)
+            ->where('type', DailyReport::TYPE_TRANSACTION)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$todayReport) {
+            try {
+                DailyReport::generateTransactionReport(now(), $user->id);
+            } catch (\Exception $e) {
+                // Log error but don't break the page
+                \Log::error('Failed to auto-generate daily transaction report: ' . $e->getMessage());
+            }
+        }
+
+        return Inertia::render('kasir/laporan/daily', [
+            'reports' => $reports,
+            'filters' => array_merge($filters, [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ]),
+            'todayStats' => $this->getTodayTransactionStats($user->id),
+        ]);
+    }
+
+    /**
+     * Display daily stock reports for karyawan
+     */
+    public function karyawanDaily(Request $request): Response
+    {
+        $user = auth()->user();
+
+        // Debug logging
+        \Log::info('Karyawan Daily Reports Access', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_roles' => $user->roles->pluck('name')->toArray(),
+            'has_karyawan_role' => $user->hasRole('karyawan'),
+            'is_karyawan' => $user->isKaryawan(),
+        ]);
+
+        // Check if user is karyawan
+        if (!$user->hasRole('karyawan')) {
+            abort(403, 'Access denied. Karyawan role required.');
+        }
+
+        $filters = $request->only(['date_from', 'date_to', 'status']);
+        
+        // Default to current month if no filters
+        $dateFrom = $filters['date_from'] ?? now()->startOfMonth()->format('Y-m-d');
+        $dateTo = $filters['date_to'] ?? now()->format('Y-m-d');
+
+        // Get daily reports for karyawan
+        $reports = DailyReport::stockReports()
+            ->forUser($user->id)
+            ->dateRange($dateFrom, $dateTo)
+            ->when($filters['status'] ?? null, function($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->with(['user', 'approver'])
+            ->orderBy('report_date', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        // Auto-generate today's report if not exists
+        $today = now()->format('Y-m-d');
+        $todayReport = DailyReport::where('report_date', $today)
+            ->where('type', DailyReport::TYPE_STOCK)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$todayReport) {
+            try {
+                DailyReport::generateStockReport(now(), $user->id);
+            } catch (\Exception $e) {
+                // Log error but don't break the page
+                \Log::error('Failed to auto-generate daily stock report: ' . $e->getMessage());
+            }
+        }
+
+        $todayStats = $this->getTodayStockStats($user->id);
+
+        // Debug logging
+        \Log::info('Karyawan Daily Reports Data', [
+            'reports_count' => $reports->count(),
+            'today_stats' => $todayStats,
+            'filters' => $filters,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ]);
+
+        return Inertia::render('karyawan/laporan/daily', [
+            'reports' => $reports,
+            'filters' => array_merge($filters, [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ]),
+            'todayStats' => $todayStats,
+        ]);
+    }
+
+    /**
+     * Show specific daily report
+     */
+    public function show(DailyReport $report): Response
+    {
+        $user = auth()->user();
+
+        // Owner should not access daily reports - only monthly PDF reports
+        if ($user->isOwner()) {
+            abort(403, 'Owner can only access monthly PDF reports, not daily reports.');
+        }
+
+        // Check if user can view this report (only report creator)
+        if ($report->user_id !== $user->id) {
+            abort(403, 'You can only view your own daily reports.');
+        }
+
+        $report->load(['user', 'approver']);
+
+        return Inertia::render('laporan/daily-report-detail', [
+            'report' => $report,
+        ]);
+    }
+
+    /**
+     * Manually generate report for specific date
+     */
+    public function generate(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'date' => 'required|date|before_or_equal:today',
+            'type' => 'required|in:transaction,stock',
+        ]);
+
+        $user = auth()->user();
+        $date = Carbon::parse($request->date);
+
+        try {
+            if ($request->type === 'transaction') {
+                if (!$user->hasRole('kasir')) {
+                    abort(403, 'Only kasir can generate transaction reports.');
+                }
+                $report = DailyReport::generateTransactionReport($date, $user->id);
+            } else {
+                if (!$user->hasRole('karyawan')) {
+                    abort(403, 'Only karyawan can generate stock reports.');
+                }
+                $report = DailyReport::generateStockReport($date, $user->id);
+            }
+
+            return redirect()->back()->with('success', 'Laporan berhasil di-generate untuk tanggal ' . $date->format('d/m/Y'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal generate laporan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get today's transaction statistics for kasir
+     */
+    private function getTodayTransactionStats($userId): array
+    {
+        $today = now()->format('Y-m-d');
+        
+        $transactions = Penjualan::whereDate('tanggal_transaksi', $today)
+            ->where('user_id', $userId)
+            ->where('status', 'selesai')
+            ->get();
+
+        return [
+            'total_transactions' => $transactions->count(),
+            'total_amount' => $transactions->sum('total'),
+            'total_items_sold' => $transactions->sum(function ($transaction) {
+                return $transaction->detailPenjualans->sum('jumlah');
+            }),
+            'payment_methods' => $transactions->groupBy('metode_pembayaran')->map->count(),
+        ];
+    }
+
+    /**
+     * Get today's stock statistics for karyawan
+     */
+    private function getTodayStockStats($userId): array
+    {
+        $today = now()->format('Y-m-d');
+        
+        $movements = StockMovement::whereDate('created_at', $today)
+            ->where('user_id', $userId)
+            ->get();
+
+        return [
+            'total_movements' => $movements->count(),
+            'total_stock_value' => $movements->sum(function ($movement) {
+                return abs($movement->quantity) * ($movement->unit_price ?? 0);
+            }),
+            'movement_types' => $movements->groupBy('type')->map->count(),
+            'items_affected' => $movements->groupBy('barang_id')->count(),
+        ];
+    }
+
+    /**
+     * Generate monthly report from daily reports
+     */
+    public function generateMonthlyReport(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'month' => 'required|date_format:Y-m',
+            'type' => 'required|in:transaction,stock',
+        ]);
+
+        $user = auth()->user();
+        $month = Carbon::createFromFormat('Y-m', $request->month);
+        $type = $request->type;
+
+        // Check permissions
+        if ($type === 'transaction' && !$user->hasRole('kasir')) {
+            abort(403, 'Only kasir can generate transaction monthly reports.');
+        }
+
+        if ($type === 'stock' && !$user->hasRole('karyawan')) {
+            abort(403, 'Only karyawan can generate stock monthly reports.');
+        }
+
+        try {
+            // Generate monthly summary from daily reports
+            $monthlyData = DailyReport::generateMonthlySummary($month, $type, $user->id);
+
+            if (empty($monthlyData['daily_breakdown']) || $monthlyData['reports_included'] === 0) {
+                return redirect()->back()->with('error', 'Tidak ada data laporan harian untuk bulan ' . $month->format('F Y'));
+            }
+
+            // Generate PDF
+            $fileName = $this->generateMonthlyPDF($monthlyData, $month, $type, $user);
+
+            // Save to PdfReport table for owner approval
+            $report = PdfReport::create([
+                'type' => $type === 'transaction' ? 'sales' : 'stock',
+                'title' => $monthlyData['type'] === 'monthly_sales' ? 'Laporan Penjualan Bulanan' : 'Laporan Stok Bulanan',
+                'report_date' => $month->endOfMonth(),
+                'file_name' => $fileName,
+                'file_path' => 'reports/' . $fileName,
+                'generated_by' => $user->id,
+                'status' => 'pending',
+            ]);
+
+            $redirectRoute = $user->hasRole('kasir') ? 'kasir.laporan.daily' : 'karyawan.laporan.daily';
+            return redirect()->route($redirectRoute)->with('success', 'Laporan bulanan berhasil di-generate dan dikirim untuk persetujuan owner.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal generate laporan bulanan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate monthly PDF report
+     */
+    private function generateMonthlyPDF(array $monthlyData, Carbon $month, string $type, $user): string
+    {
+        $fileName = sprintf(
+            'laporan_%s_bulanan_%s_%s.pdf',
+            $type === 'transaction' ? 'penjualan' : 'stok',
+            $month->format('Y_m'),
+            now()->format('His')
+        );
+
+        // Ensure reports directory exists
+        if (!Storage::exists('reports')) {
+            Storage::makeDirectory('reports');
+        }
+
+        // Generate PDF based on type
+        if ($type === 'transaction') {
+            $pdf = Pdf::loadView('pdf.monthly-sales-report', [
+                'data' => $monthlyData,
+                'month' => $month,
+                'user' => $user,
+                'generated_at' => now(),
+            ]);
+        } else {
+            $pdf = Pdf::loadView('pdf.monthly-stock-report', [
+                'data' => $monthlyData,
+                'month' => $month,
+                'user' => $user,
+                'generated_at' => now(),
+            ]);
+        }
+
+        // Save PDF
+        Storage::put('reports/' . $fileName, $pdf->output());
+
+        return $fileName;
+    }
+}

@@ -122,11 +122,11 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Basic Information */}
                                     <div className="space-y-4">
-                                        <h4 className="text-md font-semibold text-gray-800">Basic Information</h4>
-                                        
+                                        <h4 className="text-md font-semibold text-gray-800">Informasi Dasar</h4>
+
                                         <div>
                                             <label htmlFor="nama" className="block text-sm font-medium text-gray-700">
-                                                Product Name *
+                                                Nama Produk *
                                             </label>
                                             <input
                                                 id="nama"
@@ -143,7 +143,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
 
                                         <div>
                                             <label htmlFor="kode_barang" className="block text-sm font-medium text-gray-700">
-                                                Product Code *
+                                                Kode Produk *
                                             </label>
                                             <input
                                                 id="kode_barang"

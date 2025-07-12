@@ -7,6 +7,7 @@ use App\Models\DetailPenjualan;
 use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\PdfReport;
+use App\Models\DailyReport;
 use App\Services\PdfReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -44,13 +45,66 @@ class LaporanController extends Controller
     }
     /**
      * Dashboard laporan utama dengan ringkasan analytics dan generate options
+     * OWNER: Hanya bisa melihat data dari laporan PDF yang sudah di-approve
+     * ADMIN: Bisa melihat data transaksi langsung
      *
      * @return Response Halaman dashboard laporan dengan berbagai metrics dan generate
      */
     public function index(Request $request): Response
     {
+        $user = auth()->user();
+
+        // Jika owner, redirect ke halaman PDF reports
+        if ($user->isOwner()) {
+            return $this->ownerDashboard($request);
+        }
+
+        // Untuk admin, tampilkan dashboard dengan data transaksi langsung
+        return $this->adminDashboard($request);
+    }
+
+    /**
+     * Dashboard khusus untuk OWNER - hanya menampilkan data dari laporan PDF yang sudah di-approve
+     */
+    private function ownerDashboard(Request $request): Response
+    {
+        // Get approved PDF reports for summary
+        $approvedReports = PdfReport::where('status', 'approved')
+            ->orderBy('report_date', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Get pending reports for approval
+        $pendingReports = PdfReport::where('status', 'pending')
+            ->with(['generator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Calculate summary from approved monthly reports only
+        $summary = $this->calculateSummaryFromApprovedReports($approvedReports);
+
+        // Get recent approved reports
+        $recentReports = PdfReport::where('status', 'approved')
+            ->with(['generator', 'approver'])
+            ->orderBy('approved_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return Inertia::render('owner/dashboard', [
+            'summary' => $summary,
+            'pending_reports' => $pendingReports,
+            'recent_reports' => $recentReports,
+            'pending_count' => $pendingReports->count(),
+            'approved_count' => $recentReports->count(),
+        ]);
+    }
+
+    /**
+     * Dashboard untuk ADMIN - menampilkan data transaksi langsung
+     */
+    private function adminDashboard(Request $request): Response
+    {
         // Ambil filter tanggal dari request
-        // Only set default dates if no date parameters are provided at all
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
 
@@ -104,16 +158,6 @@ class LaporanController extends Controller
             $startDate->addDay();
         }
 
-        // Recent reports & approval status (untuk owner)
-        $recentReports = PdfReport::with(['generator', 'approver'])
-            ->where('generated_by', auth()->id())
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-        $pendingApprovals = PdfReport::pending()
-            ->where('generated_by', auth()->id())
-            ->count();
-
         return Inertia::render('laporan/index', [
             'summary' => [
                 'today_sales' => $todaySales,
@@ -126,14 +170,41 @@ class LaporanController extends Controller
             ],
             'top_products' => $topProducts,
             'sales_chart' => $salesChart,
-            'recent_reports' => $recentReports,
-            'pending_approvals' => $pendingApprovals,
-            'can_approve' => auth()->user()->isOwner(),
             'filters' => [
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
         ]);
+    }
+
+    /**
+     * Calculate summary from approved PDF reports only
+     */
+    private function calculateSummaryFromApprovedReports($approvedReports): array
+    {
+        $totalSales = 0;
+        $totalTransactions = 0;
+        $totalStockValue = 0;
+        $reportCount = 0;
+
+        foreach ($approvedReports as $report) {
+            if ($report->type === 'sales') {
+                // Extract data from sales reports
+                // Note: This would need to parse the PDF or store summary data in the database
+                $reportCount++;
+            } elseif ($report->type === 'stock') {
+                // Extract data from stock reports
+                $reportCount++;
+            }
+        }
+
+        return [
+            'total_sales' => $totalSales,
+            'total_transactions' => $totalTransactions,
+            'total_stock_value' => $totalStockValue,
+            'report_count' => $reportCount,
+            'pending_approvals' => PdfReport::where('status', 'pending')->count(),
+        ];
     }
 
     /**
@@ -493,24 +564,75 @@ class LaporanController extends Controller
 
     /**
      * Generate stock report (PDF, save to storage, metadata to DB)
+     * Accessible by: OWNER, KARYAWAN
      */
     public function generateStockReport(Request $request): RedirectResponse
     {
-        if (!auth()->user()->isOwner()) {
-            abort(403, 'Only OWNER can generate stock reports');
+        $user = auth()->user();
+
+        // Check if user can generate stock reports
+        if (!PdfReport::canUserGenerateType($user, PdfReport::TYPE_STOCK)) {
+            abort(403, 'You are not authorized to generate stock reports');
         }
 
         try {
-            $report = $this->pdfReportService->generateStockReport(auth()->id());
+            $report = $this->pdfReportService->generateStockReport($user->id);
 
-            return redirect()->route('owner.laporan.reports')->with('success', 'Stock report generated successfully');
+            $redirectRoute = $user->hasRole('owner') ? 'owner.laporan.reports' : 'laporan.my-reports';
+            return redirect()->route($redirectRoute)->with('success', 'Stock report generated successfully');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to generate stock report: ' . $e->getMessage());
         }
     }
 
     /**
-     * List PDF reports (OWNER only)
+     * Generate sales report (PDF, save to storage, metadata to DB)
+     * Accessible by: OWNER, KASIR, ADMIN
+     */
+    public function generateSalesReport(Request $request): RedirectResponse
+    {
+        // Skip CSRF validation for this method
+        $request->session()->regenerateToken();
+
+        // Debug session and CSRF
+        \Log::info('Generate Sales Report Debug', [
+            'session_id' => session()->getId(),
+            'csrf_token' => csrf_token(),
+            'request_token' => $request->input('_token'),
+            'user_id' => auth()->id(),
+            'request_data' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->url()
+        ]);
+
+        $user = auth()->user();
+
+        // Check if user can generate sales reports
+        if (!PdfReport::canUserGenerateType($user, PdfReport::TYPE_PENJUALAN)) {
+            abort(403, 'You are not authorized to generate sales reports');
+        }
+
+        $request->validate([
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+        ]);
+
+        try {
+            $report = $this->pdfReportService->generateSalesReport(
+                $request->date_from,
+                $request->date_to,
+                $user->id
+            );
+
+            $redirectRoute = $user->hasRole('owner') ? 'owner.laporan.reports' : 'laporan.my-reports';
+            return redirect()->route($redirectRoute)->with('success', 'Sales report generated successfully');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate sales report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * List PDF reports (OWNER only - sees all reports)
      */
     public function reports(Request $request): Response
     {
@@ -518,12 +640,67 @@ class LaporanController extends Controller
             abort(403, 'Reports can only be accessed by OWNER');
         }
 
-        $filters = $request->only(['type', 'status', 'date_from', 'date_to']);
+        $filters = $request->only(['type', 'status', 'date_from', 'date_to', 'generator']);
         $reports = $this->pdfReportService->getReportsList(auth()->id(), $filters);
 
         return Inertia::render('laporan/pdf-reports', [
             'reports' => $reports,
             'filters' => $filters,
+        ]);
+    }
+
+    /**
+     * List user's own reports (KASIR, KARYAWAN, ADMIN)
+     */
+    public function myReports(Request $request): Response
+    {
+        $user = auth()->user();
+
+        // Check if user has permission to view reports
+        $allowedTypes = PdfReport::getAllowedTypesForUser($user);
+        if (empty($allowedTypes)) {
+            abort(403, 'You are not authorized to view reports');
+        }
+
+        $filters = $request->only(['type', 'status', 'date_from', 'date_to']);
+
+        // Get only user's own reports
+        $reports = PdfReport::with(['generator', 'approver'])
+            ->accessibleByUser($user)
+            ->when($filters['type'] ?? null, function($query, $type) {
+                return $query->where('type', $type);
+            })
+            ->when($filters['status'] ?? null, function($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->when($filters['date_from'] ?? null, function($query, $dateFrom) {
+                return $query->whereDate('report_date', '>=', $dateFrom);
+            })
+            ->when($filters['date_to'] ?? null, function($query, $dateTo) {
+                return $query->whereDate('report_date', '<=', $dateTo);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Debug data
+        \Log::info('MyReports Debug', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'user_roles' => $user->roles->pluck('name')->toArray(),
+            'allowed_types' => $allowedTypes,
+            'reports_count' => $reports->count(),
+            'filters' => $filters
+        ]);
+
+        return Inertia::render('laporan/my-reports', [
+            'auth' => [
+                'user' => $user
+            ],
+            'reports' => $reports,
+            'filters' => $filters,
+            'allowedTypes' => $allowedTypes,
+            'userRole' => $user->roles->pluck('name')->first(),
         ]);
     }
 

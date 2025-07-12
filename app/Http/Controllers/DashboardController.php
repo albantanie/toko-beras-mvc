@@ -832,7 +832,7 @@ class DashboardController extends Controller
                     'title' => 'Pertumbuhan Penjualan Positif',
                     'description' => sprintf('Penjualan minggu ini naik %.1f%%. Pertahankan momentum ini!', $growthRate),
                     'action' => 'Lihat Laporan',
-                    'action_url' => route('laporan.penjualan'),
+                    'action_url' => route('owner.laporan.penjualan'),
                     'priority' => 'medium'
                 ];
             } elseif ($growthRate < -10) {
@@ -842,7 +842,7 @@ class DashboardController extends Controller
                     'title' => 'Penjualan Menurun',
                     'description' => sprintf('Penjualan turun %.1f%% minggu ini. Perlu strategi pemasaran.', abs($growthRate)),
                     'action' => 'Analisis Penjualan',
-                    'action_url' => route('laporan.penjualan'),
+                    'action_url' => route('owner.laporan.penjualan'),
                     'priority' => 'high'
                 ];
             }

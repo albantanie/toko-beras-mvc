@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Services\FinancialService;
 use App\Services\PayrollService;
 use App\Services\CashFlowService;
+use App\Services\FinancialIntegrationService;
 use App\Models\FinancialAccount;
 use App\Models\FinancialTransaction;
 use App\Models\Payroll;
@@ -20,15 +21,18 @@ class FinancialController extends Controller
     protected $financialService;
     protected $payrollService;
     protected $cashFlowService;
+    protected $integrationService;
 
     public function __construct(
         FinancialService $financialService,
         PayrollService $payrollService,
-        CashFlowService $cashFlowService
+        CashFlowService $cashFlowService,
+        FinancialIntegrationService $integrationService
     ) {
         $this->financialService = $financialService;
         $this->payrollService = $payrollService;
         $this->cashFlowService = $cashFlowService;
+        $this->integrationService = $integrationService;
     }
 
     /**
@@ -39,10 +43,42 @@ class FinancialController extends Controller
         $period = $request->get('period', 'current_month');
         $dashboardData = $this->financialService->getDashboardData($period);
 
+        // Get updated cash summary from integration service
+        $cashSummary = $this->integrationService->getCashSummary();
+
+        // Override cash data with real-time data
+        if ($cashSummary) {
+            $dashboardData['total_cash'] = $cashSummary->total_cash ?? 0;
+            $dashboardData['cash_breakdown'] = [
+                'kas' => $cashSummary->cash_balance ?? 0,
+                'bank_bca' => $cashSummary->bank_balance ?? 0,
+            ];
+        }
+
         return Inertia::render('financial/dashboard', [
             'dashboardData' => $dashboardData,
             'period' => $period,
         ]);
+    }
+
+    /**
+     * Recalculate all financial balances
+     */
+    public function recalculateBalances()
+    {
+        try {
+            $this->integrationService->recalculateBalances();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Saldo berhasil dihitung ulang'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghitung ulang saldo: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

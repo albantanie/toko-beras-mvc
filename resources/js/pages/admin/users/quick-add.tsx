@@ -164,7 +164,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                            Full Name
+                                            Nama Lengkap
                                         </label>
                                         <input
                                             id="name"
@@ -173,7 +173,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
                                             onChange={(e) => setData('name', e.target.value)}
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required
-                                            placeholder="Enter full name"
+                                            placeholder="Masukkan nama lengkap"
                                         />
                                         {errors.name && (
                                             <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -182,7 +182,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
 
                                     <div>
                                         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                            Email Address
+                                            Alamat Email
                                         </label>
                                         <input
                                             id="email"
@@ -191,7 +191,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
                                             onChange={(e) => setData('email', e.target.value)}
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required
-                                            placeholder="Enter email address"
+                                            placeholder="Masukkan alamat email"
                                         />
                                         {errors.email && (
                                             <p className="mt-1 text-sm text-red-600">{errors.email}</p>

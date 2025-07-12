@@ -28,6 +28,9 @@ return new class extends Migration
             $table->decimal('total', 15, 2);
             $table->decimal('bayar', 15, 2)->nullable();
             $table->decimal('kembalian', 15, 2)->nullable();
+            $table->decimal('total_cost', 15, 2)->default(0); // Total harga pokok penjualan
+            $table->decimal('total_profit', 15, 2)->default(0); // Total keuntungan
+            $table->boolean('is_financial_recorded')->default(false); // Apakah sudah dicatat ke keuangan
             $table->text('catatan')->nullable();
             $table->timestamp('tanggal_transaksi');
             $table->timestamps();

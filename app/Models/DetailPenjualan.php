@@ -33,7 +33,10 @@ class DetailPenjualan extends Model
         'barang_id',
         'jumlah',
         'harga_satuan',
+        'harga_pokok',
         'subtotal',
+        'subtotal_cost',
+        'profit',
         'catatan',
     ];
 
@@ -46,7 +49,10 @@ class DetailPenjualan extends Model
     {
         return [
             'harga_satuan' => 'decimal:2',
+            'harga_pokok' => 'decimal:2',
             'subtotal' => 'decimal:2',
+            'subtotal_cost' => 'decimal:2',
+            'profit' => 'decimal:2',
         ];
     }
 

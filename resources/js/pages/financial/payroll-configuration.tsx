@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Plus, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Settings, Plus, Edit, Trash2, ToggleLeft, ToggleRight, FileText, Download, Info } from 'lucide-react';
 
 interface PayrollConfiguration {
     id: number;
@@ -354,6 +354,71 @@ export default function PayrollConfigurationPage({ configurations, filters }: Pr
                                 {editingConfig ? 'Update pengaturan konfigurasi payroll' : 'Buat konfigurasi payroll baru'}
                             </DialogDescription>
                         </DialogHeader>
+
+                        {/* Panduan Download PDF */}
+                        {!editingConfig && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-start space-x-3">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-medium text-blue-900 mb-2">
+                                            📋 Panduan Penggunaan Konfigurasi Payroll
+                                        </h4>
+                                        <div className="text-sm text-blue-800 space-y-2">
+                                            <p><strong>💡 Tips Pengisian:</strong></p>
+                                            <ul className="list-disc list-inside space-y-1 ml-4">
+                                                <li><strong>Kode Konfigurasi:</strong> Gunakan format snake_case (contoh: basic_salary_admin, overtime_rate_kasir)</li>
+                                                <li><strong>Kategori & Tipe:</strong> Pilih sesuai jenis komponen gaji (gaji pokok, tunjangan, potongan)</li>
+                                                <li><strong>Berlaku Untuk:</strong> Tentukan role yang akan menggunakan konfigurasi ini</li>
+                                                <li><strong>Nilai:</strong> Isi jumlah (Rp) atau persentase (%) sesuai tipe yang dipilih</li>
+                                            </ul>
+
+                                            <div className="mt-3 pt-3 border-t border-blue-200">
+                                                <p><strong>📄 Cara Download Laporan Payroll (PDF):</strong></p>
+                                                <ol className="list-decimal list-inside space-y-1 ml-4">
+                                                    <li>Setelah konfigurasi tersimpan, buka menu <strong>"Manajemen Keuangan"</strong></li>
+                                                    <li>Pilih <strong>"Payroll"</strong> → <strong>"Generate Payroll"</strong></li>
+                                                    <li>Pilih bulan dan tahun yang diinginkan</li>
+                                                    <li>Klik <strong>"Generate Payroll Bulanan"</strong></li>
+                                                    <li>Setelah berhasil, klik <strong>"Download PDF"</strong> untuk mendapatkan slip gaji</li>
+                                                    <li>PDF akan berisi detail gaji berdasarkan konfigurasi yang telah dibuat</li>
+                                                </ol>
+                                                <div className="mt-2">
+                                                    <a
+                                                        href="/owner/keuangan/payroll"
+                                                        className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <FileText className="h-3 w-3 mr-1" />
+                                                        🔗 Langsung ke Halaman Payroll
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 pt-3 border-t border-blue-200">
+                                                <p><strong>🔍 Contoh Konfigurasi Umum:</strong></p>
+                                                <div className="grid grid-cols-1 gap-2 mt-2">
+                                                    <div className="bg-white p-2 rounded border">
+                                                        <strong>Gaji Pokok Admin:</strong> basic_salary_admin | Gaji Pokok | Amount | Admin | Rp 5,000,000
+                                                    </div>
+                                                    <div className="bg-white p-2 rounded border">
+                                                        <strong>Tunjangan Transport:</strong> transport_allowance | Tunjangan | Amount | All | Rp 500,000
+                                                    </div>
+                                                    <div className="bg-white p-2 rounded border">
+                                                        <strong>Potongan BPJS:</strong> bpjs_deduction | Potongan | Percentage | All | 4%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -505,6 +570,37 @@ export default function PayrollConfigurationPage({ configurations, filters }: Pr
                                 />
                                 <Label>Aktif</Label>
                             </div>
+
+                            {/* Quick Guide untuk Download PDF */}
+                            {!editingConfig && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="text-sm font-medium text-green-800">💾 Setelah Menyimpan Konfigurasi</span>
+                                    </div>
+                                    <div className="text-xs text-green-700 space-y-1">
+                                        <p><strong>📄 Untuk Download PDF Payroll:</strong></p>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">1</span>
+                                            <span>Buka <strong>Manajemen Keuangan</strong> → <strong>Payroll</strong></span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">2</span>
+                                            <span>Klik <strong>"Generate Payroll Bulanan"</strong></span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">3</span>
+                                            <span>Pilih periode dan klik <strong>"Download PDF"</strong></span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 mt-2">
+                                            <Download className="h-3 w-3 text-green-600" />
+                                            <span className="text-green-600 font-medium">✅ PDF akan berisi semua konfigurasi yang aktif</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex justify-end space-x-2">
                                 <Button 

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './chart-animations.css';
 
 @plugin 'tailwindcss-animate';
 

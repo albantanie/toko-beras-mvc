@@ -2,11 +2,15 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { BreadcrumbItem } from '@/types';
 import BarChart from '@/components/Charts/BarChart';
-import DoughnutChart from '@/components/Charts/DoughnutChart';
 import LineChart from '@/components/Charts/LineChart';
 import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+
+// Use global route function
+declare global {
+    function route(name: string, params?: any): string;
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,10 +34,7 @@ interface KaryawanDashboardProps {
         satuan: string;
         status: string;
     }>;
-    categoriesDistribution: Array<{
-        category: string;
-        count: number;
-    }>;
+
     inventorySummary: {
         total_products: number;
         low_stock_items: number;
@@ -78,7 +79,6 @@ interface KaryawanDashboardProps {
 export default function KaryawanDashboard({
     stockLevels,
     lowStockItems,
-    categoriesDistribution,
     inventorySummary,
     stockMovementTrend,
     recentMovements,
@@ -135,31 +135,7 @@ export default function KaryawanDashboard({
         ],
     };
 
-    const categoriesData = {
-        labels: categoriesDistribution?.map(item => item.category) || [],
-        datasets: [
-            {
-                data: categoriesDistribution?.map(item => item.count) || [],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(168, 85, 247, 0.8)',
-                    'rgba(245, 158, 11, 0.8)',
-                    'rgba(239, 68, 68, 0.8)',
-                    'rgba(20, 184, 166, 0.8)',
-                ],
-                borderColor: [
-                    'rgb(34, 197, 94)',
-                    'rgb(59, 130, 246)',
-                    'rgb(168, 85, 247)',
-                    'rgb(245, 158, 11)',
-                    'rgb(239, 68, 68)',
-                    'rgb(20, 184, 166)',
-                ],
-                borderWidth: 2,
-            },
-        ],
-    };
+
 
     const stockMovementData = {
         labels: stockMovementTrend?.map(item => item.day) || [],
@@ -302,42 +278,146 @@ export default function KaryawanDashboard({
                                 </div>
                             </div>
 
-                            {/* Inventory Charts */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="text-lg font-semibold mb-4">Stock Level Distribution</h4>
-                                    {hasChartData ? <BarChart data={stockLevelsData} height={250} /> : (
-                                        <div className="text-center py-8">
-                                            <div className="text-red-600 mb-2">
-                                                <Icons.warning className="w-12 h-12 mx-auto" />
+                            {/* Enhanced Inventory Chart */}
+                            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                                <div className="mb-6">
+                                    <h4 className="text-xl font-semibold text-gray-900 mb-2">Distribusi Stok per Kategori</h4>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Grafik ini menampilkan perbandingan total stok dan jumlah produk untuk setiap kategori beras.
+                                        Batang hijau menunjukkan total stok (dalam satuan), sedangkan batang biru menunjukkan jumlah produk yang tersedia.
+                                    </p>
+
+                                    {/* Chart Legend */}
+                                    <div className="flex flex-wrap gap-4 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 bg-green-500 rounded"></div>
+                                            <span className="text-sm text-gray-700">Total Stok (Satuan)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                                            <span className="text-sm text-gray-700">Jumlah Produk</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Summary Stats */}
+                                    {hasChartData && (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                                <p className="text-xs text-green-600 font-medium">TOTAL STOK</p>
+                                                <p className="text-lg font-bold text-green-700">
+                                                    {formatCompactNumber(stockLevels.reduce((sum, item) => sum + item.total_stock, 0))}
+                                                </p>
                                             </div>
-                                            <p className="text-red-600 font-semibold">No data available for this chart</p>
+                                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                                <p className="text-xs text-blue-600 font-medium">TOTAL PRODUK</p>
+                                                <p className="text-lg font-bold text-blue-700">
+                                                    {stockLevels.reduce((sum, item) => sum + item.total_products, 0)}
+                                                </p>
+                                            </div>
+                                            <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                                <p className="text-xs text-purple-600 font-medium">KATEGORI</p>
+                                                <p className="text-lg font-bold text-purple-700">
+                                                    {stockLevels.length}
+                                                </p>
+                                            </div>
+                                            <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                                <p className="text-xs text-orange-600 font-medium">RATA-RATA STOK</p>
+                                                <p className="text-lg font-bold text-orange-700">
+                                                    {formatCompactNumber(stockLevels.reduce((sum, item) => sum + item.avg_stock, 0) / stockLevels.length)}
+                                                </p>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="text-lg font-semibold mb-4">Product Categories</h4>
-                                    {hasChartData ? <DoughnutChart data={categoriesData} height={250} /> : (
-                                        <div className="text-center py-8">
-                                            <div className="text-red-600 mb-2">
-                                                <Icons.warning className="w-12 h-12 mx-auto" />
-                                            </div>
-                                            <p className="text-red-600 font-semibold">No data available for this chart</p>
+                                {hasChartData ? (
+                                    <div>
+                                        <BarChart data={stockLevelsData} height={300} />
+                                        <div className="mt-4 text-xs text-gray-500 text-center">
+                                            💡 Tip: Kategori dengan stok tinggi namun produk sedikit mungkin memiliki produk dengan stok besar per item
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <div className="text-gray-400 mb-4">
+                                            <Icons.warning className="w-16 h-16 mx-auto" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-gray-700 mb-2">Tidak Ada Data Stok</h3>
+                                        <p className="text-gray-500 mb-4">Belum ada data stok untuk ditampilkan dalam grafik</p>
+                                        <Link
+                                            href={route('barang.index')}
+                                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            Kelola Produk
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Stock Movement Chart */}
+                            {/* Enhanced Stock Movement Chart */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                                <h4 className="text-lg font-semibold mb-4">Stock Movement Trend</h4>
-                                {hasChartData ? <LineChart data={stockMovementData} height={250} /> : (
-                                    <div className="text-center py-8">
-                                        <div className="text-red-600 mb-2">
-                                            <Icons.warning className="w-12 h-12 mx-auto" />
+                                <div className="mb-6">
+                                    <h4 className="text-xl font-semibold text-gray-900 mb-2">Tren Pergerakan Stok Harian</h4>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Grafik ini menampilkan tren pergerakan stok masuk dan keluar selama periode tertentu.
+                                        Garis hijau menunjukkan stok masuk (pembelian, retur), sedangkan garis merah menunjukkan stok keluar (penjualan, kerusakan).
+                                    </p>
+
+                                    {/* Movement Legend */}
+                                    <div className="flex flex-wrap gap-4 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-1 bg-green-500 rounded"></div>
+                                            <span className="text-sm text-gray-700">Stok Masuk</span>
                                         </div>
-                                        <p className="text-red-600 font-semibold">No data available for this chart</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-1 bg-red-500 rounded"></div>
+                                            <span className="text-sm text-gray-700">Stok Keluar</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Today's Movement Summary */}
+                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                            <p className="text-xs text-green-600 font-medium">MASUK HARI INI</p>
+                                            <p className="text-lg font-bold text-green-700">
+                                                {formatCompactNumber(todayMovements?.in || 0)}
+                                            </p>
+                                        </div>
+                                        <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                                            <p className="text-xs text-red-600 font-medium">KELUAR HARI INI</p>
+                                            <p className="text-lg font-bold text-red-700">
+                                                {formatCompactNumber(todayMovements?.out || 0)}
+                                            </p>
+                                        </div>
+                                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                            <p className="text-xs text-blue-600 font-medium">PENYESUAIAN</p>
+                                            <p className="text-lg font-bold text-blue-700">
+                                                {formatCompactNumber(todayMovements?.adjustments || 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {hasChartData && stockMovementTrend && stockMovementTrend.length > 0 ? (
+                                    <div>
+                                        <LineChart data={stockMovementData} height={300} />
+                                        <div className="mt-4 text-xs text-gray-500 text-center">
+                                            📊 Analisis: Perhatikan pola pergerakan untuk mengoptimalkan manajemen stok
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <div className="text-gray-400 mb-4">
+                                            <Icons.warning className="w-16 h-16 mx-auto" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-gray-700 mb-2">Tidak Ada Data Pergerakan</h3>
+                                        <p className="text-gray-500 mb-4">Belum ada data pergerakan stok untuk periode ini</p>
+                                        <Link
+                                            href={route('stok.history')}
+                                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            Lihat Riwayat Stok
+                                        </Link>
                                     </div>
                                 )}
                             </div>
@@ -427,24 +507,36 @@ export default function KaryawanDashboard({
                             {/* Quick Actions */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-2">Manage Inventory</h4>
-                                    <p className="text-gray-600 mb-4">Add, edit, or update product information</p>
-                                    <Link 
-                                        href={route('barang.index')} 
-                                        className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                                    >
-                                        Manage Products
-                                    </Link>
-                                </div>
-                                
-                                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                                    <h4 className="font-semibold text-gray-800 mb-2">Inventory Management</h4>
-                                    <p className="text-gray-600 mb-4">Manage stock levels and inventory movements</p>
+                                    <div className="flex items-center mb-3">
+                                        <Icons.package className="h-6 w-6 text-blue-600 mr-2" />
+                                        <h4 className="font-semibold text-gray-800">Kelola Produk & Inventaris</h4>
+                                    </div>
+                                    <p className="text-gray-600 mb-4">
+                                        Tambah, edit, atau perbarui informasi produk, harga, dan kelola stok barang
+                                    </p>
                                     <Link
                                         href={route('barang.index')}
-                                        className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
-                                        Manage Inventory
+                                        <Icons.package className="w-4 h-4 mr-2" />
+                                        Kelola Barang
+                                    </Link>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                                    <div className="flex items-center mb-3">
+                                        <Icons.fileText className="h-6 w-6 text-green-600 mr-2" />
+                                        <h4 className="font-semibold text-gray-800">Laporan Stok</h4>
+                                    </div>
+                                    <p className="text-gray-600 mb-4">
+                                        Buat dan kelola laporan stok, lihat riwayat pergerakan inventaris
+                                    </p>
+                                    <Link
+                                        href={route('laporan.my-reports')}
+                                        className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                    >
+                                        <Icons.fileText className="w-4 h-4 mr-2" />
+                                        Lihat Laporan
                                     </Link>
                                 </div>
                             </div>

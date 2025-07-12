@@ -5,6 +5,11 @@ import DataTable, { Column, PaginatedData } from '@/components/data-table';
 import { formatCurrency, formatDateTime, StatusBadge, Icons } from '@/utils/formatters';
 import { useState } from 'react';
 
+// Use global route function
+declare global {
+    function route(name: string, params?: any): string;
+}
+
 interface LaporanPenjualanProps extends PageProps {
     penjualans: PaginatedData<Penjualan>;
     summary: {

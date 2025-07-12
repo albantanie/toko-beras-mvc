@@ -17,7 +17,10 @@ return new class extends Migration
             $table->foreignId('barang_id')->constrained()->onDelete('cascade');
             $table->integer('jumlah');
             $table->decimal('harga_satuan', 15, 2);
+            $table->decimal('harga_pokok', 15, 2)->default(0); // Harga pokok per unit
             $table->decimal('subtotal', 15, 2);
+            $table->decimal('subtotal_cost', 15, 2)->default(0); // Total harga pokok untuk item ini
+            $table->decimal('profit', 15, 2)->default(0); // Keuntungan untuk item ini
             $table->text('catatan')->nullable();
             $table->timestamps();
         });

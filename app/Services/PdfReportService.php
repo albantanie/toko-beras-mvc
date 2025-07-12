@@ -221,16 +221,22 @@ class PdfReportService
     }
 
     /**
-     * Get all reports for listing (OWNER only)
+     * Get all reports for listing (OWNER sees all, others see only their own)
      */
     public function getReportsList(int $userId, array $filters = [])
     {
-        $query = PdfReport::with(['generator', 'approver'])
-            ->where('generated_by', $userId)
-            ->orderBy('created_at', 'desc');
+        $user = \App\Models\User::find($userId);
+        $query = PdfReport::with(['generator', 'approver']);
+
+        // Owner can see all reports, others only see their own
+        if (!$user || !$user->isOwner()) {
+            $query->where('generated_by', $userId);
+        }
+
+        $query->orderBy('created_at', 'desc');
 
         // Apply filters
-        if (isset($filters['type']) && in_array($filters['type'], [PdfReport::TYPE_FINANCIAL, PdfReport::TYPE_STOCK])) {
+        if (isset($filters['type']) && in_array($filters['type'], [PdfReport::TYPE_FINANCIAL, PdfReport::TYPE_STOCK, PdfReport::TYPE_PENJUALAN])) {
             $query->where('type', $filters['type']);
         }
 
@@ -244,6 +250,13 @@ class PdfReportService
 
         if (isset($filters['date_to'])) {
             $query->where('report_date', '<=', $filters['date_to']);
+        }
+
+        // Filter by generator role
+        if (isset($filters['generator']) && $filters['generator'] !== '') {
+            $query->whereHas('generator.roles', function($q) use ($filters) {
+                $q->where('name', $filters['generator']);
+            });
         }
 
         return $query->paginate(20);
@@ -289,5 +302,99 @@ class PdfReportService
         }
 
         return response()->download($report->getFullPath(), $report->file_name);
+    }
+
+    /**
+     * Generate a sales report PDF (for KASIR role)
+     */
+    public function generateSalesReport(string $periodFrom, string $periodTo, int $generatedBy): PdfReport
+    {
+        $fromDate = Carbon::parse($periodFrom)->startOfDay();
+        $toDate = Carbon::parse($periodTo)->endOfDay();
+        $reportDate = Carbon::now();
+
+        // Fetch sales data for the period
+        $penjualans = Penjualan::with(['detailPenjualans.barang', 'user', 'pelanggan'])
+            ->where('status', 'selesai')
+            ->whereBetween('tanggal_transaksi', [$fromDate, $toDate])
+            ->orderBy('tanggal_transaksi', 'desc')
+            ->get();
+
+        // Calculate sales metrics
+        $totalRevenue = $penjualans->sum('total');
+        $totalTransactions = $penjualans->count();
+        $averageTransaction = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
+
+        // Group by payment method
+        $paymentMethods = $penjualans->groupBy('metode_pembayaran')->map(function ($group) {
+            return [
+                'count' => $group->count(),
+                'total' => $group->sum('total'),
+            ];
+        });
+
+        // Top selling products
+        $topProducts = DetailPenjualan::select('barang_id', \DB::raw('SUM(jumlah) as total_sold'), \DB::raw('SUM(subtotal) as total_revenue'))
+            ->whereHas('penjualan', function ($q) use ($fromDate, $toDate) {
+                $q->where('status', 'selesai')
+                  ->whereBetween('tanggal_transaksi', [$fromDate, $toDate]);
+            })
+            ->with('barang')
+            ->groupBy('barang_id')
+            ->orderBy('total_sold', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Daily sales breakdown
+        $dailySales = $penjualans->groupBy(function ($penjualan) {
+            return Carbon::parse($penjualan->tanggal_transaksi)->format('Y-m-d');
+        })->map(function ($group, $date) {
+            return [
+                'date' => $date,
+                'transactions' => $group->count(),
+                'total' => $group->sum('total'),
+            ];
+        })->sortKeys();
+
+        $reportData = [
+            'period_from' => $fromDate->format('Y-m-d'),
+            'period_to' => $toDate->format('Y-m-d'),
+            'total_revenue' => $totalRevenue,
+            'total_transactions' => $totalTransactions,
+            'average_transaction' => $averageTransaction,
+            'payment_methods' => $paymentMethods,
+            'top_products' => $topProducts,
+            'daily_sales' => $dailySales,
+            'transactions' => $penjualans,
+        ];
+
+        // Generate PDF
+        $pdf = Pdf::loadView('reports.sales', $reportData);
+
+        // Generate filename and save
+        $fileName = PdfReport::generateFileName(PdfReport::TYPE_PENJUALAN, $reportDate, $periodFrom, $periodTo);
+        $filePath = "reports/sales/{$fileName}";
+
+        // Ensure directory exists
+        Storage::makeDirectory('reports/sales');
+
+        // Save PDF to storage
+        Storage::put($filePath, $pdf->output());
+
+        // Create database record
+        $report = PdfReport::create([
+            'title' => "Laporan Penjualan {$fromDate->format('d/m/Y')} - {$toDate->format('d/m/Y')}",
+            'type' => PdfReport::TYPE_PENJUALAN,
+            'report_date' => $reportDate,
+            'period_from' => $fromDate,
+            'period_to' => $toDate,
+            'file_name' => $fileName,
+            'file_path' => $filePath,
+            'status' => PdfReport::STATUS_PENDING,
+            'generated_by' => $generatedBy,
+            'report_data' => $reportData,
+        ]);
+
+        return $report;
     }
 }

@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
         // Seed roles first
         $this->call(RoleSeeder::class);
 
+        // Seed financial accounts
+        $this->call(FinancialAccountsSeeder::class);
+
         // ADMIN
         $admin = User::firstOrCreate(
             ['email' => 'admin@tokoberas.com'],
@@ -153,6 +156,9 @@ class DatabaseSeeder extends Seeder
         $this->call(BarangSeeder::class);
         // Seed penjualans
         $this->call(PenjualanSeeder::class);
+
+        // Seed monthly report data (transactions, stock movements, daily reports)
+        $this->call(MonthlyReportDataSeeder::class);
 
         // Note: ReportSubmissionSeeder removed as ReportSubmission model no longer exists
         // The old report submission system has been replaced with a simpler PDF report system

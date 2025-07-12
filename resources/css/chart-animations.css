@@ -1,0 +1,90 @@
+/* Chart Keuangan Animations */
+.chart-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.progress-bar {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-card {
+    transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.chart-tooltip {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chart-legend {
+    animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .chart-card {
+        margin-bottom: 1rem;
+    }
+    
+    .summary-card {
+        padding: 0.75rem;
+    }
+}
+
+/* Loading states */
+.chart-loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Enhanced hover effects for chart elements */
+.recharts-bar-rectangle:hover {
+    filter: brightness(1.1);
+    transition: filter 0.2s ease;
+}
+
+.recharts-line-dot:hover {
+    r: 6;
+    transition: r 0.2s ease;
+}

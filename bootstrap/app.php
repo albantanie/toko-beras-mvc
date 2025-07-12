@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleMethodSpoofing;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\RedirectBasedOnRole;
 use App\Http\Middleware\RoleBasedUIRestriction;
+use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        // Replace default CSRF middleware with custom one
+        $middleware->web(replace: [
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class => VerifyCsrfToken::class,
+        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,

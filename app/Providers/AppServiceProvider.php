@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\Penjualan;
+use App\Models\Payroll;
+use App\Observers\PenjualanObserver;
+use App\Observers\PayrollObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register model observers
+        Penjualan::observe(PenjualanObserver::class);
+        Payroll::observe(PayrollObserver::class);
     }
 }

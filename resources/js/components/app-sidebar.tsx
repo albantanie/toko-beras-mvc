@@ -73,6 +73,16 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/barang',
                     icon: Package,
                 },
+                {
+                    title: 'Laporan Stok Harian',
+                    href: '/karyawan/laporan/daily',
+                    icon: Warehouse,
+                },
+                {
+                    title: 'Generate Laporan Bulanan',
+                    href: '/laporan/monthly/create',
+                    icon: FileText,
+                },
             ];
 
         case 'kasir':
@@ -87,6 +97,16 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     title: 'Riwayat Transaksi',
                     href: '/penjualan/history',
                     icon: History,
+                },
+                {
+                    title: 'Laporan Transaksi Harian',
+                    href: '/kasir/laporan/daily',
+                    icon: BarChart3,
+                },
+                {
+                    title: 'Generate Laporan Bulanan',
+                    href: '/laporan/monthly/create',
+                    icon: FileText,
                 },
             ];
 

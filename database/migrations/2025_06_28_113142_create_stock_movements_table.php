@@ -29,6 +29,9 @@ return new class extends Migration
             $table->integer('stock_before'); // Stock sebelum perubahan
             $table->integer('stock_after'); // Stock setelah perubahan
             $table->decimal('unit_price', 10, 2)->nullable(); // Harga per unit saat perubahan
+            $table->decimal('unit_cost', 10, 2)->nullable(); // Harga pokok per unit
+            $table->decimal('total_value', 15, 2)->default(0); // Total nilai perubahan
+            $table->boolean('is_financial_recorded')->default(false); // Apakah sudah dicatat ke keuangan
             $table->text('description'); // Keterangan perubahan
             $table->string('reference_type')->nullable(); // Jenis referensi (penjualan, pembelian, manual, dll)
             $table->unsignedBigInteger('reference_id')->nullable(); // ID referensi (ID penjualan, pembelian, dll)

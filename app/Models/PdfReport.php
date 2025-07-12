@@ -62,6 +62,17 @@ class PdfReport extends Model
      */
     public const TYPE_FINANCIAL = 'financial';
     public const TYPE_STOCK = 'stock';
+    public const TYPE_PENJUALAN = 'penjualan';
+
+    /**
+     * Role-based report access mapping
+     */
+    public const ROLE_REPORT_ACCESS = [
+        'kasir' => [self::TYPE_PENJUALAN],
+        'karyawan' => [self::TYPE_STOCK],
+        'admin' => [self::TYPE_PENJUALAN, self::TYPE_STOCK],
+        'owner' => [self::TYPE_FINANCIAL, self::TYPE_STOCK, self::TYPE_PENJUALAN],
+    ];
 
     /**
      * Status constants
@@ -190,6 +201,57 @@ class PdfReport extends Model
     public function fileExists(): bool
     {
         return file_exists($this->getFullPath());
+    }
+
+    /**
+     * Check if user can generate specific report type
+     */
+    public static function canUserGenerateType(User $user, string $type): bool
+    {
+        $userRoles = $user->roles->pluck('name')->toArray();
+
+        foreach ($userRoles as $role) {
+            if (isset(self::ROLE_REPORT_ACCESS[$role]) &&
+                in_array($type, self::ROLE_REPORT_ACCESS[$role])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get allowed report types for user
+     */
+    public static function getAllowedTypesForUser(User $user): array
+    {
+        $userRoles = $user->roles->pluck('name')->toArray();
+        $allowedTypes = [];
+
+        foreach ($userRoles as $role) {
+            if (isset(self::ROLE_REPORT_ACCESS[$role])) {
+                $allowedTypes = array_merge($allowedTypes, self::ROLE_REPORT_ACCESS[$role]);
+            }
+        }
+
+        return array_unique($allowedTypes);
+    }
+
+    /**
+     * Scope for reports accessible by user role
+     */
+    public function scopeAccessibleByUser($query, User $user)
+    {
+        $allowedTypes = self::getAllowedTypesForUser($user);
+
+        if ($user->hasRole('owner')) {
+            // Owner can see all reports
+            return $query;
+        }
+
+        // Other roles can only see their own reports of allowed types
+        return $query->where('generated_by', $user->id)
+                    ->whereIn('type', $allowedTypes);
     }
 
     /**

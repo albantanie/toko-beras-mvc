@@ -63,7 +63,7 @@ interface DataTableProps<T = any> {
 export default function DataTable<T = any>({
     data,
     columns,
-    searchPlaceholder = "Search...",
+    searchPlaceholder = "Cari...",
     filters = [],
     actions = [],
     emptyState,
@@ -305,7 +305,7 @@ export default function DataTable<T = any>({
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="text-gray-500">No data available</div>
+                                            <div className="text-gray-500">Tidak ada data tersedia</div>
                                         )}
                                     </td>
                                 </tr>
@@ -326,11 +326,11 @@ export default function DataTable<T = any>({
                                     preserveScroll
                                     className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                 >
-                                    Previous
+                                    Sebelumnya
                                 </Link>
                             ) : (
                                 <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
-                                    Previous
+                                    Sebelumnya
                                 </span>
                             )}
                             {data?.links?.[data.links.length - 1]?.url ? (
@@ -340,11 +340,11 @@ export default function DataTable<T = any>({
                                     preserveScroll
                                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                 >
-                                    Next
+                                    Selanjutnya
                                 </Link>
                             ) : (
                                 <span className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
-                                    Next
+                                    Selanjutnya
                                 </span>
                             )}
                         </div>
