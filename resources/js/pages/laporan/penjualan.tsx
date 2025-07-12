@@ -343,7 +343,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                     <DataTable
                         data={penjualans}
                         columns={columns}
-                        searchPlaceholder="Search by transaction number, customer, or cashier..."
+                        searchPlaceholder="Cari berdasarkan nomor transaksi, pelanggan, atau kasir..."
                         routeName="owner.laporan.penjualan"
                         currentSearch={filters?.search}
                         currentSort={filters?.sort}

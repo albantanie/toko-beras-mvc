@@ -93,7 +93,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
             <AppContent>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="mb-6">
-                        <nav className="flex" aria-label="Breadcrumb">
+                        <nav className="flex" aria-label="Navigasi Breadcrumb">
                             <ol className="inline-flex items-center space-x-1 md:space-x-3">
                                 {breadcrumbs.map((item, index) => (
                                     <li key={index} className="inline-flex items-center">

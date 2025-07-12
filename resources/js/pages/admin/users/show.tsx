@@ -24,7 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function ShowUser({ auth, user }: ShowUserProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`User: ${user.name}`} />
+            <Head title={`Pengguna: ${user.name}`} />
 
             <div className="py-12">
                 <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
@@ -54,11 +54,11 @@ export default function ShowUser({ auth, user }: ShowUserProps) {
                                     <h4 className="text-md font-semibold text-gray-800 mb-4">User Information</h4>
                                     <div className="space-y-3">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-600">Name</label>
+                                            <label className="block text-sm font-medium text-gray-600">Nama</label>
                                             <p className="text-sm text-gray-900">{user.name}</p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-600">Email</label>
+                                            <label className="block text-sm font-medium text-gray-600">Alamat Email</label>
                                             <p className="text-sm text-gray-900">{user.email}</p>
                                         </div>
                                         <div>

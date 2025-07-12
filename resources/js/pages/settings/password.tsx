@@ -14,7 +14,7 @@ import { Icons } from '@/utils/formatters';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Password settings',
+        title: 'Pengaturan Kata Sandi',
         href: '/settings/password',
     },
 ];
@@ -55,15 +55,15 @@ export default function Password() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Password settings" />
+            <Head title="Pengaturan Kata Sandi" />
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall title="Update password" description="Ensure your account is using a long, random password to stay secure" />
+                    <HeadingSmall title="Perbarui Kata Sandi" description="Pastikan akun Anda menggunakan kata sandi yang panjang dan acak untuk tetap aman" />
 
                     <form onSubmit={updatePassword} className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="current_password">Current password</Label>
+                            <Label htmlFor="current_password">Kata Sandi Saat Ini</Label>
 
                             <div className="relative">
                                 <Input
@@ -74,7 +74,7 @@ export default function Password() {
                                     type={showCurrentPassword ? "text" : "password"}
                                     className="mt-1 block w-full pr-10"
                                     autoComplete="current-password"
-                                    placeholder="Current password"
+                                    placeholder="Kata sandi saat ini"
                                 />
                                 <button
                                     type="button"
@@ -93,7 +93,7 @@ export default function Password() {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">New password</Label>
+                            <Label htmlFor="password">Kata Sandi Baru</Label>
 
                             <div className="relative">
                                 <Input
@@ -104,7 +104,7 @@ export default function Password() {
                                     type={showNewPassword ? "text" : "password"}
                                     className="mt-1 block w-full pr-10"
                                     autoComplete="new-password"
-                                    placeholder="New password"
+                                    placeholder="Kata sandi baru"
                                 />
                                 <button
                                     type="button"
@@ -123,7 +123,7 @@ export default function Password() {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password_confirmation">Confirm password</Label>
+                            <Label htmlFor="password_confirmation">Konfirmasi Kata Sandi</Label>
 
                             <div className="relative">
                                 <Input
@@ -133,7 +133,7 @@ export default function Password() {
                                     type={showConfirmPassword ? "text" : "password"}
                                     className="mt-1 block w-full pr-10"
                                     autoComplete="new-password"
-                                    placeholder="Confirm password"
+                                    placeholder="Konfirmasi kata sandi"
                                 />
                                 <button
                                     type="button"
@@ -152,7 +152,7 @@ export default function Password() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button disabled={processing}>Save password</Button>
+                            <Button disabled={processing}>Simpan Kata Sandi</Button>
 
                             <Transition
                                 show={recentlySuccessful}
@@ -161,7 +161,7 @@ export default function Password() {
                                 leave="transition ease-in-out"
                                 leaveTo="opacity-0"
                             >
-                                <p className="text-sm text-neutral-600">Saved</p>
+                                <p className="text-sm text-neutral-600">Tersimpan</p>
                             </Transition>
                         </div>
                     </form>

@@ -59,7 +59,7 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Edit User" />
+            <Head title="Edit Pengguna" />
 
             <div className="py-12">
                 <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">

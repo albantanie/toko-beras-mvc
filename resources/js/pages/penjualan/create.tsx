@@ -255,7 +255,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                 setData('pelanggan_id', walkinUser.id.toString());
                 setData('nama_pelanggan', `Pelanggan ${randomLetter}${timestamp} (Walk-in Sales)`);
                 setData('telepon_pelanggan', '000000000000');
-                setData('alamat_pelanggan', 'In-Store Transaction');
+                setData('alamat_pelanggan', 'Transaksi di Toko');
             } else {
                 console.error('Walk-in user not found in pelanggans list');
                 // Fallback: use first pelanggan if walk-in user not found
@@ -267,7 +267,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                     setData('pelanggan_id', pelanggans[0].id.toString());
                     setData('nama_pelanggan', `Pelanggan ${randomLetter}${timestamp} (Walk-in Sales)`);
                     setData('telepon_pelanggan', '000000000000');
-                    setData('alamat_pelanggan', 'In-Store Transaction');
+                    setData('alamat_pelanggan', 'Transaksi di Toko');
                 }
             }
         }

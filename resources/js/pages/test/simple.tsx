@@ -9,12 +9,12 @@ interface Props {
 export default function SimpleTest({ message, timestamp }: Props) {
     return (
         <div>
-            <Head title="Simple Test" />
+            <Head title="Tes Sederhana" />
             <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-                <h1>Simple Inertia Test</h1>
-                <p><strong>Message:</strong> {message}</p>
-                <p><strong>Timestamp:</strong> {timestamp}</p>
-                <p>If you can see this, Inertia.js is working correctly!</p>
+                <h1>Tes Inertia Sederhana</h1>
+                <p><strong>Pesan:</strong> {message}</p>
+                <p><strong>Waktu:</strong> {timestamp}</p>
+                <p>Jika Anda dapat melihat ini, Inertia.js bekerja dengan benar!</p>
             </div>
         </div>
     );

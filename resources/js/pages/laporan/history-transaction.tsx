@@ -430,7 +430,7 @@ export default function HistoryTransactionReport({
                             <DataTable
                                 data={penjualans}
                                 columns={columns}
-                                searchPlaceholder="Search by transaction number, customer, or cashier..."
+                                searchPlaceholder="Cari berdasarkan nomor transaksi, pelanggan, atau kasir..."
                                 filters={tableFilters}
                                 routeName="owner.laporan.history-transaction"
                                 currentSearch={filters?.search}

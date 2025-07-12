@@ -216,7 +216,7 @@ export default function PenjualanHistory({ auth, penjualans, filters = {} }: Pen
                     <DataTable
                         data={penjualans}
                         columns={columns}
-                        searchPlaceholder="Search by transaction number, customer, or cashier..."
+                        searchPlaceholder="Cari berdasarkan nomor transaksi, pelanggan, atau kasir..."
                         filters={tableFilters}
                         actions={actions}
                         routeName="penjualan.history"

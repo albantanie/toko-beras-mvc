@@ -15,7 +15,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/barang',
     },
     {
-        title: 'Stock Movements',
+        title: 'Pergerakan Stok',
         href: '#',
     },
 ];
@@ -124,7 +124,7 @@ export default function StockMovements({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Stock Movements - ${barang.nama}`} />
+            <Head title={`Pergerakan Stok - ${barang.nama}`} />
 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -140,7 +140,7 @@ export default function StockMovements({
                                         </Button>
                                     </Link>
                                     <div>
-                                        <h3 className="text-lg font-medium">Stock Movements</h3>
+                                        <h3 className="text-lg font-medium">Pergerakan Stok</h3>
                                         <p className="text-gray-600">{barang.nama} - {barang.kategori}</p>
                                     </div>
                                 </div>
@@ -260,9 +260,9 @@ export default function StockMovements({
                     {/* Movements Table */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Riwayat Stock Movements</CardTitle>
+                            <CardTitle>Riwayat Pergerakan Stok</CardTitle>
                             <CardDescription>
-                                Total {movements.total} movements ditemukan
+                                Total {movements.total} pergerakan ditemukan
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

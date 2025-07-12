@@ -99,11 +99,11 @@ export default function MonthlyGenerate({ user_role, available_months, generated
         }
 
         const result = await Swal.fire({
-            title: 'Generate Laporan Bulanan',
-            text: `Apakah Anda yakin ingin generate ${reportTitle} untuk ${available_months.find(m => m.value === selectedMonth)?.label}?`,
+            title: 'Buat Laporan Bulanan',
+            text: `Apakah Anda yakin ingin membuat ${reportTitle} untuk ${available_months.find(m => m.value === selectedMonth)?.label}?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Ya, Generate!',
+            confirmButtonText: 'Ya, Buat!',
             cancelButtonText: 'Batal'
         });
 
@@ -120,7 +120,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
             if (response.data.success) {
                 Swal.fire({
                     title: 'Berhasil!',
-                    text: 'Laporan bulanan berhasil di-generate dan dikirim ke owner untuk approval',
+                    text: 'Laporan bulanan berhasil dibuat dan dikirim ke owner untuk persetujuan',
                     icon: 'success'
                 }).then(() => {
                     // Reset form and reload page to get updated data
@@ -131,14 +131,14 @@ export default function MonthlyGenerate({ user_role, available_months, generated
             } else {
                 Swal.fire({
                     title: 'Gagal!',
-                    text: response.data.error || 'Terjadi kesalahan saat generate laporan',
+                    text: response.data.error || 'Terjadi kesalahan saat membuat laporan',
                     icon: 'error'
                 });
             }
         } catch (error: any) {
             console.error('Generate error:', error);
 
-            let errorMessage = 'Terjadi kesalahan saat generate laporan';
+            let errorMessage = 'Terjadi kesalahan saat membuat laporan';
             if (error.response?.data?.error) {
                 errorMessage = error.response.data.error;
             } else if (error.response?.data?.message) {
@@ -168,7 +168,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                         <h1 className="text-2xl font-bold">{reportTitle}</h1>
                     </div>
                     <p className="text-gray-600">
-                        Generate laporan bulanan dari data laporan harian untuk dikirim ke owner untuk approval
+                        Buat laporan bulanan dari data laporan harian untuk dikirim ke owner untuk persetujuan
                     </p>
                 </div>
 
@@ -229,11 +229,11 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                                 <FileText className="w-4 h-4 mr-2" />
                                 Preview
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={handleGenerate}
                                 disabled={!selectedMonth || isGenerating || available_months.length === 0}
                             >
-                                {isGenerating ? 'Generating...' : 'Generate Laporan'}
+                                {isGenerating ? 'Membuat...' : 'Buat Laporan'}
                             </Button>
                         </div>
                     </CardContent>
@@ -326,7 +326,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                     </Card>
                 )}
 
-                {/* Status Laporan yang Sudah Di-generate */}
+                {/* Status Laporan yang Sudah Dibuat */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -338,7 +338,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                         {generated_reports.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>Belum ada laporan bulanan yang di-generate</p>
+                                <p>Belum ada laporan bulanan yang dibuat</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -358,7 +358,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                                                 <span className="font-medium">Periode:</span> {report.month_label}
                                             </div>
                                             <div>
-                                                <span className="font-medium">Di-generate:</span> {report.generated_at}
+                                                <span className="font-medium">Dibuat:</span> {report.generated_at}
                                             </div>
                                             {report.approved_at && (
                                                 <div>

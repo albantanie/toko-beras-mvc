@@ -67,7 +67,7 @@ export default function Login({ status }: LoginProps) {
                         <form className="space-y-6" onSubmit={submit}>
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                    Email
+                                    Alamat Email
                                 </label>
                                 <div className="mt-1 relative">
                                     <input
@@ -91,7 +91,7 @@ export default function Login({ status }: LoginProps) {
 
                             <div>
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                    Password
+                                    Kata Sandi
                                 </label>
                                 <div className="mt-1 relative">
                                     <input

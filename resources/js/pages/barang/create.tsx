@@ -106,7 +106,7 @@ export default function CreateBarang({ auth }: PageProps) {
     return (
         <>
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Create Product" />
+                <Head title="Tambah Produk" />
 
             <div className="py-12">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
@@ -417,7 +417,7 @@ export default function CreateBarang({ auth }: PageProps) {
                                                 <div className="mt-2">
                                                     <img
                                                         src={previewImage}
-                                                        alt="Pratinjau"
+                                                        alt="Pratinjau Gambar"
                                                         className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                                                     />
                                                     {data.gambar && (

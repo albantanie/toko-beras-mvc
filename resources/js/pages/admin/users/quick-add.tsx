@@ -80,7 +80,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Quick Add Staff" />
+            <Head title="Tambah Staff Cepat" />
 
             <div className="py-12">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
@@ -209,7 +209,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
                                             onChange={(e) => setData('password', e.target.value)}
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required
-                                            placeholder="Enter password"
+                                            placeholder="Masukkan kata sandi"
                                         />
                                         {errors.password && (
                                             <p className="mt-1 text-sm text-red-600">{errors.password}</p>
@@ -227,7 +227,7 @@ export default function QuickAddUser({ auth, roles }: QuickAddUserProps) {
                                             onChange={(e) => setData('password_confirmation', e.target.value)}
                                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required
-                                            placeholder="Confirm password"
+                                            placeholder="Konfirmasi kata sandi"
                                         />
                                         {errors.password_confirmation && (
                                             <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>

@@ -486,7 +486,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                 <div className="mt-2">
                                                     <img
                                                         src={previewImage}
-                                                        alt="New Preview"
+                                                        alt="Pratinjau Baru"
                                                         className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                                                     />
                                                     <p className="mt-1 text-xs text-gray-500">

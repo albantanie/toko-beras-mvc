@@ -398,7 +398,7 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                     <DataTable
                         data={penjualans}
                         columns={columns}
-                        searchPlaceholder="Search by transaction number or customer..."
+                        searchPlaceholder="Cari berdasarkan nomor transaksi atau pelanggan..."
                         filters={tableFilters}
                         routeName="penjualan.online"
                         currentSearch={filters?.search}

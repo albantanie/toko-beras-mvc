@@ -279,7 +279,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                         <div className="relative">
                                             <input
                                                 type="text"
-                                                placeholder="Search products (name or code)..."
+                                                placeholder="Cari produk (nama atau kode)..."
                                                 value={searchProduct}
                                                 onChange={(e) => setSearchProduct(e.target.value)}
                                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
@@ -613,7 +613,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                                             onChange={(e) => setData('catatan', e.target.value)}
                                                             rows={3}
                                                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                            placeholder="Additional notes for this transaction..."
+                                                            placeholder="Catatan tambahan untuk transaksi ini..."
                                                         />
                                                     </div>
                                                 </div>

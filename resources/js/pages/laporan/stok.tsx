@@ -390,7 +390,7 @@ export default function LaporanStok({ auth, barangs, summary, filters = {}, user
                     <DataTable
                         data={barangs}
                         columns={columns}
-                        searchPlaceholder="Search by product name, code, or category..."
+                        searchPlaceholder="Cari berdasarkan nama produk, kode, atau kategori..."
                         filters={tableFilters}
                         routeName="owner.laporan.stok"
                         currentSearch={filters?.search}
