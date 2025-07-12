@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 import { Icons } from '@/utils/formatters';
 import { SweetAlert } from '@/utils/sweetalert';
@@ -47,6 +47,17 @@ export default function Register() {
             <Head title="Daftar - Toko Beras" />
 
             <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                {/* Back Button */}
+                <div className="absolute top-4 left-4">
+                    <button
+                        onClick={() => router.visit('/')}
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                    >
+                        <Icons.chevronLeft className="h-4 w-4 mr-2" />
+                        Kembali
+                    </button>
+                </div>
+
                 {/* Header */}
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     <Link href="/" className="flex justify-center items-center space-x-2">

@@ -25,7 +25,6 @@ class KaryawanUserSeeder extends Seeder
                 'name' => 'Karyawan Toko Beras',
                 'username' => 'karyawan',
                 'password' => Hash::make('password'),
-                'email_verified_at' => now(),
                 'phone_number' => '081234567890',
                 'address' => 'Alamat Karyawan',
             ]

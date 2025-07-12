@@ -86,13 +86,6 @@ export default function OwnerDashboard({
     pending_count = 0,
     approved_count = 0
 }: Props) {
-    // Debug log
-    console.log('Dashboard Props:', {
-        pending_count,
-        approved_count,
-        pending_reports_length: pending_reports.length,
-        recent_reports_length: recent_reports.length
-    });
     const handleApproveReport = (reportId: number) => {
         router.post(`/owner/reports/${reportId}/approve`, {
             action: 'approve',

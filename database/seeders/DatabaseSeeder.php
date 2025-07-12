@@ -30,7 +30,6 @@ class DatabaseSeeder extends Seeder
                 'phone_number' => '0811111111',
                 'address' => 'Jl. Admin No. 1',
                 'password' => Hash::make('admin123'),
-                'email_verified_at' => now(),
             ]
         );
         $adminRole = Role::where('name', Role::ADMIN)->first();
@@ -47,7 +46,6 @@ class DatabaseSeeder extends Seeder
                 'phone_number' => '0813333333',
                 'address' => 'Jl. Owner No. 3',
                 'password' => Hash::make('owner123'),
-                'email_verified_at' => now(),
             ]
         );
         $ownerRole = Role::where('name', Role::OWNER)->first();
@@ -64,7 +62,6 @@ class DatabaseSeeder extends Seeder
                 'phone_number' => '0814444444',
                 'address' => 'Jl. Kasir No. 4',
                 'password' => Hash::make('kasir123'),
-                'email_verified_at' => now(),
             ]
         );
         $kasirRole = Role::where('name', Role::KASIR)->first();
@@ -81,7 +78,6 @@ class DatabaseSeeder extends Seeder
                 'phone_number' => '0819999999',
                 'address' => 'Jl. Karyawan No. 9',
                 'password' => Hash::make('karyawan123'),
-                'email_verified_at' => now(),
             ]
         );
         $karyawanRole = Role::where('name', Role::KARYAWAN)->first();
@@ -144,7 +140,6 @@ class DatabaseSeeder extends Seeder
                     'phone_number' => $u['phone_number'],
                     'address' => $u['address'],
                     'password' => $u['password'],
-                    'email_verified_at' => now(),
                 ]
             );
             if ($pelangganRole && !$user->hasRole(Role::PELANGGAN)) {
@@ -161,7 +156,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DailyReportsSeeder::class);
 
         // Seed monthly report data (transactions, stock movements, daily reports)
-        $this->call(MonthlyReportDataSeeder::class);
+        // $this->call(MonthlyReportDataSeeder::class);
 
         // Note: ReportSubmissionSeeder removed as ReportSubmission model no longer exists
         // The old report submission system has been replaced with a simpler PDF report system

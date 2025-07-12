@@ -53,6 +53,14 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // Detail produk - menampilkan informasi lengkap produk beras
 Route::get('/product/{barang}', [HomeController::class, 'show'])->name('product.show');
 
+// Test route for images - untuk testing product images
+Route::get('/test-images', function () {
+    $barangs = \App\Models\Barang::all();
+    return Inertia::render('test-images', [
+        'barangs' => $barangs
+    ]);
+})->name('test.images');
+
 // System Validation Route - untuk testing CRUD systems
 Route::get('/system/validate', [\App\Http\Controllers\SystemValidationController::class, 'validateAllSystems'])
     ->middleware('auth')
@@ -100,13 +108,12 @@ Route::prefix('cart')->name('cart.')->group(function () {
 
 /**
  * ===================================================================
- * AUTHENTICATED ROUTES - MEMERLUKAN LOGIN DAN VERIFIKASI EMAIL
+ * AUTHENTICATED ROUTES - MEMERLUKAN LOGIN
  * ===================================================================
  * Semua routes di dalam group ini memerlukan:
  * - Authentication (user harus login)
- * - Email verification (email harus sudah diverifikasi)
  */
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     /**
      * DEFAULT DASHBOARD ROUTER
@@ -282,6 +289,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             // Financial Reports
             Route::get('reports', [App\Http\Controllers\FinancialController::class, 'reports'])->name('reports');
+
+            // Export PDF Routes
+            Route::get('cash-flow/export-pdf', [App\Http\Controllers\FinancialController::class, 'exportCashFlowPdf'])->name('cash-flow.export-pdf');
+            Route::get('reports/export-pdf', [App\Http\Controllers\FinancialController::class, 'exportFinancialReportPdf'])->name('reports.export-pdf');
         });
     });
 
@@ -346,6 +357,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
      * - Karyawan: Full CRUD access tapi tidak bisa lihat harga beli/profit
      */
 
+    // Routes untuk Owner dan Karyawan - Create/Delete access (HARUS SEBELUM routes dengan parameter)
+    Route::middleware(['role:' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
+        Route::get('barang/create', [BarangController::class, 'create'])->name('barang.create');
+        Route::post('barang', [BarangController::class, 'store'])->name('barang.store');
+        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
+    });
+
     // Routes untuk semua role - View access
     Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
         // View barang - semua role bisa lihat
@@ -359,13 +377,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->name('barang.edit');
         Route::put('barang/{barang}', [BarangController::class, 'update'])->name('barang.update');
         Route::post('barang/{barang}/update', [BarangController::class, 'update'])->name('barang.update.post');
-    });
-
-    // Routes untuk Owner dan Karyawan - Create/Delete access
-    Route::middleware(['role:' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
-        Route::get('barang/create', [BarangController::class, 'create'])->name('barang.create');
-        Route::post('barang', [BarangController::class, 'store'])->name('barang.store');
-        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
     });
 
     // KASIR ONLY - Stock Management (Inventory Control)
@@ -708,4 +719,4 @@ Route::post('/debug/barang/{barang}/update', function (Request $request, \App\Mo
         'message' => 'Debug data logged',
         'data' => $request->all()
     ]);
-})->middleware(['auth', 'verified']);
+})->middleware(['auth']);

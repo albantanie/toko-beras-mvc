@@ -36,16 +36,19 @@
             color: #333;
         }
         .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
+            width: 100%;
+            margin-bottom: 15px;
         }
         .summary-item {
+            display: inline-block;
+            width: 23%;
             text-align: center;
             padding: 10px;
             background-color: white;
             border-radius: 5px;
             border: 1px solid #ddd;
+            margin-right: 1%;
+            vertical-align: top;
         }
         .summary-item h4 {
             margin: 0 0 5px 0;
@@ -160,7 +163,7 @@
     
     <!-- Tabel Stok Terkini -->
     <h3>Status Stok Terkini</h3>
-    @if($barangs->count() > 0)
+    @if(isset($barangs) && $barangs->count() > 0)
         <table>
             <thead>
                 <tr>
@@ -170,6 +173,7 @@
                     <th>Kategori</th>
                     <th>Stok</th>
                     <th>Harga Jual</th>
+                    <th>Nilai Stok</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -181,12 +185,12 @@
                         <td>{{ $b->nama }}</td>
                         <td>{{ $b->kategori }}</td>
                         <td class="text-center">{{ number_format($b->stok) }}</td>
-                        <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
-                        <td class="text-right">Rp {{ number_format($b->stok * $b->harga_jual) }}</td>
+                        <td class="text-right">Rp {{ number_format($b->harga_jual ?? 0) }}</td>
+                        <td class="text-right">Rp {{ number_format($b->stok * ($b->harga_jual ?? 0)) }}</td>
                         <td class="text-center">
                             @if($b->stok == 0)
                                 <span style="color: #dc3545; font-weight: bold;">HABIS</span>
-                            @elseif($b->stok <= 10)
+                            @elseif($b->stok <= ($b->stok_minimum ?? 10))
                                 <span style="color: #ffc107; font-weight: bold;">MENIPIS</span>
                             @else
                                 <span style="color: #28a745;">NORMAL</span>
@@ -197,7 +201,7 @@
             </tbody>
         </table>
 
-        @if($lowStockItems > 0)
+        @if(isset($lowStockItems) && $lowStockItems > 0)
             <div style="margin-top: 30px;">
                 <h4>Barang dengan Stok Menipis (≤10):</h4>
                 <table>
@@ -207,7 +211,7 @@
                             <th>Kode</th>
                             <th>Nama Barang</th>
                             <th>Stok</th>
-                            @if($isAdminOrOwner)
+                            @if(isset($isAdminOrOwner) && $isAdminOrOwner)
                                 <th>Harga Beli</th>
                             @endif
                             <th>Harga Jual</th>
@@ -216,17 +220,17 @@
                     </thead>
                     <tbody>
                         @php $lowStockIndex = 1; @endphp
-                        @foreach($barang->where('stok', '<=', 10) as $b)
+                        @foreach($barangs->where('stok', '<=', 10) as $b)
                             <tr class="low-stock">
                                 <td class="text-center">{{ $lowStockIndex++ }}</td>
-                                <td>{{ $b->kode }}</td>
+                                <td>{{ $b->kode_barang }}</td>
                                 <td>{{ $b->nama }}</td>
                                 <td class="text-center">{{ number_format($b->stok) }}</td>
-                                @if($isAdminOrOwner)
-                                    <td class="text-right">Rp {{ number_format($b->harga_beli) }}</td>
+                                @if(isset($isAdminOrOwner) && $isAdminOrOwner)
+                                    <td class="text-right">Rp {{ number_format($b->harga_beli ?? 0) }}</td>
                                 @endif
-                                <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
-                                <td class="text-right">Rp {{ number_format($b->stok * $b->harga_jual) }}</td>
+                                <td class="text-right">Rp {{ number_format($b->harga_jual ?? 0) }}</td>
+                                <td class="text-right">Rp {{ number_format($b->stok * ($b->harga_jual ?? 0)) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -234,7 +238,7 @@
             </div>
         @endif
 
-        @if($outOfStockItems > 0)
+        @if(isset($outOfStockItems) && $outOfStockItems > 0)
             <div style="margin-top: 30px;">
                 <h4>Barang Habis Stok:</h4>
                 <table>
@@ -244,7 +248,7 @@
                             <th>Kode</th>
                             <th>Nama Barang</th>
                             <th>Kategori</th>
-                            @if($isAdminOrOwner)
+                            @if(isset($isAdminOrOwner) && $isAdminOrOwner)
                                 <th>Harga Beli</th>
                             @endif
                             <th>Harga Jual</th>
@@ -252,16 +256,16 @@
                     </thead>
                     <tbody>
                         @php $outOfStockIndex = 1; @endphp
-                        @foreach($barang->where('stok', 0) as $b)
+                        @foreach($barangs->where('stok', 0) as $b)
                             <tr class="out-of-stock">
                                 <td class="text-center">{{ $outOfStockIndex++ }}</td>
-                                <td>{{ $b->kode }}</td>
+                                <td>{{ $b->kode_barang }}</td>
                                 <td>{{ $b->nama }}</td>
                                 <td>{{ $b->kategori }}</td>
-                                @if($isAdminOrOwner)
-                                    <td class="text-right">Rp {{ number_format($b->harga_beli) }}</td>
+                                @if(isset($isAdminOrOwner) && $isAdminOrOwner)
+                                    <td class="text-right">Rp {{ number_format($b->harga_beli ?? 0) }}</td>
                                 @endif
-                                <td class="text-right">Rp {{ number_format($b->harga_jual) }}</td>
+                                <td class="text-right">Rp {{ number_format($b->harga_jual ?? 0) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

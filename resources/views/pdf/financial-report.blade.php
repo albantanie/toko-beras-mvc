@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Report</title>
+    <title>Laporan Keuangan</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,10 +44,45 @@
             border-radius: 5px;
             background-color: #f9f9f9;
         }
-        .summary-card h3 {
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h4 {
+            background: #f0f0f0;
+            padding: 8px;
             margin: 0 0 10px 0;
-            color: #333;
             font-size: 14px;
+            font-weight: bold;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .table .total-row {
+            background: #f9f9f9;
+            font-weight: bold;
+        }
+        .table .profit-row {
+            background: #e8f5e8;
+            font-weight: bold;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .report-content h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+        }
         }
         .summary-card .value {
             font-size: 18px;
@@ -118,49 +153,123 @@
     </div>
 
     <div class="period-info">
-        <strong>Report Period: {{ \Carbon\Carbon::parse($periodFrom)->format('d M Y') }} - {{ \Carbon\Carbon::parse($periodTo)->format('d M Y') }}</strong>
+        <strong>Report Period: {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</strong>
     </div>
 
-    <div class="summary">
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h3>Total Revenue</h3>
-                <div class="value">Rp {{ number_format($reportData['total_revenue'], 0, ',', '.') }}</div>
-            </div>
-            <div class="summary-card">
-                <h3>Total Cost</h3>
-                <div class="value">Rp {{ number_format($reportData['total_cost'], 0, ',', '.') }}</div>
-            </div>
-            <div class="summary-card">
-                <h3>Net Profit</h3>
-                <div class="value {{ $reportData['profit'] >= 0 ? 'profit-positive' : 'profit-negative' }}">
-                    Rp {{ number_format($reportData['profit'], 0, ',', '.') }}
+    <!-- Report Content -->
+    <div class="report-content">
+        @if($type === 'profit_loss')
+            <!-- Profit & Loss Report -->
+            <h3>LAPORAN LABA RUGI</h3>
+
+            @if(isset($reportData['revenue']))
+                <div class="section">
+                    <h4>PENDAPATAN</h4>
+                    <table class="table">
+                        @foreach($reportData['revenue'] as $key => $value)
+                            @if($key !== 'total' && is_numeric($value))
+                            <tr>
+                                <td>{{ ucfirst(str_replace('_', ' ', $key)) }}</td>
+                                <td class="text-right">Rp {{ number_format($value, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                        <tr class="total-row">
+                            <td><strong>Total Pendapatan</strong></td>
+                            <td class="text-right"><strong>Rp {{ number_format($reportData['revenue']['total'] ?? 0, 0, ',', '.') }}</strong></td>
+                        </tr>
+                    </table>
                 </div>
-            </div>
-            <div class="summary-card">
-                <h3>Total Transactions</h3>
-                <div class="value">{{ number_format($reportData['total_transactions']) }}</div>
-            </div>
-        </div>
-        
-        <div class="summary-card">
-            <h3>Average Transaction Value</h3>
-            <div class="value">Rp {{ number_format($reportData['average_transaction'], 0, ',', '.') }}</div>
-        </div>
+            @endif
+
+            @if(isset($reportData['expenses']))
+                <div class="section">
+                    <h4>BEBAN</h4>
+                    <table class="table">
+                        @foreach($reportData['expenses'] as $key => $value)
+                            @if($key !== 'total' && is_numeric($value))
+                            <tr>
+                                <td>{{ ucfirst(str_replace('_', ' ', $key)) }}</td>
+                                <td class="text-right">Rp {{ number_format($value, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                        <tr class="total-row">
+                            <td><strong>Total Beban</strong></td>
+                            <td class="text-right"><strong>Rp {{ number_format($reportData['expenses']['total'] ?? 0, 0, ',', '.') }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            @endif
+
+            @if(isset($reportData['profit']))
+                <div class="section">
+                    <h4>LABA RUGI</h4>
+                    <table class="table">
+                        <tr class="profit-row">
+                            <td><strong>LABA BERSIH</strong></td>
+                            <td class="text-right"><strong>Rp {{ number_format($reportData['profit']['net_profit'] ?? 0, 0, ',', '.') }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            @endif
+
+        @elseif($type === 'balance_sheet')
+            <!-- Balance Sheet -->
+            <h3>NERACA</h3>
+            <p>Laporan Neraca untuk periode {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</p>
+
+        @elseif($type === 'cash_flow')
+            <!-- Cash Flow -->
+            <h3>LAPORAN ARUS KAS</h3>
+            <p>Laporan Arus Kas untuk periode {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</p>
+
+        @elseif($type === 'budget_variance')
+            <!-- Budget Variance -->
+            <h3>ANALISIS VARIANS ANGGARAN</h3>
+            <p>Analisis Varians Anggaran untuk periode {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</p>
+
+        @else
+            <!-- Default Report -->
+            <h3>LAPORAN KEUANGAN</h3>
+            <p>Laporan keuangan untuk periode {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</p>
+
+            @if(isset($reportData) && is_array($reportData))
+                <div class="section">
+                    <h4>DATA LAPORAN</h4>
+                    <table class="table">
+                        @foreach($reportData as $key => $value)
+                            @if(is_numeric($value))
+                            <tr>
+                                <td>{{ ucfirst(str_replace('_', ' ', $key)) }}</td>
+                                <td class="text-right">
+                                    @if(strpos($key, 'total') !== false || strpos($key, 'amount') !== false)
+                                        Rp {{ number_format($value, 0, ',', '.') }}
+                                    @else
+                                        {{ number_format($value) }}
+                                    @endif
+                                </td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    </table>
+                </div>
+            @endif
+        @endif
     </div>
 
-    @if($transactions->count() > 0)
+    @if(isset($transactions) && $transactions->count() > 0)
     <div class="transactions-section">
-        <h3>Transaction Details</h3>
+        <h3>Detail Transaksi</h3>
         <table class="transactions-table">
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Transaction No</th>
-                    <th>Customer</th>
-                    <th>Cashier</th>
-                    <th class="text-right">Amount</th>
-                    <th>Payment Method</th>
+                    <th>Tanggal</th>
+                    <th>No Transaksi</th>
+                    <th>Pelanggan</th>
+                    <th>Kasir</th>
+                    <th class="text-right">Jumlah</th>
+                    <th>Metode Pembayaran</th>
                 </tr>
             </thead>
             <tbody>
@@ -180,8 +289,8 @@
     @endif
 
     <div class="footer">
-        <p>Generated on {{ $generatedAt->format('d M Y H:i:s') }}</p>
-        <p>This is a computer-generated report. No signature required.</p>
+        <p>Dibuat pada {{ isset($generatedAt) ? $generatedAt->format('d M Y H:i:s') : now()->format('d M Y H:i:s') }}</p>
+        <p>Laporan ini dibuat secara otomatis oleh sistem. Tidak memerlukan tanda tangan.</p>
     </div>
 </body>
 </html>

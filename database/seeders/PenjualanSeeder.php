@@ -43,8 +43,7 @@ class PenjualanSeeder extends Seeder
                 'username' => 'kasiruser',
                 'phone_number' => '0812345678',
                 'address' => 'Jl. Kasir No. 1',
-                'password' => bcrypt('password'),
-                'email_verified_at' => now()
+                'password' => bcrypt('password')
             ]);
             $kasirRole = \App\Models\Role::where('name', 'kasir')->first();
             if ($kasirRole) {
@@ -83,8 +82,8 @@ class PenjualanSeeder extends Seeder
                 'tanggal_transaksi' => Carbon::now()->subDays(5),
                 'catatan' => 'Pembelian bulanan untuk restoran',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->id ?? $berasProducts[0]->id, 'jumlah' => 10, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->harga_jual ?? $berasProducts[0]->harga_jual],
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%IR64 Medium%')->first()?->id ?? $berasProducts[1]->id, 'jumlah' => 15, 'harga_satuan' => $berasProducts->where('nama', 'like', '%IR64 Medium%')->first()?->harga_jual ?? $berasProducts[1]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 10, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%IR64 Medium%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 15, 'harga_satuan' => $berasProducts->where('nama', 'like', '%IR64 Medium%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Walk-in customer - Family buying rice for home
@@ -100,7 +99,7 @@ class PenjualanSeeder extends Seeder
                 'tanggal_transaksi' => Carbon::now()->subDays(4),
                 'catatan' => 'Pembelian untuk kebutuhan rumah tangga',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Ciherang Medium%')->first()?->id ?? $berasProducts[2]->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Ciherang Medium%')->first()?->harga_jual ?? $berasProducts[2]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Ciherang Medium%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Ciherang Medium%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Online order - Premium rice for special occasion
@@ -117,8 +116,8 @@ class PenjualanSeeder extends Seeder
                 'catatan' => 'Untuk acara syukuran keluarga',
                 'pickup_method' => 'self',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Pandanwangi%')->first()?->id ?? $berasProducts[3]->id, 'jumlah' => 3, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Pandanwangi%')->first()?->harga_jual ?? $berasProducts[3]->harga_jual],
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Ketan Putih%')->first()?->id ?? $berasProducts[4]->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Ketan Putih%')->first()?->harga_jual ?? $berasProducts[4]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Pandanwangi%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 3, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Pandanwangi%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Ketan Putih%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Ketan Putih%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Catering business - Large order for events
@@ -134,8 +133,8 @@ class PenjualanSeeder extends Seeder
                 'tanggal_transaksi' => Carbon::now()->subDays(2),
                 'catatan' => 'Pesanan untuk katering acara pernikahan',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Setra Ramos%')->first()?->id ?? $berasProducts[5]->id, 'jumlah' => 20, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Setra Ramos%')->first()?->harga_jual ?? $berasProducts[5]->harga_jual],
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%C4 Ekonomis%')->first()?->id ?? $berasProducts[6]->id, 'jumlah' => 10, 'harga_satuan' => $berasProducts->where('nama', 'like', '%C4 Ekonomis%')->first()?->harga_jual ?? $berasProducts[6]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Setra Ramos%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 20, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Setra Ramos%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%C4 Ekonomis%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 10, 'harga_satuan' => $berasProducts->where('nama', 'like', '%C4 Ekonomis%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Health-conscious customer - Organic rice order
@@ -154,8 +153,8 @@ class PenjualanSeeder extends Seeder
                 'pickup_person_name' => 'Driver Gojek',
                 'pickup_person_phone' => '081999888777',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Merah Organik%')->first()?->id ?? $berasProducts[7]->id, 'jumlah' => 3, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Merah Organik%')->first()?->harga_jual ?? $berasProducts[7]->harga_jual],
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Coklat Organik%')->first()?->id ?? $berasProducts[8]->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Coklat Organik%')->first()?->harga_jual ?? $berasProducts[8]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Merah Organik%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 3, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Merah Organik%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Coklat Organik%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Coklat Organik%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Small warung owner - Regular customer
@@ -171,7 +170,7 @@ class PenjualanSeeder extends Seeder
                 'tanggal_transaksi' => Carbon::now(),
                 'catatan' => 'Pelanggan tetap - warung nasi',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Putih Lokal%')->first()?->id ?? $berasProducts[9]->id, 'jumlah' => 5, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Putih Lokal%')->first()?->harga_jual ?? $berasProducts[9]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Putih Lokal%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 5, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Putih Lokal%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Online orders with different statuses for testing
@@ -189,8 +188,8 @@ class PenjualanSeeder extends Seeder
                 'catatan' => 'Menunggu konfirmasi pembayaran transfer',
                 'pickup_method' => 'self',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Rojolele%')->first()?->id ?? $berasProducts[0]->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Rojolele%')->first()?->harga_jual ?? $berasProducts[0]->harga_jual],
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Ketan Hitam%')->first()?->id ?? $berasProducts[1]->id, 'jumlah' => 1, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Ketan Hitam%')->first()?->harga_jual ?? $berasProducts[1]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Rojolele%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Rojolele%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Ketan Hitam%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 1, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Ketan Hitam%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Paid but not ready - Processing order
@@ -209,7 +208,7 @@ class PenjualanSeeder extends Seeder
                 'pickup_person_name' => 'Driver Grab',
                 'pickup_person_phone' => '081888777666',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Basmati%')->first()?->id ?? $berasProducts[2]->id, 'jumlah' => 4, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Basmati%')->first()?->harga_jual ?? $berasProducts[2]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Basmati%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 4, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Basmati%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
             // Ready for pickup - Order completed and ready
@@ -229,8 +228,8 @@ class PenjualanSeeder extends Seeder
                 'pickup_person_phone' => '081777666555',
                 'receipt_code' => 'RC' . date('Ymd') . '0001',
                 'items' => [
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Mentik Wangi%')->first()?->id ?? $berasProducts[3]->id, 'jumlah' => 1, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Mentik Wangi%')->first()?->harga_jual ?? $berasProducts[3]->harga_jual],
-                    ['barang_id' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->id ?? $berasProducts[4]->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->harga_jual ?? $berasProducts[4]->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Mentik Wangi%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 1, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Mentik Wangi%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
+                    ['barang_id' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->id ?? $berasProducts->first()->id, 'jumlah' => 2, 'harga_satuan' => $berasProducts->where('nama', 'like', '%Premium Jasmine%')->first()?->harga_jual ?? $berasProducts->first()->harga_jual],
                 ]
             ],
         ];

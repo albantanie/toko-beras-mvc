@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
 import { BreadcrumbItem } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
-import { formatCurrency, getStockStatus, StatusBadge, ActionButtons, ProductImage, Icons } from '@/utils/formatters';
+import { formatCurrency, getStockStatus, StatusBadge, ActionButtons, ProductImage, Icons, getProductUnit } from '@/utils/formatters';
 import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
 import { Link } from '@inertiajs/react';
 
@@ -132,10 +132,10 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
             render: (value, row) => (
                 <div>
                     <div className="text-sm text-gray-900">
-                        {value} {row.satuan}
+                        {value} {getProductUnit(row.kategori)}
                     </div>
                     <div className="text-xs text-gray-500">
-                        Min: {row.stok_minimum} | {row.berat_per_unit}kg per {row.satuan}
+                        Min: {row.stok_minimum} | {row.berat_per_unit}kg per {getProductUnit(row.kategori)}
                     </div>
                 </div>
             ),

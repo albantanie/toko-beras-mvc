@@ -113,7 +113,6 @@ class UserController extends Controller
                 'address' => $request->address,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'email_verified_at' => now(),
             ]);
 
             // Set user role (hanya satu role)

@@ -1,6 +1,6 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps, Barang } from '@/types';
-import { formatCurrency, ProductImage, Icons } from '@/utils/formatters';
+import { formatCurrency, ProductImage, Icons, getProductUnit } from '@/utils/formatters';
 import { useState } from 'react';
 import Header from '@/components/Header';
 
@@ -323,14 +323,11 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                     <span className="text-lg font-bold text-green-600">
                                                         {formatCurrency(barang.harga_jual)}
                                                     </span>
-                                                    <span className="text-xs text-gray-500 ml-1">
-                                                        /{barang.satuan}
-                                                    </span>
                                                 </div>
 
                                                 <div className="mb-3">
                                                     <span className="text-xs text-gray-600">
-                                                        Stok: {barang.stok} {barang.satuan}
+                                                        Stok: {barang.stok} {getProductUnit(barang.kategori)}
                                                     </span>
                                                 </div>
 

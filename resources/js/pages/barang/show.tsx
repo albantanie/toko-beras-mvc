@@ -74,6 +74,14 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
         }).format(amount);
     };
 
+    const getProductUnit = (kategori: string): string => {
+        const kategoriLower = kategori.toLowerCase();
+        if (kategoriLower.includes('plastik') || kategoriLower.includes('kemasan') || kategoriLower.includes('karung')) {
+            return 'pcs';
+        }
+        return 'kg'; // Default untuk beras
+    };
+
     const getStockStatus = () => {
         if (barang.stok === 0) return { text: 'Out of Stock', color: 'bg-red-100 text-red-800' };
         if (barang.stok <= barang.stok_minimum) return { text: 'Low Stock', color: 'bg-yellow-100 text-yellow-800' };
@@ -168,11 +176,11 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Unit</label>
-                                                <p className="text-sm text-gray-900">{barang.satuan}</p>
+                                                <p className="text-sm text-gray-900">{getProductUnit(barang.kategori)}</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Weight per Unit</label>
-                                                <p className="text-sm text-gray-900">{barang.berat_per_unit}kg per {barang.satuan}</p>
+                                                <p className="text-sm text-gray-900">{barang.berat_per_unit}kg per {getProductUnit(barang.kategori)}</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Status</label>
@@ -223,12 +231,12 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Current Stock</label>
-                                                <p className="text-2xl font-bold text-gray-900">{barang.stok} {barang.satuan}</p>
+                                                <p className="text-2xl font-bold text-gray-900">{barang.stok} {getProductUnit(barang.kategori)}</p>
                                                 <p className="text-sm text-gray-500">({(barang.stok * barang.berat_per_unit).toFixed(2)}kg total)</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Minimum Stock</label>
-                                                <p className="text-lg font-semibold text-orange-600">{barang.stok_minimum} {barang.satuan}</p>
+                                                <p className="text-lg font-semibold text-orange-600">{barang.stok_minimum} {getProductUnit(barang.kategori)}</p>
                                                 <p className="text-sm text-gray-500">({(barang.stok_minimum * barang.berat_per_unit).toFixed(2)}kg min)</p>
                                             </div>
                                             <div>

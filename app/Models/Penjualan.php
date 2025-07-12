@@ -38,12 +38,6 @@ class Penjualan extends Model
         'telepon_pelanggan',
         'alamat_pelanggan',
         'jenis_transaksi',
-        'pickup_method',
-        'pickup_person_name',
-        'pickup_person_phone',
-        'pickup_notes',
-        'pickup_time',
-        'receipt_code',
         'status',
         'metode_pembayaran',
         'payment_proof',
@@ -174,15 +168,7 @@ class Penjualan extends Model
         return $this->status === 'dibayar';
     }
 
-    /**
-     * Mengecek apakah transaksi siap untuk pickup
-     *
-     * Memeriksa apakah pesanan sudah siap diambil pelanggan
-     */
-    public function isReadyPickup(): bool
-    {
-        return $this->status === 'siap_pickup';
-    }
+
 
     /**
      * Mendapatkan label status dalam bahasa Indonesia
@@ -194,7 +180,6 @@ class Penjualan extends Model
         return match($this->status) {
             'pending' => 'Menunggu Pembayaran',
             'dibayar' => 'Sudah Dibayar',
-            'siap_pickup' => 'Siap Pickup',
             'selesai' => 'Selesai',
             'dibatalkan' => 'Dibatalkan',
             default => ucfirst($this->status),
@@ -212,8 +197,7 @@ class Penjualan extends Model
 
         return match($this->status) {
             'pending' => 'dibayar',
-            'dibayar' => 'siap_pickup',
-            'siap_pickup' => 'selesai',
+            'dibayar' => 'selesai',
             default => null,
         };
     }
@@ -226,61 +210,7 @@ class Penjualan extends Model
         return $this->getNextStatus() !== null;
     }
 
-    /**
-     * Get pickup method label in Indonesian
-     */
-    public function getPickupMethodLabel(): string
-    {
-        return match($this->pickup_method) {
-            'self' => 'Ambil Sendiri',
-            'grab' => 'Grab Driver',
-            'gojek' => 'Gojek Driver',
-            'other' => 'Orang Lain',
-            default => ucfirst($this->pickup_method),
-        };
-    }
 
-    /**
-     * Check if pickup requires receipt
-     */
-    public function requiresReceipt(): bool
-    {
-        return in_array($this->pickup_method, ['grab', 'gojek', 'other']);
-    }
-
-    /**
-     * Generate receipt code
-     */
-    public function generateReceiptCode(): string
-    {
-        if ($this->receipt_code) {
-            return $this->receipt_code;
-        }
-
-        $code = 'RC' . date('Ymd') . str_pad($this->id, 4, '0', STR_PAD_LEFT);
-        $this->update(['receipt_code' => $code]);
-
-        return $code;
-    }
-
-    /**
-     * Check if order is ready for pickup
-     */
-    public function isReadyForPickup(): bool
-    {
-        return $this->status === 'siap_pickup';
-    }
-
-    /**
-     * Mark as picked up
-     */
-    public function markAsPickedUp(): void
-    {
-        $this->update([
-            'status' => 'selesai',
-            'pickup_time' => now(),
-        ]);
-    }
 
     /**
      * Get total items count

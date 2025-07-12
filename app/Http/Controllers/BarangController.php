@@ -242,7 +242,6 @@ class BarangController extends Controller
                 'deskripsi' => 'nullable|string',
                 'kategori' => 'required|string|max:255',
                 'stok_minimum' => 'required|integer|min:0',
-                'satuan' => 'required|string|max:50',
                 'berat_per_unit' => 'required|numeric|min:0.01',
                 'kode_barang' => 'required|string|max:255|unique:barangs',
                 'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
@@ -301,7 +300,7 @@ class BarangController extends Controller
             // Owner boleh set semua field
             if ($request->hasFile('gambar')) {
                 $data['gambar'] = $this->imageService->compressAndStore(
-                    $request->file('gambar'), 'barang', 800, 600, 80
+                    $request->file('gambar'), 'beras-beras', 800, 600, 80
                 );
                 $this->imageService->createThumbnail($request->file('gambar'));
             }
@@ -386,7 +385,6 @@ class BarangController extends Controller
                     'deskripsi' => 'nullable|string',
                     'kategori' => 'required|string|max:255',
                     'stok_minimum' => 'required|integer|min:0',
-                    'satuan' => 'required|string|max:50',
                     'berat_per_unit' => 'required|numeric|min:0.01',
                     'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
                     'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
@@ -400,7 +398,6 @@ class BarangController extends Controller
                     'deskripsi' => 'nullable|string',
                     'kategori' => 'required|string|max:255',
                     'stok_minimum' => 'required|integer|min:0',
-                    'satuan' => 'required|string|max:50',
                     'berat_per_unit' => 'required|numeric|min:0.01',
                     'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
                     'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
@@ -451,7 +448,7 @@ class BarangController extends Controller
                     $this->imageService->deleteImage($barang->gambar);
                 }
                 $data['gambar'] = $this->imageService->compressAndStore(
-                    $request->file('gambar'), 'barang', 800, 600, 80
+                    $request->file('gambar'), 'beras-beras', 800, 600, 80
                 );
                 $this->imageService->createThumbnail($request->file('gambar'));
             }

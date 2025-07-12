@@ -55,17 +55,6 @@ class FinancialSeeder extends Seeder
                 'description' => 'Rekening operasional Bank BCA',
             ],
             [
-                'account_code' => 'BANK-002',
-                'account_name' => 'Bank Mandiri',
-                'account_type' => 'bank',
-                'account_category' => 'savings',
-                'opening_balance' => 25000000,
-                'current_balance' => 25000000,
-                'bank_name' => 'Bank Mandiri',
-                'account_number' => '0987654321',
-                'description' => 'Rekening tabungan Bank Mandiri',
-            ],
-            [
                 'account_code' => 'RECV-001',
                 'account_name' => 'Piutang Dagang',
                 'account_type' => 'receivable',

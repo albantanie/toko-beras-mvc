@@ -61,21 +61,7 @@ export default function UsersIndex({ auth, users, roles, filters = {} }: UsersIn
                 <RoleBadge role={row.roles && row.roles.length > 0 ? row.roles[0].name : 'Tanpa Peran'} />
             ),
         },
-        {
-            key: 'email_verified_at',
-            label: 'Status',
-            render: (value) => (
-                value ? (
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Terverifikasi
-                    </span>
-                ) : (
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                        Belum Diverifikasi
-                    </span>
-                )
-            ),
-        },
+
         {
             key: 'created_at',
             label: 'Dibuat',

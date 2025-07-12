@@ -27,18 +27,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const categories = [
-    'Beras Premium',
-    'Beras Medium',
-    'Beras Ekonomis',
-    'Beras Organik',
-    'Beras Khusus',
-    'Aksesoris',
-    'Lainnya'
+    { value: 'Beras', label: 'Beras (kg)', unit: 'kg' },
+    { value: 'Plastik', label: 'Plastik (pcs)', unit: 'pcs' }
 ];
 
-const units = [
-    'karung', 'kg', 'gram', 'ton', 'pcs', 'pack', 'box'
-];
+
 
 export default function CreateBarang({ auth }: PageProps) {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -52,7 +45,6 @@ export default function CreateBarang({ auth }: PageProps) {
         harga_jual: '',
         stok: '',
         stok_minimum: '',
-        satuan: 'karung',
         berat_per_unit: '',
         gambar: null as File | null,
     });
@@ -178,8 +170,8 @@ export default function CreateBarang({ auth }: PageProps) {
                                             >
                                                 <option value="">Pilih kategori</option>
                                                 {categories.map((category) => (
-                                                    <option key={category} value={category}>
-                                                        {category}
+                                                    <option key={category.value} value={category.value}>
+                                                        {category.label}
                                                     </option>
                                                 ))}
                                             </select>
@@ -351,28 +343,7 @@ export default function CreateBarang({ auth }: PageProps) {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label htmlFor="satuan" className="block text-sm font-medium text-gray-700">
-                                                    Satuan *
-                                                </label>
-                                                <select
-                                                    id="satuan"
-                                                    value={data.satuan}
-                                                    onChange={(e) => setData('satuan', e.target.value)}
-                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                    required
-                                                >
-                                                    {units.map((unit) => (
-                                                        <option key={unit} value={unit}>
-                                                            {unit}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {errors.satuan && (
-                                                    <p className="mt-1 text-sm text-red-600">{errors.satuan}</p>
-                                                )}
-                                            </div>
+                                        <div className="grid grid-cols-1 gap-4">
 
                                             <div>
                                                 <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">

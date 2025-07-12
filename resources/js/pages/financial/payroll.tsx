@@ -54,6 +54,13 @@ interface PayrollSummary {
     pending_count: number;
 }
 
+interface FinancialAccount {
+    id: number;
+    account_name: string;
+    account_type: string;
+    current_balance: number;
+}
+
 interface Props {
     payrolls: {
         data: Payroll[];
@@ -61,13 +68,14 @@ interface Props {
         meta: any;
     };
     summary: PayrollSummary;
+    accounts: FinancialAccount[];
     filters: {
         period?: string;
         status?: string;
     };
 }
 
-export default function PayrollPage({ payrolls, summary, filters }: Props) {
+export default function PayrollPage({ payrolls, summary, accounts, filters }: Props) {
     const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
     const [showGenerateDialog, setShowGenerateDialog] = useState(false);
     const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -487,9 +495,11 @@ export default function PayrollPage({ payrolls, summary, filters }: Props) {
                                                 <SelectValue placeholder="Pilih akun pembayaran" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="1">Kas Utama</SelectItem>
-                                                <SelectItem value="2">Bank BCA</SelectItem>
-                                                <SelectItem value="3">Bank Mandiri</SelectItem>
+                                                {accounts.map((account) => (
+                                                    <SelectItem key={account.id} value={account.id.toString()}>
+                                                        {account.account_name} - {formatCurrency(account.current_balance)}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>

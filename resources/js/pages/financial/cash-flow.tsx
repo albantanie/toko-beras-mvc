@@ -96,6 +96,15 @@ export default function CashFlowPage({ cashFlowStatement, analytics, projections
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
 
+    const handleExportPdf = () => {
+        const params = new URLSearchParams({
+            start_date: startDate,
+            end_date: endDate,
+        });
+
+        window.open(`/owner/keuangan/cash-flow/export-pdf?${params.toString()}`, '_blank');
+    };
+
 
 
     const handleFilterSubmit = (e: React.FormEvent) => {
@@ -115,7 +124,7 @@ export default function CashFlowPage({ cashFlowStatement, analytics, projections
                         <p className="text-gray-600">Monitoring dan analisis arus kas masuk dan keluar</p>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={handleExportPdf}>
                             <Download className="h-4 w-4 mr-2" />
                             Export PDF
                         </Button>

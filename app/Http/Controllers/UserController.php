@@ -74,7 +74,6 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'email_verified_at' => now(), // Otomatis verifikasi email untuk user yang dibuat admin
         ]);
 
         // Berikan role kepada user yang baru dibuat

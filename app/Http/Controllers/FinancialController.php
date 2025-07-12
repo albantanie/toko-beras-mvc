@@ -15,6 +15,7 @@ use App\Models\Budget;
 use App\Models\StockValuation;
 use App\Models\Barang;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class FinancialController extends Controller
 {
@@ -258,9 +259,16 @@ class FinancialController extends Controller
 
         $summary = $this->financialService->getPayrollSummary(['start' => $period . '-01', 'end' => Carbon::parse($period . '-01')->endOfMonth()]);
 
+        // Get active accounts for payment options (only cash and bank accounts)
+        $accounts = FinancialAccount::active()
+            ->whereIn('account_type', ['cash', 'bank'])
+            ->select('id', 'account_name', 'account_type', 'current_balance')
+            ->get();
+
         return Inertia::render('financial/payroll', [
             'payrolls' => $payrolls,
             'summary' => $summary,
+            'accounts' => $accounts,
             'filters' => $request->only(['period', 'status']),
         ]);
     }
@@ -651,5 +659,59 @@ class FinancialController extends Controller
                 ];
             }),
         ];
+    }
+
+    /**
+     * Export Cash Flow Report to PDF
+     */
+    public function exportCashFlowPdf(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
+
+        $cashFlowStatement = $this->cashFlowService->getCashFlowStatement($startDate, $endDate);
+        $analytics = $this->cashFlowService->getCashFlowAnalytics();
+
+        $pdf = Pdf::loadView('pdf.cash-flow-report', [
+            'cashFlowStatement' => $cashFlowStatement,
+            'analytics' => $analytics,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'generatedAt' => now(),
+        ]);
+
+        $fileName = 'laporan_cash_flow_' . $startDate . '_to_' . $endDate . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Export Financial Report to PDF
+     */
+    public function exportFinancialReportPdf(Request $request)
+    {
+        $type = $request->get('type', 'profit_loss');
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
+
+        $reportData = match($type) {
+            'profit_loss' => $this->generateProfitLossReport($startDate, $endDate),
+            'balance_sheet' => $this->generateBalanceSheetReport($endDate),
+            'cash_flow' => $this->cashFlowService->getCashFlowStatement($startDate, $endDate),
+            'budget_variance' => $this->generateBudgetVarianceReport($startDate, $endDate),
+            default => $this->generateProfitLossReport($startDate, $endDate),
+        };
+
+        $pdf = Pdf::loadView('pdf.financial-report', [
+            'reportData' => $reportData,
+            'type' => $type,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'generatedAt' => now(),
+        ]);
+
+        $fileName = 'laporan_keuangan_' . $type . '_' . $startDate . '_to_' . $endDate . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+        return $pdf->download($fileName);
     }
 }

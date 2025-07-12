@@ -40,7 +40,6 @@ class Barang extends Model
         'stok',
         'stok_minimum',
         'minimum_stock_value',
-        'satuan',
         'berat_per_unit',
         'kode_barang',
         'gambar',
@@ -380,5 +379,20 @@ class Barang extends Model
     public function getCreatedTimeAgoAttribute(): string
     {
         return $this->created_at->setTimezone('Asia/Jakarta')->diffForHumans();
+    }
+
+    /**
+     * Get unit based on category
+     * Beras = kg, Plastik/Kemasan = pcs
+     */
+    public function getSatuanAttribute(): string
+    {
+        $kategoriLower = strtolower($this->kategori);
+        if (str_contains($kategoriLower, 'plastik') ||
+            str_contains($kategoriLower, 'kemasan') ||
+            str_contains($kategoriLower, 'karung')) {
+            return 'pcs';
+        }
+        return 'kg'; // Default untuk beras
     }
 }

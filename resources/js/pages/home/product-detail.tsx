@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { PageProps, Barang } from '@/types';
-import { formatCurrency, ProductImage, Icons } from '@/utils/formatters';
+import { formatCurrency, ProductImage, Icons, getProductUnit } from '@/utils/formatters';
 import { useState } from 'react';
 
 interface ProductDetailProps extends PageProps {
@@ -146,16 +146,13 @@ export default function ProductDetail({ auth, barang, relatedProducts }: Product
                                     <span className="text-4xl font-bold text-green-600">
                                         {formatCurrency(barang.harga_jual)}
                                     </span>
-                                    <span className="text-lg text-gray-500 ml-2">
-                                        /{barang.satuan}
-                                    </span>
                                 </div>
 
                                 <div className="mb-6">
                                     <div className="flex items-center">
                                         <span className="text-gray-700 mr-2">Stok tersedia:</span>
                                         <span className={`font-semibold ${barang.stok > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {barang.stok} {barang.satuan}
+                                            {barang.stok} {getProductUnit(barang.kategori)}
                                         </span>
                                     </div>
                                 </div>
@@ -293,9 +290,6 @@ export default function ProductDetail({ auth, barang, relatedProducts }: Product
                                             <div className="flex justify-between items-center mb-3">
                                                 <span className="text-xl font-bold text-green-600">
                                                     {formatCurrency(product.harga_jual)}
-                                                </span>
-                                                <span className="text-sm text-gray-500">
-                                                    /{product.satuan}
                                                 </span>
                                             </div>
                                             

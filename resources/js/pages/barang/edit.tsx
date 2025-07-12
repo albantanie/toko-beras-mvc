@@ -13,7 +13,6 @@ interface Barang {
     harga_jual: number;
     stok: number;
     stok_minimum: number;
-    satuan: string;
     berat_per_unit: number;
     deskripsi?: string;
     gambar?: string;
@@ -32,18 +31,11 @@ interface EditBarangProps {
 }
 
 const categories = [
-    'Beras Premium',
-    'Beras Medium',
-    'Beras Ekonomis',
-    'Beras Organik',
-    'Beras Khusus',
-    'Aksesoris',
-    'Lainnya'
+    { value: 'Beras', label: 'Beras (kg)', unit: 'kg' },
+    { value: 'Plastik', label: 'Plastik (pcs)', unit: 'pcs' }
 ];
 
-const units = [
-    'kg', 'gram', 'ton', 'karung', 'pcs', 'pack', 'box'
-];
+
 
 export default function EditBarang({ auth, barang }: EditBarangProps) {
     const [previewImage, setPreviewImage] = useState<string | null>(
@@ -79,7 +71,6 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
         harga_jual: barang.harga_jual?.toString() || '',
         stok: barang.stok?.toString() || '',
         stok_minimum: barang.stok_minimum?.toString() || '',
-        satuan: barang.satuan || 'karung',
         berat_per_unit: barang.berat_per_unit?.toString() || '',
         is_active: barang.is_active ?? true,
         gambar: null as File | null,
@@ -169,7 +160,11 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700">Satuan</label>
-                                                    <p className="mt-1 text-sm text-gray-900 bg-white p-2 border rounded">{barang.satuan}</p>
+                                                    <p className="mt-1 text-sm text-gray-900 bg-white p-2 border rounded">
+                                                        {barang.kategori.toLowerCase().includes('plastik') ||
+                                                         barang.kategori.toLowerCase().includes('kemasan') ||
+                                                         barang.kategori.toLowerCase().includes('karung') ? 'pcs' : 'kg'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -271,10 +266,10 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                 required
                                             >
-                                                <option value="">Select category</option>
+                                                <option value="">Pilih kategori</option>
                                                 {categories.map((category) => (
-                                                    <option key={category} value={category}>
-                                                        {category}
+                                                    <option key={category.value} value={category.value}>
+                                                        {category.label}
                                                     </option>
                                                 ))}
                                             </select>
@@ -405,28 +400,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label htmlFor="satuan" className="block text-sm font-medium text-gray-700">
-                                                    Unit *
-                                                </label>
-                                                <select
-                                                    id="satuan"
-                                                    value={data.satuan}
-                                                    onChange={(e) => setData('satuan', e.target.value)}
-                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                    required
-                                                >
-                                                    {units.map((unit) => (
-                                                        <option key={unit} value={unit}>
-                                                            {unit}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {errors.satuan && (
-                                                    <p className="mt-1 text-sm text-red-600">{errors.satuan}</p>
-                                                )}
-                                            </div>
+                                        <div className="grid grid-cols-1 gap-4">
 
                                             <div>
                                                 <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">

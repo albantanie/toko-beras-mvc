@@ -82,7 +82,6 @@ class MonthlyReportDataSeeder extends Seeder
                 'name' => 'Kasir Sample',
                 'email' => 'kasir.sample@example.com',
                 'password' => bcrypt('password'),
-                'email_verified_at' => now(),
             ]);
             $kasir->assignRole('kasir');
             $this->kasirUsers = collect([$kasir]);

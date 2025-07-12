@@ -31,7 +31,7 @@ class ImageCompressionService
      */
     public function compressAndStore(
         UploadedFile $file,
-        string $directory = 'barang',
+        string $directory = 'beras-beras',
         int $maxWidth = 800,
         int $maxHeight = 600,
         int $quality = 80
@@ -69,7 +69,7 @@ class ImageCompressionService
      */
     public function createThumbnail(
         UploadedFile $file,
-        string $directory = 'barang/thumbnails',
+        string $directory = 'beras-beras/thumbnails',
         int $size = 150
     ): string {
         // Generate unique filename
