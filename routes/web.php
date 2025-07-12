@@ -53,6 +53,8 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // Detail produk - menampilkan informasi lengkap produk beras
 Route::get('/product/{barang}', [HomeController::class, 'show'])->name('product.show');
 
+
+
 // Test route for images - untuk testing product images
 Route::get('/test-images', function () {
     $barangs = \App\Models\Barang::all();
@@ -377,6 +379,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->name('barang.edit');
         Route::put('barang/{barang}', [BarangController::class, 'update'])->name('barang.update');
         Route::post('barang/{barang}/update', [BarangController::class, 'update'])->name('barang.update.post');
+    });
+
+      // Routes untuk Owner dan Karyawan - Create/Delete access
+    Route::middleware(['role:' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
+        Route::get('barang/create', [BarangController::class, 'create'])->name('barang.create');
+        Route::post('barang', [BarangController::class, 'store'])->name('barang.store');
+        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
     });
 
     // KASIR ONLY - Stock Management (Inventory Control)
