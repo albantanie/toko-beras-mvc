@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Calendar, FileText, TrendingUp, Package, AlertCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
+import axios from '@/bootstrap';
 
 interface AvailableMonth {
     value: string;
@@ -14,12 +15,28 @@ interface AvailableMonth {
     report_count: number;
 }
 
+interface GeneratedReport {
+    id: number;
+    title: string;
+    period_from: string;
+    period_to: string;
+    month_year: string;
+    month_label: string;
+    status: string;
+    status_label: string;
+    status_color: string;
+    generated_at: string;
+    approved_at: string | null;
+    approval_notes: string | null;
+}
+
 interface Props {
     user_role: string;
     available_months: AvailableMonth[];
+    generated_reports: GeneratedReport[];
 }
 
-export default function MonthlyGenerate({ user_role, available_months }: Props) {
+export default function MonthlyGenerate({ user_role, available_months, generated_reports }: Props) {
     const [selectedMonth, setSelectedMonth] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [preview, setPreview] = useState<any>(null);
@@ -39,33 +56,33 @@ export default function MonthlyGenerate({ user_role, available_months }: Props) 
         }
 
         try {
-            const response = await fetch('/laporan/monthly/preview', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                },
-                body: JSON.stringify({
-                    month: selectedMonth,
-                    type: reportType
-                })
+            const response = await axios.post('/laporan/monthly/preview', {
+                month: selectedMonth,
+                type: reportType
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                setPreview(data.preview);
+            if (response.data.success) {
+                setPreview(response.data.preview);
             } else {
                 Swal.fire({
                     title: 'Error',
-                    text: data.error || 'Gagal memuat preview',
+                    text: response.data.error || 'Gagal memuat preview',
                     icon: 'error'
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Preview error:', error);
+            let errorMessage = 'Terjadi kesalahan saat memuat preview';
+
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            }
+
             Swal.fire({
                 title: 'Error',
-                text: 'Terjadi kesalahan saat memuat preview',
+                text: errorMessage,
                 icon: 'error'
             });
         }
@@ -95,41 +112,42 @@ export default function MonthlyGenerate({ user_role, available_months }: Props) 
         setIsGenerating(true);
 
         try {
-            const response = await fetch('/laporan/monthly/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                },
-                body: JSON.stringify({
-                    month: selectedMonth,
-                    type: reportType
-                })
+            const response = await axios.post('/laporan/monthly/generate', {
+                month: selectedMonth,
+                type: reportType
             });
 
-            const data = await response.json();
-
-            if (data.success) {
+            if (response.data.success) {
                 Swal.fire({
                     title: 'Berhasil!',
                     text: 'Laporan bulanan berhasil di-generate dan dikirim ke owner untuk approval',
                     icon: 'success'
                 }).then(() => {
-                    // Reset form
+                    // Reset form and reload page to get updated data
                     setSelectedMonth('');
                     setPreview(null);
+                    router.reload();
                 });
             } else {
                 Swal.fire({
                     title: 'Gagal!',
-                    text: data.error || 'Terjadi kesalahan saat generate laporan',
+                    text: response.data.error || 'Terjadi kesalahan saat generate laporan',
                     icon: 'error'
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Generate error:', error);
+
+            let errorMessage = 'Terjadi kesalahan saat generate laporan';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
             Swal.fire({
-                title: 'Error!',
-                text: 'Terjadi kesalahan saat generate laporan',
+                title: 'Gagal!',
+                text: errorMessage,
                 icon: 'error'
             });
         } finally {
@@ -228,8 +246,22 @@ export default function MonthlyGenerate({ user_role, available_months }: Props) 
                             <CardTitle>Preview Laporan</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {preview.message ? (
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <div className="flex items-center">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-yellow-800">{preview.message}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="bg-blue-50 p-4 rounded-lg">
                                         <div className="text-sm text-blue-600 font-medium">Periode</div>
                                         <div className="text-lg font-bold text-blue-900">
@@ -288,10 +320,65 @@ export default function MonthlyGenerate({ user_role, available_months }: Props) 
                                         </div>
                                     </div>
                                 )}
-                            </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Status Laporan yang Sudah Di-generate */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Status Laporan Bulanan
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {generated_reports.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>Belum ada laporan bulanan yang di-generate</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {generated_reports.map((report) => (
+                                    <div key={report.id} className="border rounded-lg p-4 bg-gray-50">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-medium text-gray-900">{report.title}</h3>
+                                            <Badge
+                                                variant={report.status_color === 'green' ? 'default' :
+                                                       report.status_color === 'yellow' ? 'secondary' : 'destructive'}
+                                            >
+                                                {report.status_label}
+                                            </Badge>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                            <div>
+                                                <span className="font-medium">Periode:</span> {report.month_label}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Di-generate:</span> {report.generated_at}
+                                            </div>
+                                            {report.approved_at && (
+                                                <div>
+                                                    <span className="font-medium">
+                                                        {report.status === 'approved' ? 'Disetujui:' : 'Ditolak:'}
+                                                    </span> {report.approved_at}
+                                                </div>
+                                            )}
+                                            {report.approval_notes && (
+                                                <div className="col-span-2">
+                                                    <span className="font-medium">Catatan:</span> {report.approval_notes}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </AppLayout>
     );

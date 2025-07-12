@@ -371,47 +371,47 @@ class BarangController extends Controller
             'request_data' => $request->all()
         ]);
 
-        // Semua role bisa update, field harga tetap di-protect untuk karyawan
         try {
-            // Base validation rules
-            $rules = [
-                'nama' => 'required|string|max:255',
-                'deskripsi' => 'nullable|string',
-                'kategori' => 'required|string|max:255',
-                'stok_minimum' => 'required|integer|min:0',
-                'satuan' => 'required|string|max:50',
-                'berat_per_unit' => 'required|numeric|min:0.01',
-                'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
-                'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-                'is_active' => 'boolean',
-            ];
-
             // Role-based validation rules
-            if ($isKaryawan && !$isOwner) {
+            if ($isAdmin && !$isOwner) {
+                // Admin hanya boleh update harga
+                $rules = [
+                    'harga_beli' => 'required|numeric|min:0',
+                    'harga_jual' => 'required|numeric|min:0|gt:harga_beli',
+                ];
+            } elseif ($isKaryawan && !$isOwner) {
                 // Karyawan tidak boleh update harga
-                $rules['harga_beli'] = 'nullable';
-                $rules['harga_jual'] = 'nullable';
-                $rules['stok'] = 'required|integer|min:0';
-            } elseif ($isAdmin && !$isOwner) {
-                // Admin boleh update harga tapi tidak boleh update stok
-                $rules['harga_beli'] = 'nullable|numeric|min:0';
-                $rules['harga_jual'] = 'nullable|numeric|min:0';
-                $rules['stok'] = 'nullable';
+                $rules = [
+                    'nama' => 'required|string|max:255',
+                    'deskripsi' => 'nullable|string',
+                    'kategori' => 'required|string|max:255',
+                    'stok_minimum' => 'required|integer|min:0',
+                    'satuan' => 'required|string|max:50',
+                    'berat_per_unit' => 'required|numeric|min:0.01',
+                    'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
+                    'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                    'is_active' => 'boolean',
+                    'stok' => 'required|integer|min:0',
+                ];
             } else {
                 // Owner boleh update semua
-                $rules['harga_beli'] = 'nullable|numeric|min:0';
-                $rules['harga_jual'] = 'nullable|numeric|min:0';
-                $rules['stok'] = 'required|integer|min:0';
+                $rules = [
+                    'nama' => 'required|string|max:255',
+                    'deskripsi' => 'nullable|string',
+                    'kategori' => 'required|string|max:255',
+                    'stok_minimum' => 'required|integer|min:0',
+                    'satuan' => 'required|string|max:50',
+                    'berat_per_unit' => 'required|numeric|min:0.01',
+                    'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
+                    'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                    'is_active' => 'boolean',
+                    'harga_beli' => 'nullable|numeric|min:0',
+                    'harga_jual' => 'nullable|numeric|min:0',
+                    'stok' => 'required|integer|min:0',
+                ];
             }
 
-            // Add conditional validation for harga_jual > harga_beli only if both are provided and not empty
-            if (!($isKaryawan && !$isOwner) && $request->filled('harga_beli') && $request->filled('harga_jual')) {
-                $hargaBeli = (float) $request->input('harga_beli');
-                $hargaJual = (float) $request->input('harga_jual');
-                if ($hargaBeli > 0 && $hargaJual > 0) {
-                    $rules['harga_jual'] = 'nullable|numeric|min:0|gt:harga_beli';
-                }
-            }
+
             $request->validate($rules, [
                 'harga_jual.gt' => 'Harga jual harus lebih besar dari harga beli.',
                 'kode_barang.unique' => 'Kode barang sudah digunakan.',
@@ -431,13 +431,13 @@ class BarangController extends Controller
                 ]);
             }
             if ($isAdmin && !$isOwner) {
-                // Admin tidak boleh update stok
-                unset($data['stok']);
-                \Log::info('Admin updating barang - removed stock field', [
+                // Admin hanya boleh update harga, tidak boleh update field lain
+                $allowedFields = ['harga_beli', 'harga_jual', 'updated_by'];
+                $data = array_intersect_key($data, array_flip($allowedFields));
+                \Log::info('Admin updating barang - only price fields allowed', [
                     'user_id' => $user->id,
                     'barang_id' => $barang->id,
-                    'harga_beli' => $data['harga_beli'] ?? 'not set',
-                    'harga_jual' => $data['harga_jual'] ?? 'not set'
+                    'allowed_data' => $data
                 ]);
             }
 
@@ -463,7 +463,12 @@ class BarangController extends Controller
                 'barang_name' => $barang->nama
             ]);
 
-            return redirect()->route('barang.index')->with('success', 'Barang berhasil diupdate');
+            // Different success message for admin
+            $successMessage = ($isAdmin && !$isOwner)
+                ? 'Harga produk berhasil diupdate'
+                : 'Barang berhasil diupdate';
+
+            return redirect()->route('barang.index')->with('success', $successMessage);
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Barang update validation error', [
                 'errors' => $e->errors(),

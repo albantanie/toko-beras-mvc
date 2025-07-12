@@ -15,11 +15,11 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/admin/dashboard',
     },
     {
-        title: 'Users',
+        title: 'Kelola Pengguna',
         href: '/admin/users',
     },
     {
-        title: 'Create User',
+        title: 'Tambah Pengguna',
         href: '/admin/users/create',
     },
 ];
@@ -56,18 +56,18 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Create User" />
+            <Head title="Tambah Pengguna" />
 
             <div className="py-12">
                 <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
-                            <h3 className="text-lg font-medium mb-6">Create New User</h3>
+                            <h3 className="text-lg font-medium mb-6">Tambah Pengguna Baru</h3>
 
                             <form onSubmit={submit} className="space-y-6">
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                                        Name
+                                        Nama
                                     </label>
                                     <input
                                         id="name"
@@ -76,6 +76,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                         onChange={(e) => setData('name', e.target.value)}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
+                                        placeholder="Masukkan nama lengkap"
                                     />
                                     {errors.name && (
                                         <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -93,6 +94,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                         onChange={(e) => setData('username', e.target.value)}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
+                                        placeholder="Masukkan username"
                                     />
                                     {errors.username && (
                                         <p className="mt-1 text-sm text-red-600">{errors.username}</p>
@@ -101,7 +103,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
 
                                 <div>
                                     <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">
-                                        Phone Number
+                                        Nomor Telepon
                                     </label>
                                     <input
                                         id="phone_number"
@@ -109,7 +111,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                         value={data.phone_number}
                                         onChange={(e) => setData('phone_number', e.target.value)}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        required
+                                        placeholder="Masukkan nomor telepon"
                                     />
                                     {errors.phone_number && (
                                         <p className="mt-1 text-sm text-red-600">{errors.phone_number}</p>
@@ -127,6 +129,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                         onChange={(e) => setData('email', e.target.value)}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
+                                        placeholder="Masukkan alamat email"
                                     />
                                     {errors.email && (
                                         <p className="mt-1 text-sm text-red-600">{errors.email}</p>
@@ -135,15 +138,15 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
 
                                 <div>
                                     <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                                        Address
+                                        Alamat
                                     </label>
-                                    <input
+                                    <textarea
                                         id="address"
-                                        type="text"
                                         value={data.address}
                                         onChange={(e) => setData('address', e.target.value)}
+                                        rows={3}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        required
+                                        placeholder="Masukkan alamat lengkap"
                                     />
                                     {errors.address && (
                                         <p className="mt-1 text-sm text-red-600">{errors.address}</p>
@@ -161,7 +164,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     >
-                                        <option value="">Select a role</option>
+                                        <option value="">Pilih role</option>
                                         {roles.map((role) => (
                                             <option key={role.id} value={role.id}>
                                                 {role.name}
@@ -185,6 +188,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                             onChange={(e) => setData('password', e.target.value)}
                                             className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required
+                                            placeholder="Masukkan password"
                                         />
                                         <button
                                             type="button"
@@ -205,7 +209,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
 
                                 <div>
                                     <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
-                                        Confirm Password
+                                        Konfirmasi Password
                                     </label>
                                     <div className="relative">
                                         <input
@@ -215,6 +219,7 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                             onChange={(e) => setData('password_confirmation', e.target.value)}
                                             className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             required
+                                            placeholder="Konfirmasi password"
                                         />
                                         <button
                                             type="button"
@@ -238,14 +243,14 @@ export default function CreateUser({ auth, roles }: CreateUserProps) {
                                         href={route('admin.users.index')}
                                         className="inline-flex items-center px-4 py-2 bg-gray-300 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-400 focus:bg-gray-400 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
-                                        Cancel
+                                        BATAL
                                     </a>
                                     <button
                                         type="submit"
                                         disabled={processing}
                                         className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50"
                                     >
-                                        {processing ? 'Creating...' : 'Create User'}
+                                        {processing ? 'MENYIMPAN...' : 'SIMPAN'}
                                     </button>
                                 </div>
                             </form>

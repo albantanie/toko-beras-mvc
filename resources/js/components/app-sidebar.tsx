@@ -58,11 +58,6 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     href: '/owner/laporan/stok',
                     icon: Warehouse,
                 },
-                {
-                    title: 'Laporan PDF',
-                    href: '/owner/reports',
-                    icon: FileText,
-                },
             ];
 
         case 'karyawan':

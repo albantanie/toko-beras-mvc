@@ -28,13 +28,6 @@ interface DailyReport {
     };
 }
 
-interface TodayStats {
-    total_movements: number;
-    total_stock_value: number;
-    movement_types: Record<string, number>;
-    items_affected: number;
-}
-
 interface Props extends PageProps {
     reports: {
         data: DailyReport[];
@@ -53,7 +46,6 @@ interface Props extends PageProps {
         date_to?: string;
         status?: string;
     };
-    todayStats: TodayStats;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -71,7 +63,7 @@ const statusColors = {
     'completed': 'bg-blue-100 text-blue-800',
 };
 
-export default function KaryawanDailyReports({ reports, filters = {}, todayStats }: Props) {
+export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
     const [status, setStatus] = useState(filters.status || 'all');
@@ -238,49 +230,6 @@ export default function KaryawanDailyReports({ reports, filters = {}, todayStats
                             Laporan Bulanan
                         </Button>
                     </div>
-                </div>
-
-                {/* Today's Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600">Pergerakan Stok Hari Ini</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-blue-600">{todayStats.total_movements}</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600">Nilai Stok Bergerak</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-600">{formatCurrency(todayStats.total_stock_value)}</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600">Item Terpengaruh</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-purple-600">{todayStats.items_affected}</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-600">Jenis Pergerakan</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-1">
-                                {Object.entries(todayStats.movement_types).map(([type, count]) => (
-                                    <div key={type} className="flex justify-between text-sm">
-                                        <span className="capitalize">{type}</span>
-                                        <span className="font-medium">{count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
                 </div>
 
                 {/* Filters */}

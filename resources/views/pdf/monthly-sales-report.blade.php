@@ -212,10 +212,6 @@
                 <span class="info-label">Hari Penjualan:</span>
                 {{ $data['summary']['days_with_sales'] }} hari
             </div>
-            <div class="info-item">
-                <span class="info-label">Status:</span>
-                Menunggu Persetujuan
-            </div>
         </div>
     </div>
 

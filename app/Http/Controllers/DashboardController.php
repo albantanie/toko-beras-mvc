@@ -140,6 +140,15 @@ class DashboardController extends Controller
             'pending_approvals' => $pendingReportsCount,
         ];
 
+        // Get recent approved reports
+        $recentReports = \App\Models\PdfReport::approved()
+            ->with(['generator', 'approver'])
+            ->orderBy('approved_at', 'desc')
+            ->limit(5)
+            ->get();
+
+
+
         return Inertia::render('owner/dashboard', [
             'summary' => $summary,
             'weeklySalesTrend' => $weeklySalesTrend,
@@ -154,11 +163,9 @@ class DashboardController extends Controller
             'customerInsights' => $customerInsights,
             'profitChart' => $profitChart,
             'pending_reports' => $pendingReportsCollection,
-            'recent_reports' => \App\Models\PdfReport::approved()
-                ->with(['generator', 'approver'])
-                ->orderBy('approved_at', 'desc')
-                ->limit(5)
-                ->get(),
+            'recent_reports' => $recentReports,
+            'pending_count' => $pendingReportsCollection->count(),
+            'approved_count' => $recentReports->count(),
             'filters' => [
                 'period' => $period,
                 'date_from' => $dateFrom,

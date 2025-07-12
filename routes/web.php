@@ -211,9 +211,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
          * ===================================================================
          * Routes khusus untuk owner: dashboard dan download laporan
          */
+        // View laporan detail sebelum approve/reject
+        Route::get('view-report/{id}', [LaporanController::class, 'viewReport'])->name('view-report');
+
         // Download laporan PDF berdasarkan ID
         Route::get('download-report/{id}', [LaporanController::class, 'downloadReport'])->name('download-report');
-        
+
         // Download laporan PDF berdasarkan type (untuk kompatibilitas)
         Route::get('download-report', [LaporanController::class, 'downloadReportByType'])->name('download-report-type');
         
@@ -343,20 +346,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
      * - Karyawan: Full CRUD access tapi tidak bisa lihat harga beli/profit
      */
 
-    // Routes untuk Admin, Owner, dan Karyawan - Full CRUD access
+    // Routes untuk semua role - View access
     Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
-        // CRUD barang - semua role bisa manage inventory
+        // View barang - semua role bisa lihat
         Route::get('barang', [BarangController::class, 'index'])->name('barang.index');
-        Route::get('barang/create', [BarangController::class, 'create'])->name('barang.create');
-        Route::post('barang', [BarangController::class, 'store'])->name('barang.store');
         Route::get('barang/{barang}', [BarangController::class, 'show'])->name('barang.show');
+        Route::get('barang/{barang}/stock-movements', [BarangController::class, 'stockMovements'])->name('barang.stock-movements');
+    });
+
+    // Routes untuk Admin, Owner, dan Karyawan - Edit access
+    Route::middleware(['role:' . Role::ADMIN . ',' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
         Route::get('barang/{barang}/edit', [BarangController::class, 'edit'])->name('barang.edit');
         Route::put('barang/{barang}', [BarangController::class, 'update'])->name('barang.update');
         Route::post('barang/{barang}/update', [BarangController::class, 'update'])->name('barang.update.post');
-        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
+    });
 
-        // Stock movements - riwayat perubahan stok (view only)
-        Route::get('barang/{barang}/stock-movements', [BarangController::class, 'stockMovements'])->name('barang.stock-movements');
+    // Routes untuk Owner dan Karyawan - Create/Delete access
+    Route::middleware(['role:' . Role::OWNER . ',' . Role::KARYAWAN])->group(function () {
+        Route::get('barang/create', [BarangController::class, 'create'])->name('barang.create');
+        Route::post('barang', [BarangController::class, 'store'])->name('barang.store');
+        Route::delete('barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
     });
 
     // KASIR ONLY - Stock Management (Inventory Control)

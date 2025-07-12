@@ -725,13 +725,95 @@ class LaporanController extends Controller
 
         if ($action === 'approve') {
             $report->approve(auth()->id(), $notes);
-            return redirect()->back()->with('success', 'Report approved successfully');
+            return redirect()->route('owner.dashboard')->with('success', 'Laporan berhasil disetujui');
         } elseif ($action === 'reject') {
             $report->reject(auth()->id(), $notes);
-            return redirect()->back()->with('success', 'Report rejected successfully');
+            return redirect()->route('owner.dashboard')->with('success', 'Laporan berhasil ditolak');
         }
 
         return redirect()->back()->with('error', 'Invalid action');
+    }
+
+    /**
+     * Regenerate PDF file for existing report
+     */
+    private function regeneratePdfFile(PdfReport $report): void
+    {
+        try {
+            \Log::info('Regenerating PDF file', [
+                'report_id' => $report->id,
+                'type' => $report->type,
+                'file_path' => $report->file_path
+            ]);
+
+            // Ensure reports directory exists
+            if (!\Storage::exists('reports')) {
+                \Storage::makeDirectory('reports');
+            }
+
+            $reportData = $report->report_data;
+            $user = $report->generator;
+
+            // Generate PDF based on report type
+            if ($report->type === 'stock') {
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.monthly-stock-report', [
+                    'data' => $reportData,
+                    'month' => \Carbon\Carbon::parse($report->period_from),
+                    'user' => $user,
+                    'generated_at' => now(),
+                ]);
+            } elseif ($report->type === 'sales') {
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.monthly-sales-report', [
+                    'data' => $reportData,
+                    'month' => \Carbon\Carbon::parse($report->period_from),
+                    'user' => $user,
+                    'generated_at' => now(),
+                ]);
+            } else {
+                throw new \Exception('Unsupported report type: ' . $report->type);
+            }
+
+            // Save PDF
+            \Storage::put($report->file_path, $pdf->output());
+
+            \Log::info('PDF file regenerated successfully', [
+                'report_id' => $report->id,
+                'file_path' => $report->file_path,
+                'file_exists' => \Storage::exists($report->file_path)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to regenerate PDF file', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * View report details before approval (OWNER only)
+     */
+    public function viewReport(Request $request, $id)
+    {
+        if (!auth()->user()->isOwner()) {
+            abort(403, 'Only OWNER can view reports');
+        }
+
+        try {
+            $report = PdfReport::with(['generator', 'approver'])->findOrFail($id);
+
+            // report_data sudah di-cast sebagai array di model, tidak perlu json_decode lagi
+            $reportData = $report->report_data;
+
+            return Inertia::render('owner/report-detail', [
+                'report' => $report,
+                'report_data' => $reportData,
+            ]);
+        } catch (\Exception $e) {
+            abort(404, 'Laporan tidak ditemukan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -750,6 +832,12 @@ class LaporanController extends Controller
         }
 
         try {
+            // Check if file exists, if not try to regenerate it
+            $report = PdfReport::findOrFail($id);
+            if (!$report->fileExists()) {
+                $this->regeneratePdfFile($report);
+            }
+
             return $this->pdfReportService->downloadReport($id, auth()->id());
         } catch (\Exception $e) {
             abort(404, $e->getMessage());

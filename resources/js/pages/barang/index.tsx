@@ -77,8 +77,10 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
     };
 
     // Cek role untuk aksi
-    const isAdminOrOwner = auth.user.roles.some((role: any) => role.name === 'admin' || role.name === 'owner');
+    const isAdmin = auth.user.roles.some((role: any) => role.name === 'admin');
+    const isOwner = auth.user.roles.some((role: any) => role.name === 'owner');
     const isKaryawan = auth.user.roles.some((role: any) => role.name === 'karyawan');
+    const isAdminOrOwner = isAdmin || isOwner;
 
     const columns: Column[] = [
         {
@@ -159,12 +161,20 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
             render: (_, row) => (
                 <div className="whitespace-nowrap text-sm text-gray-500 flex gap-2">
                     <Link href={route('barang.show', row.id)} className="text-blue-600 hover:underline">Lihat</Link>
-                    {(isAdminOrOwner || isKaryawan) && (
+
+                    {/* Admin hanya bisa ubah harga */}
+                    {isAdmin && (
+                        <Link href={route('barang.edit', row.id)} className="text-orange-600 hover:underline">Ubah Harga</Link>
+                    )}
+
+                    {/* Owner dan Karyawan bisa edit dan hapus */}
+                    {(isOwner || isKaryawan) && (
                         <>
                             <Link href={route('barang.edit', row.id)} className="text-green-600 hover:underline">Ubah</Link>
                             <button onClick={() => handleDelete(row.id, row.nama)} className="text-red-600 hover:underline">Hapus</button>
                         </>
                     )}
+
                     {/* Only KASIR can manage stock */}
                     {uiPermissions?.canManageStock && (
                         <Link href={`/stock-movements/kelola?barang_id=${row.id}`} className="text-purple-600 hover:underline">Kelola Stok</Link>
@@ -196,7 +206,8 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
         },
     ];
 
-    const actions = (isAdminOrOwner || isKaryawan) ? [
+    // Admin tidak bisa tambah produk baru, hanya Owner dan Karyawan
+    const actions = (isOwner || isKaryawan) ? [
         {
             label: 'Tambah Produk Baru',
             href: route('barang.create'),
@@ -240,8 +251,10 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
                             currentDirection={filters?.direction as 'asc' | 'desc' || 'asc'}
                             emptyState={{
                                 title: 'Belum ada produk',
-                                description: 'Belum ada data produk yang tercatat. Silakan tambah produk baru untuk mulai mengelola inventaris.',
-                                ...(isAdminOrOwner && {
+                                description: isAdmin
+                                    ? 'Belum ada data produk yang tercatat. Hubungi Owner atau Karyawan untuk menambah produk baru.'
+                                    : 'Belum ada data produk yang tercatat. Silakan tambah produk baru untuk mulai mengelola inventaris.',
+                                ...((isOwner || isKaryawan) && {
                                     action: {
                                         label: 'Tambah Produk Baru',
                                         href: route('barang.create'),

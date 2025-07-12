@@ -86,6 +86,13 @@ export default function OwnerDashboard({
     pending_count = 0,
     approved_count = 0
 }: Props) {
+    // Debug log
+    console.log('Dashboard Props:', {
+        pending_count,
+        approved_count,
+        pending_reports_length: pending_reports.length,
+        recent_reports_length: recent_reports.length
+    });
     const handleApproveReport = (reportId: number) => {
         router.post(`/owner/reports/${reportId}/approve`, {
             action: 'approve',
@@ -98,6 +105,10 @@ export default function OwnerDashboard({
             action: 'reject',
             approval_notes: 'Laporan ditolak'
         });
+    };
+
+    const handleViewReport = (reportId: number) => {
+        router.get(`/owner/view-report/${reportId}`);
     };
 
     const handleDownloadReport = (reportId: number) => {
@@ -114,15 +125,6 @@ export default function OwnerDashboard({
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Dashboard Owner</h1>
                         <p className="text-gray-600">Kelola dan setujui laporan bulanan dari kasir dan karyawan</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            onClick={() => router.get('/owner/reports')}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            <FileText className="w-4 h-4 mr-2" />
-                            Semua Laporan
-                        </Button>
                     </div>
                 </div>
 
@@ -225,7 +227,7 @@ export default function OwnerDashboard({
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => handleDownloadReport(report.id)}
+                                                    onClick={() => handleViewReport(report.id)}
                                                 >
                                                     <Eye className="w-4 h-4 mr-1" />
                                                     Lihat
@@ -308,16 +310,9 @@ export default function OwnerDashboard({
                         <CardContent className="text-center py-12">
                             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">Belum Ada Laporan</h3>
-                            <p className="text-gray-600 mb-4">
+                            <p className="text-gray-600">
                                 Belum ada laporan bulanan yang dibuat oleh kasir atau karyawan.
                             </p>
-                            <Button
-                                onClick={() => router.get('/owner/reports')}
-                                variant="outline"
-                            >
-                                <FileText className="w-4 h-4 mr-2" />
-                                Lihat Semua Laporan
-                            </Button>
                         </CardContent>
                     </Card>
                 )}

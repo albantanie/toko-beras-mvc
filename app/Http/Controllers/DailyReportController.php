@@ -138,12 +138,9 @@ class DailyReportController extends Controller
             }
         }
 
-        $todayStats = $this->getTodayStockStats($user->id);
-
         // Debug logging
         \Log::info('Karyawan Daily Reports Data', [
             'reports_count' => $reports->count(),
-            'today_stats' => $todayStats,
             'filters' => $filters,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
@@ -155,7 +152,6 @@ class DailyReportController extends Controller
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ]),
-            'todayStats' => $todayStats,
         ]);
     }
 
@@ -237,26 +233,7 @@ class DailyReportController extends Controller
         ];
     }
 
-    /**
-     * Get today's stock statistics for karyawan
-     */
-    private function getTodayStockStats($userId): array
-    {
-        $today = now()->format('Y-m-d');
-        
-        $movements = StockMovement::whereDate('created_at', $today)
-            ->where('user_id', $userId)
-            ->get();
 
-        return [
-            'total_movements' => $movements->count(),
-            'total_stock_value' => $movements->sum(function ($movement) {
-                return abs($movement->quantity) * ($movement->unit_price ?? 0);
-            }),
-            'movement_types' => $movements->groupBy('type')->map->count(),
-            'items_affected' => $movements->groupBy('barang_id')->count(),
-        ];
-    }
 
     /**
      * Generate monthly report from daily reports

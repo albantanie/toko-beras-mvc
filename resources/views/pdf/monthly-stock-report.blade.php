@@ -212,10 +212,6 @@
                 <span class="info-label">Hari Pergerakan:</span>
                 {{ $data['summary']['days_with_movements'] }} hari
             </div>
-            <div class="info-item">
-                <span class="info-label">Status:</span>
-                Menunggu Persetujuan
-            </div>
         </div>
     </div>
 

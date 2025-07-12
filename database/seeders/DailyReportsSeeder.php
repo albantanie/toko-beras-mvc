@@ -65,7 +65,7 @@ class DailyReportsSeeder extends Seeder
         $transactions = Penjualan::where('user_id', $kasir->id)
             ->where('status', 'selesai')
             ->whereDate('tanggal_transaksi', $date)
-            ->with('details.barang')
+            ->with('detailPenjualans.barang')
             ->get();
 
         if ($transactions->count() === 0) {
@@ -95,7 +95,7 @@ class DailyReportsSeeder extends Seeder
         $totalAmount = $transactions->sum('total');
         $totalTransactions = $transactions->count();
         $totalItemsSold = $transactions->sum(function ($transaction) {
-            return $transaction->details->sum('jumlah');
+            return $transaction->detailPenjualans->sum('jumlah');
         });
 
         // Group by payment method
@@ -128,7 +128,7 @@ class DailyReportsSeeder extends Seeder
                         'nomor_transaksi' => $transaction->nomor_transaksi,
                         'total' => $transaction->total,
                         'metode_pembayaran' => $transaction->metode_pembayaran,
-                        'items_count' => $transaction->details->sum('jumlah'),
+                        'items_count' => $transaction->detailPenjualans->sum('jumlah'),
                     ];
                 }),
             ],
