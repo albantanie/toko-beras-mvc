@@ -206,7 +206,7 @@ export default function OwnerDashboard({
                                                 <div className="text-sm text-gray-600 space-y-1">
                                                     <div className="flex items-center gap-2">
                                                         <Users className="w-4 h-4" />
-                                                        Dibuat oleh: {report.generator.name}
+                                                        Dibuat oleh: {report.generator?.name || 'Unknown'}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="w-4 h-4" />
@@ -275,9 +275,9 @@ export default function OwnerDashboard({
                                             <div>
                                                 <p className="font-medium">{report.title}</p>
                                                 <p className="text-sm text-gray-600">
-                                                    {report.generator.name} • {new Date(report.report_date).toLocaleDateString('id-ID', { 
-                                                        year: 'numeric', 
-                                                        month: 'long' 
+                                                    {report.generator?.name || 'Unknown'} • {new Date(report.report_date).toLocaleDateString('id-ID', {
+                                                        year: 'numeric',
+                                                        month: 'long'
                                                     })}
                                                 </p>
                                             </div>

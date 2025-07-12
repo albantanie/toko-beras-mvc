@@ -157,6 +157,9 @@ class DatabaseSeeder extends Seeder
         // Seed penjualans
         $this->call(PenjualanSeeder::class);
 
+        // Seed daily reports for existing transactions
+        $this->call(DailyReportsSeeder::class);
+
         // Seed monthly report data (transactions, stock movements, daily reports)
         $this->call(MonthlyReportDataSeeder::class);
 

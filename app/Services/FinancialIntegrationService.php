@@ -104,8 +104,16 @@ class FinancialIntegrationService
                 'created_by' => $penjualan->user_id,
             ]);
 
-            // Update inventory value
-            $inventoryAccount->decrement('current_balance', $penjualan->total_cost);
+            // Update inventory value - validasi tidak boleh minus
+            if ($inventoryAccount->current_balance >= $penjualan->total_cost) {
+                $inventoryAccount->decrement('current_balance', $penjualan->total_cost);
+            } else {
+                // Log warning jika inventory value akan minus
+                \Log::warning("Inventory value akan minus untuk penjualan {$penjualan->nomor_transaksi}. Current: {$inventoryAccount->current_balance}, Cost: {$penjualan->total_cost}");
+
+                // Set inventory balance to 0 instead of negative
+                $inventoryAccount->update(['current_balance' => 0]);
+            }
         }
     }
 

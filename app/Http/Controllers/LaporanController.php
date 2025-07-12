@@ -368,11 +368,11 @@ class LaporanController extends Controller
         if ($isAdminOrOwner) {
             $query->select('*')
                 ->selectRaw('(harga_jual - harga_beli) as profit_per_unit')
-                ->selectRaw('(stok * harga_beli) as nilai_stok_beli')
-                ->selectRaw('(stok * harga_jual) as nilai_stok_jual');
+                ->selectRaw('(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as nilai_stok_beli')
+                ->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
         } else {
             $query->select('*')
-                ->selectRaw('(stok * harga_jual) as nilai_stok_jual');
+                ->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
         }
 
         // Search functionality
@@ -433,10 +433,10 @@ class LaporanController extends Controller
         $summaryQuery = Barang::select('*');
         
         if ($isAdminOrOwner) {
-            $summaryQuery->selectRaw('(stok * harga_beli) as nilai_stok_beli')
-                ->selectRaw('(stok * harga_jual) as nilai_stok_jual');
+            $summaryQuery->selectRaw('(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as nilai_stok_beli')
+                ->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
         } else {
-            $summaryQuery->selectRaw('(stok * harga_jual) as nilai_stok_jual');
+            $summaryQuery->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
         }
         
         $allBarangs = $summaryQuery->get();
@@ -446,13 +446,13 @@ class LaporanController extends Controller
             'low_stock_items' => Barang::whereRaw('stok <= stok_minimum')->count(),
             'out_of_stock_items' => Barang::where('stok', '<=', 0)->count(),
             'in_stock_items' => Barang::where('stok', '>', 0)->count(),
-            'total_stock_value_sell' => $allBarangs->sum('nilai_stok_jual'),
+            'total_stock_value_sell' => max(0, $allBarangs->sum('nilai_stok_jual')), // Pastikan tidak minus
         ];
 
         // Only include purchase price and profit data for admin/owner
         if ($isAdminOrOwner) {
-            $summary['total_stock_value_buy'] = $allBarangs->sum('nilai_stok_beli');
-            $summary['potential_profit'] = $allBarangs->sum('nilai_stok_jual') - $allBarangs->sum('nilai_stok_beli');
+            $summary['total_stock_value_buy'] = max(0, $allBarangs->sum('nilai_stok_beli')); // Pastikan tidak minus
+            $summary['potential_profit'] = max(0, $allBarangs->sum('nilai_stok_jual') - $allBarangs->sum('nilai_stok_beli')); // Pastikan tidak minus
         }
 
         return Inertia::render('laporan/stok', [

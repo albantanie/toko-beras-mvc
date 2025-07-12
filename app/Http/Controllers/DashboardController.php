@@ -124,8 +124,11 @@ class DashboardController extends Controller
         // Profit chart data
         $profitChart = $this->getProfitChart($dateFrom, $dateTo);
 
-        // Get pending reports data
-        $pendingReportsCollection = \App\Models\PdfReport::pending()->get();
+        // Get pending reports data with generator relationship
+        $pendingReportsCollection = \App\Models\PdfReport::pending()
+            ->with(['generator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
         $pendingReportsCount = $pendingReportsCollection->count();
 
         // Create summary data for dashboard cards
@@ -151,7 +154,11 @@ class DashboardController extends Controller
             'customerInsights' => $customerInsights,
             'profitChart' => $profitChart,
             'pending_reports' => $pendingReportsCollection,
-            'recent_reports' => [],
+            'recent_reports' => \App\Models\PdfReport::approved()
+                ->with(['generator', 'approver'])
+                ->orderBy('approved_at', 'desc')
+                ->limit(5)
+                ->get(),
             'filters' => [
                 'period' => $period,
                 'date_from' => $dateFrom,
@@ -711,13 +718,15 @@ class DashboardController extends Controller
         $totalProducts = Barang::count();
         $lowStockCount = Barang::where('stok', '<=', 10)->count();
         $outOfStockCount = Barang::where('stok', '<=', 0)->count();
-        $totalStockValue = Barang::selectRaw('SUM(stok * harga_beli) as total_value')->first();
+
+        // Calculate stock value dengan validasi tidak minus
+        $totalStockValue = Barang::selectRaw('SUM(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as total_value')->first();
 
         return [
             'total_products' => $totalProducts,
             'low_stock_items' => $lowStockCount,
             'out_of_stock_items' => $outOfStockCount,
-            'total_stock_value' => (float) ($totalStockValue->total_value ?? 0),
+            'total_stock_value' => max(0, (float) ($totalStockValue->total_value ?? 0)), // Pastikan tidak minus
             'categories_count' => Barang::distinct('kategori')->count(),
         ];
     }

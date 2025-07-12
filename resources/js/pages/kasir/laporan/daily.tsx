@@ -176,11 +176,27 @@ export default function KasirDailyReports({ reports, filters = {}, todayStats }:
                     });
                 },
                 onError: (errors) => {
+                    console.error('Monthly report generation error:', errors);
+
+                    let errorMessage = 'Terjadi kesalahan saat generate laporan bulanan. Silakan coba lagi.';
+
+                    if (errors.message) {
+                        errorMessage = errors.message;
+                    } else if (typeof errors === 'string') {
+                        errorMessage = errors;
+                    } else if (errors.error) {
+                        errorMessage = errors.error;
+                    }
+
                     Swal.fire({
                         title: 'Gagal!',
-                        text: errors.message || 'Terjadi kesalahan saat generate laporan bulanan. Silakan coba lagi.',
+                        text: errorMessage,
                         icon: 'error',
-                        confirmButtonColor: '#ef4444'
+                        confirmButtonColor: '#ef4444',
+                        width: '500px',
+                        customClass: {
+                            content: 'text-sm'
+                        }
                     });
                 }
             });

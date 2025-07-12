@@ -91,7 +91,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
         if (totalQuantity > selectedProduct.stok) {
             SweetAlert.error.custom(
                 'Stok Tidak Mencukupi!',
-                `Stok tersedia: ${selectedProduct.stok} ${selectedProduct.satuan}. Sudah di keranjang: ${currentCartQuantity} ${selectedProduct.satuan}. Maksimal bisa ditambah: ${selectedProduct.stok - currentCartQuantity} ${selectedProduct.satuan}.`
+                `Stok tersedia: ${selectedProduct.stok} ${selectedProduct.satuan}. Sudah di keranjang: ${currentCartQuantity} ${selectedProduct.satuan}. Maksimal bisa ditambah: ${Math.max(0, selectedProduct.stok - currentCartQuantity)} ${selectedProduct.satuan}. Transaksi tidak dapat dilanjutkan karena akan membuat stok menjadi minus.`
             );
             return;
         }
@@ -145,7 +145,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
         if (newQuantity > item.barang.stok) {
             SweetAlert.error.custom(
                 'Stok Tidak Mencukupi!',
-                `Stok tersedia: ${item.barang.stok} ${item.barang.satuan}. Jumlah yang diminta: ${newQuantity} ${item.barang.satuan}.`
+                `Stok tersedia: ${item.barang.stok} ${item.barang.satuan}. Jumlah yang diminta: ${newQuantity} ${item.barang.satuan}. Transaksi tidak dapat dilanjutkan karena akan membuat stok menjadi minus.`
             );
             return;
         }

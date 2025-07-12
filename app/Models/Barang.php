@@ -282,7 +282,7 @@ class Barang extends Model
     {
         $userId = $userId ?? auth()->id() ?? 1; // Fallback to user ID 1 (system)
         $stockBefore = $this->stok;
-        
+
         // Calculate new stock based on type
         $newStock = match($type) {
             'in', 'return', 'adjustment', 'correction', 'initial' => $stockBefore + $quantity,
@@ -290,6 +290,11 @@ class Barang extends Model
             'transfer' => $stockBefore + $quantity, // transfer bisa positif/negatif
             default => $stockBefore,
         };
+
+        // Validasi: Stock tidak boleh minus
+        if ($newStock < 0) {
+            throw new \Exception("Stock tidak mencukupi. Stock saat ini: {$stockBefore}, diminta: " . abs($quantity) . " untuk {$this->nama}");
+        }
 
         // Create stock movement record
         $movement = $this->stockMovements()->create([

@@ -56,6 +56,18 @@ class StockValuation extends Model
     // Methods
     public function calculateValues()
     {
+        // Validasi: quantity tidak boleh minus
+        if ($this->quantity_on_hand < 0) {
+            $barangName = $this->barang ? $this->barang->nama : 'Unknown';
+            throw new \Exception("Quantity on hand tidak boleh minus untuk barang {$barangName}");
+        }
+
+        // Validasi: unit cost dan unit price tidak boleh minus
+        if ($this->unit_cost < 0 || $this->unit_price < 0) {
+            $barangName = $this->barang ? $this->barang->nama : 'Unknown';
+            throw new \Exception("Unit cost dan unit price tidak boleh minus untuk barang {$barangName}");
+        }
+
         $this->total_cost_value = $this->quantity_on_hand * $this->unit_cost;
         $this->total_market_value = $this->quantity_on_hand * $this->unit_price;
         $this->potential_profit = $this->total_market_value - $this->total_cost_value;
