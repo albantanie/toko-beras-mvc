@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Models\Penjualan;
+use App\Models\DetailPenjualan;
 use App\Models\Payroll;
 use App\Observers\PenjualanObserver;
+use App\Observers\DetailPenjualanObserver;
 use App\Observers\PayrollObserver;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register model observers
         Penjualan::observe(PenjualanObserver::class);
+        DetailPenjualan::observe(DetailPenjualanObserver::class);
         Payroll::observe(PayrollObserver::class);
     }
 }
