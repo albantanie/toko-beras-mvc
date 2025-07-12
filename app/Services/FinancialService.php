@@ -21,11 +21,14 @@ class FinancialService
     public function getDashboardData($period = 'current_month')
     {
         $dateRange = $this->getDateRange($period);
-        
+
+        $revenueSummary = $this->getRevenueSummary($dateRange);
+        $expenseSummary = $this->getExpenseSummary($dateRange);
+
         return [
             'cash_summary' => $this->getCashSummary(),
-            'revenue_summary' => $this->getRevenueSummary($dateRange),
-            'expense_summary' => $this->getExpenseSummary($dateRange),
+            'revenue_summary' => $revenueSummary,
+            'expense_summary' => $expenseSummary,
             'profit_summary' => $this->getProfitSummary($dateRange),
             'cash_flow_summary' => $this->getCashFlowSummary($dateRange),
             'stock_valuation_summary' => $this->getStockValuationSummary(),
@@ -33,6 +36,10 @@ class FinancialService
             'budget_performance' => $this->getBudgetPerformance($dateRange),
             'recent_transactions' => $this->getRecentTransactions(10),
             'financial_ratios' => $this->getFinancialRatios($dateRange),
+            // Add flat keys for easier access
+            'total_revenue' => $revenueSummary['total'] ?? 0,
+            'total_expenses' => $expenseSummary['total'] ?? 0,
+            'net_profit' => ($revenueSummary['total'] ?? 0) - ($expenseSummary['total'] ?? 0),
         ];
     }
 

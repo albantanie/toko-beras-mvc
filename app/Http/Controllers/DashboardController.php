@@ -124,10 +124,21 @@ class DashboardController extends Controller
         // Profit chart data
         $profitChart = $this->getProfitChart($dateFrom, $dateTo);
 
-        // Pending reports count
-        $pendingReports = \App\Models\PdfReport::pending()->count();
+        // Get pending reports data
+        $pendingReportsCollection = \App\Models\PdfReport::pending()->get();
+        $pendingReportsCount = $pendingReportsCollection->count();
+
+        // Create summary data for dashboard cards
+        $summary = [
+            'total_sales' => $comprehensiveSummary['total_sales'] ?? 0,
+            'total_transactions' => $comprehensiveSummary['total_transactions'] ?? 0,
+            'total_stock_value' => $comprehensiveSummary['total_stock_value'] ?? 0,
+            'report_count' => $pendingReportsCount,
+            'pending_approvals' => $pendingReportsCount,
+        ];
 
         return Inertia::render('owner/dashboard', [
+            'summary' => $summary,
             'weeklySalesTrend' => $weeklySalesTrend,
             'monthlyRevenue' => $monthlyRevenue,
             'paymentMethods' => $paymentMethods,
@@ -139,7 +150,8 @@ class DashboardController extends Controller
             'lowStockItems' => $lowStockItems,
             'customerInsights' => $customerInsights,
             'profitChart' => $profitChart,
-            'pendingReports' => $pendingReports,
+            'pending_reports' => $pendingReportsCollection,
+            'recent_reports' => [],
             'filters' => [
                 'period' => $period,
                 'date_from' => $dateFrom,

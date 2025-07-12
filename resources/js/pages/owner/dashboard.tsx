@@ -39,17 +39,17 @@ interface PdfReport {
 }
 
 interface Props extends PageProps {
-    summary: {
+    summary?: {
         total_sales: number;
         total_transactions: number;
         total_stock_value: number;
         report_count: number;
         pending_approvals: number;
     };
-    pending_reports: PdfReport[];
-    recent_reports: PdfReport[];
-    pending_count: number;
-    approved_count: number;
+    pending_reports?: PdfReport[];
+    recent_reports?: PdfReport[];
+    pending_count?: number;
+    approved_count?: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -73,22 +73,28 @@ const typeLabels = {
     'stock': 'Laporan Stok',
 };
 
-export default function OwnerDashboard({ 
-    summary, 
-    pending_reports, 
-    recent_reports, 
-    pending_count, 
-    approved_count 
+export default function OwnerDashboard({
+    summary = {
+        total_sales: 0,
+        total_transactions: 0,
+        total_stock_value: 0,
+        report_count: 0,
+        pending_approvals: 0
+    },
+    pending_reports = [],
+    recent_reports = [],
+    pending_count = 0,
+    approved_count = 0
 }: Props) {
     const handleApproveReport = (reportId: number) => {
-        router.post(`/owner/laporan/reports/${reportId}/approve`, {
+        router.post(`/owner/reports/${reportId}/approve`, {
             action: 'approve',
             approval_notes: 'Laporan disetujui'
         });
     };
 
     const handleRejectReport = (reportId: number) => {
-        router.post(`/owner/laporan/reports/${reportId}/approve`, {
+        router.post(`/owner/reports/${reportId}/approve`, {
             action: 'reject',
             approval_notes: 'Laporan ditolak'
         });
@@ -111,7 +117,7 @@ export default function OwnerDashboard({
                     </div>
                     <div className="flex gap-2">
                         <Button
-                            onClick={() => router.get('/owner/laporan/reports')}
+                            onClick={() => router.get('/owner/reports')}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
                             <FileText className="w-4 h-4 mr-2" />
@@ -306,7 +312,7 @@ export default function OwnerDashboard({
                                 Belum ada laporan bulanan yang dibuat oleh kasir atau karyawan.
                             </p>
                             <Button
-                                onClick={() => router.get('/owner/laporan/reports')}
+                                onClick={() => router.get('/owner/reports')}
                                 variant="outline"
                             >
                                 <FileText className="w-4 h-4 mr-2" />

@@ -19,8 +19,8 @@ class FinancialAccountsSeeder extends Seeder
                 'account_name' => 'Kas Utama',
                 'account_type' => 'cash',
                 'account_category' => 'operational',
-                'opening_balance' => 5000000, // 5 juta
-                'current_balance' => 5000000,
+                'opening_balance' => 50000000, // 50 juta
+                'current_balance' => 50000000,
                 'description' => 'Kas utama untuk operasional harian',
                 'is_active' => true,
                 'auto_update_balance' => true,
@@ -32,8 +32,8 @@ class FinancialAccountsSeeder extends Seeder
                 'account_name' => 'Bank BCA',
                 'account_type' => 'bank',
                 'account_category' => 'operational',
-                'opening_balance' => 10000000, // 10 juta
-                'current_balance' => 10000000,
+                'opening_balance' => 100000000, // 100 juta
+                'current_balance' => 100000000,
                 'bank_name' => 'Bank Central Asia',
                 'account_number' => '1234567890',
                 'description' => 'Rekening Bank BCA untuk transaksi non-tunai',

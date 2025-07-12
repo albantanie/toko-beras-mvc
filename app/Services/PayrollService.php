@@ -13,6 +13,53 @@ use Illuminate\Support\Facades\DB;
 class PayrollService
 {
     /**
+     * Generate monthly payroll for a specific user
+     */
+    public function generateMonthlyPayroll($userId, $year, $month)
+    {
+        $user = User::findOrFail($userId);
+
+        // Check if payroll already exists
+        $existingPayroll = Payroll::where('user_id', $userId)
+            ->where('year', $year)
+            ->where('month', $month)
+            ->first();
+
+        if ($existingPayroll) {
+            throw new \Exception('Payroll for this period already exists');
+        }
+
+        // Get payroll configuration for user's role
+        $role = $user->roles->first();
+        $config = PayrollConfiguration::where('role', $role->name)->first();
+
+        if (!$config) {
+            throw new \Exception('Payroll configuration not found for role: ' . $role->name);
+        }
+
+        // Calculate salary
+        $baseSalary = $config->base_salary;
+        $allowances = $config->allowances ?? 0;
+        $deductions = $config->deductions ?? 0;
+        $totalSalary = $baseSalary + $allowances - $deductions;
+
+        // Create payroll record
+        $payroll = Payroll::create([
+            'user_id' => $userId,
+            'month' => $month,
+            'year' => $year,
+            'base_salary' => $baseSalary,
+            'allowances' => $allowances,
+            'deductions' => $deductions,
+            'total_salary' => $totalSalary,
+            'payment_status' => 'unpaid',
+            'generated_at' => now(),
+        ]);
+
+        return $payroll;
+    }
+
+    /**
      * Generate payroll for a specific period
      */
     public function generatePayroll($period, $userIds = null)
@@ -280,7 +327,9 @@ class PayrollService
             // Validasi saldo akun
             $account = FinancialAccount::findOrFail($accountId);
             if ($account->current_balance < $payroll->net_salary) {
-                throw new \Exception('Saldo akun tidak mencukupi untuk pembayaran gaji');
+                $saldoFormatted = 'Rp ' . number_format($account->current_balance, 0, ',', '.');
+                $gajiFormatted = 'Rp ' . number_format($payroll->net_salary, 0, ',', '.');
+                throw new \Exception("Saldo akun {$account->account_name} tidak mencukupi untuk pembayaran gaji. Saldo saat ini: {$saldoFormatted}, Gaji yang harus dibayar: {$gajiFormatted}");
             }
 
             // Create financial transaction untuk pengeluaran gaji
