@@ -30,10 +30,7 @@ interface EditBarangProps {
     barang: Barang;
 }
 
-const categories = [
-    { value: 'Beras', label: 'Beras (kg)', unit: 'kg' },
-    { value: 'Plastik', label: 'Plastik (pcs)', unit: 'pcs' }
-];
+// Semua produk adalah beras dengan satuan kg
 
 
 
@@ -161,9 +158,7 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700">Satuan</label>
                                                     <p className="mt-1 text-sm text-gray-900 bg-white p-2 border rounded">
-                                                        {barang.kategori.toLowerCase().includes('plastik') ||
-                                                         barang.kategori.toLowerCase().includes('kemasan') ||
-                                                         barang.kategori.toLowerCase().includes('karung') ? 'pcs' : 'kg'}
+                                                        kg
                                                     </p>
                                                 </div>
                                             </div>
@@ -255,27 +250,19 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
                                             )}
                                         </div>
 
+                                        {/* Hidden kategori field - semua produk adalah beras */}
+                                        <input type="hidden" name="kategori" value="Beras" />
+
                                         <div>
-                                            <label htmlFor="kategori" className="block text-sm font-medium text-gray-700">
-                                                Category *
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Kategori Produk
                                             </label>
-                                            <select
-                                                id="kategori"
-                                                value={data.kategori}
-                                                onChange={(e) => setData('kategori', e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                required
-                                            >
-                                                <option value="">Pilih kategori</option>
-                                                {categories.map((category) => (
-                                                    <option key={category.value} value={category.value}>
-                                                        {category.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.kategori && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.kategori}</p>
-                                            )}
+                                            <div className="mt-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700">
+                                                Beras (kg)
+                                            </div>
+                                            <p className="mt-1 text-sm text-gray-500">
+                                                Semua produk di toko beras menggunakan satuan kilogram (kg)
+                                            </p>
                                         </div>
 
                                         <div>
@@ -404,18 +391,18 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
 
                                             <div>
                                                 <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">
-                                                    {data.kategori === 'Plastik' ? 'Jumlah per Satuan (pcs) *' : 'Berat per Satuan (kg) *'}
+                                                    Berat per Satuan (kg) *
                                                 </label>
                                                 <input
                                                     id="berat_per_unit"
                                                     type="number"
                                                     min="0"
-                                                    step={data.kategori === 'Plastik' ? '1' : '0.01'}
+                                                    step="0.01"
                                                     value={data.berat_per_unit}
                                                     onChange={(e) => setData('berat_per_unit', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
-                                                    placeholder={data.kategori === 'Plastik' ? '100' : '25.00'}
+                                                    placeholder="25.00"
                                                 />
                                                 {errors.berat_per_unit && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.berat_per_unit}</p>

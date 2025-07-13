@@ -129,6 +129,7 @@
                 <th>Tanggal</th>
                 <th>No. Transaksi</th>
                 <th>Customer</th>
+                <th>Pickup</th>
                 <th>User</th>
                 <th>Total</th>
             </tr>
@@ -140,6 +141,21 @@
                     <td>{{ \Carbon\Carbon::parse($t->tanggal_transaksi)->format('d/m/Y') }}</td>
                     <td>{{ $t->nomor_transaksi }}</td>
                     <td>{{ $t->nama_pelanggan ?? 'Umum' }}</td>
+                    <td>
+                        @php
+                            $pickupLabel = match($t->pickup_method ?? 'self') {
+                                'self' => 'Ambil Sendiri',
+                                'grab' => 'Grab',
+                                'gojek' => 'Gojek',
+                                'other' => 'Lainnya',
+                                default => 'Ambil Sendiri'
+                            };
+                        @endphp
+                        {{ $pickupLabel }}
+                        @if($t->pickup_person_name)
+                            <br><small>{{ $t->pickup_person_name }}</small>
+                        @endif
+                    </td>
                     <td>{{ $t->user->name ?? 'System' }}</td>
                     <td class="text-right">Rp {{ number_format($t->total, 0, ',', '.') }}</td>
                 </tr>
@@ -147,7 +163,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <th colspan="5" class="text-right">TOTAL</th>
+                <th colspan="6" class="text-right">TOTAL</th>
                 <th class="text-right">Rp {{ number_format($summary['total_penjualan'], 0, ',', '.') }}</th>
             </tr>
         </tfoot>

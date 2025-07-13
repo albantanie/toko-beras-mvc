@@ -22,5 +22,6 @@ class VerifyCsrfToken extends Middleware
         'login', // Disable CSRF for login
         'logout', // Disable CSRF for logout
         'register', // Disable CSRF for register
+        'cart/*', // Disable CSRF for cart operations
     ];
 }

@@ -41,6 +41,13 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         }
     );
 
+    // Helper function untuk validasi nomor HP (hanya angka)
+    const handlePhoneChange = (value: string) => {
+        // Hanya izinkan angka, spasi, tanda +, tanda -, dan tanda kurung
+        const cleanedValue = value.replace(/[^0-9+\-\s()]/g, '');
+        setData('phone_number', cleanedValue);
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
@@ -95,12 +102,15 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
                             <Input
                                 id="phone_number"
+                                type="tel"
                                 className="mt-1 block w-full"
                                 value={data.phone_number}
-                                onChange={(e) => setData('phone_number', e.target.value)}
+                                onChange={(e) => handlePhoneChange(e.target.value)}
+                                pattern="[0-9+\-\s()]+"
+                                title="Hanya boleh berisi angka, spasi, +, -, dan tanda kurung"
                                 required
                                 autoComplete="tel"
-                                placeholder="Nomor HP"
+                                placeholder="08123456789"
                             />
 
                             <InputError className="mt-2" message={errors.phone_number && `Nomor HP wajib diisi.`} />

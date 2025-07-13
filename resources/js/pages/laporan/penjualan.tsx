@@ -129,6 +129,44 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
             ),
         },
         {
+            key: 'pickup_method',
+            label: 'Pickup',
+            render: (value, row) => {
+                const getPickupLabel = (method: string) => {
+                    switch (method) {
+                        case 'self': return 'Ambil Sendiri';
+                        case 'grab': return 'Grab';
+                        case 'gojek': return 'Gojek';
+                        case 'other': return 'Lainnya';
+                        default: return 'Ambil Sendiri';
+                    }
+                };
+
+                const getPickupColor = (method: string) => {
+                    switch (method) {
+                        case 'self': return 'bg-blue-100 text-blue-800';
+                        case 'grab': return 'bg-green-100 text-green-800';
+                        case 'gojek': return 'bg-purple-100 text-purple-800';
+                        case 'other': return 'bg-gray-100 text-gray-800';
+                        default: return 'bg-blue-100 text-blue-800';
+                    }
+                };
+
+                return (
+                    <div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPickupColor(value || 'self')}`}>
+                            {getPickupLabel(value || 'self')}
+                        </span>
+                        {row.pickup_person_name && (
+                            <div className="text-xs text-gray-500 mt-1">
+                                {row.pickup_person_name}
+                            </div>
+                        )}
+                    </div>
+                );
+            },
+        },
+        {
             key: 'total',
             label: 'Total',
             sortable: true,

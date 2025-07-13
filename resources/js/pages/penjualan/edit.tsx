@@ -60,7 +60,6 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
     const [searchProduct, setSearchProduct] = useState('');
     const [selectedProduct, setSelectedProduct] = useState<Barang | null>(null);
     const [quantity, setQuantity] = useState(1);
-    const [customPrice, setCustomPrice] = useState('');
 
     const { data, setData, post, processing, errors, reset } = useForm({
         pelanggan_id: '',
@@ -69,8 +68,6 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
         alamat_pelanggan: penjualan.alamat_pelanggan || '',
         jenis_transaksi: penjualan.jenis_transaksi || 'offline',
         metode_pembayaran: penjualan.metode_pembayaran || 'tunai',
-        diskon: penjualan.diskon || 0,
-        pajak: penjualan.pajak || 0,
         bayar: penjualan.bayar || 0,
         catatan: penjualan.catatan || '',
         items: [] as any[],
@@ -99,14 +96,14 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
 
     // Calculate totals
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const total = subtotal - data.diskon + data.pajak;
+    const total = subtotal;
     const kembalian = data.bayar > total ? data.bayar - total : 0;
 
     // Add product to cart
     const addToCart = () => {
         if (!selectedProduct || quantity <= 0) return;
 
-        const price = customPrice ? parseFloat(customPrice) : selectedProduct.harga_jual;
+        const price = selectedProduct.harga_jual;
         if (price <= 0) return;
 
         // Check stock availability
@@ -146,7 +143,6 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
         // Reset form
         setSelectedProduct(null);
         setQuantity(1);
-        setCustomPrice('');
         setSearchProduct('');
     };
 
@@ -348,18 +344,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                                     />
                                                 </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700">
-                                                        Custom Price (Optional)
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        placeholder={selectedProduct.harga_jual.toString()}
-                                                        value={customPrice}
-                                                        onChange={(e) => setCustomPrice(e.target.value)}
-                                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                    />
-                                                </div>
+
                                                 <div className="flex items-end">
                                                     <button
                                                         type="button"
@@ -442,19 +427,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                     {/* Summary */}
                                     <div className="p-4 bg-gray-50">
                                         <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span>Subtotal:</span>
-                                                <span>{formatCurrency(subtotal)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span>Discount:</span>
-                                                <span>-{formatCurrency(data.diskon)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span>Tax:</span>
-                                                <span>{formatCurrency(data.pajak)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-lg font-semibold border-t pt-2">
+                                            <div className="flex justify-between text-lg font-semibold">
                                                 <span>Total:</span>
                                                 <span>{formatCurrency(total)}</span>
                                             </div>
@@ -561,32 +534,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                                         </select>
                                                     </div>
 
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700">
-                                                                Discount
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                value={data.diskon}
-                                                                onChange={(e) => setData('diskon', parseFloat(e.target.value) || 0)}
-                                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700">
-                                                                Tax
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                value={data.pajak}
-                                                                onChange={(e) => setData('pajak', parseFloat(e.target.value) || 0)}
-                                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                            />
-                                                        </div>
-                                                    </div>
+
 
                                                     {data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && (
                                                         <div>

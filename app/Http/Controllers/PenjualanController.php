@@ -466,8 +466,6 @@ class PenjualanController extends Controller
             'alamat_pelanggan' => 'nullable|string',
             'jenis_transaksi' => 'required|in:offline,online',
             'metode_pembayaran' => 'required|in:tunai,transfer,kartu_debit,kartu_kredit',
-            'diskon' => 'nullable|numeric|min:0',
-            'pajak' => 'nullable|numeric|min:0',
             'bayar' => 'nullable|numeric|min:0',
             'catatan' => 'nullable|string',
             'items' => 'required|array',
@@ -563,9 +561,7 @@ class PenjualanController extends Controller
                 $subtotal += $item['jumlah'] * $item['harga_satuan'];
             }
 
-            $diskon = $request->diskon ?? 0;
-            $pajak = $request->pajak ?? 0;
-            $total = $subtotal - $diskon + $pajak;
+            $total = $subtotal;
 
             // Update penjualan
             $penjualan->update([
@@ -576,8 +572,6 @@ class PenjualanController extends Controller
                 'jenis_transaksi' => $request->jenis_transaksi,
                 'metode_pembayaran' => $request->metode_pembayaran,
                 'subtotal' => $subtotal,
-                'diskon' => $diskon,
-                'pajak' => $pajak,
                 'total' => $total,
                 'bayar' => $request->jenis_transaksi === 'offline' ? $request->bayar : null,
                 'kembalian' => ($request->jenis_transaksi === 'offline' && $request->bayar) ? $request->bayar - $total : null,

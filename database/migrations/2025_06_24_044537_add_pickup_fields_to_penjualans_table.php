@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('penjualans', function (Blueprint $table) {
+        Schema::table('transaksi', function (Blueprint $table) {
             $table->enum('pickup_method', ['self', 'grab', 'gojek', 'other'])->default('self')->after('jenis_transaksi');
             $table->string('pickup_person_name')->nullable()->after('pickup_method');
             $table->string('pickup_person_phone')->nullable()->after('pickup_person_name');
@@ -26,7 +26,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('penjualans', function (Blueprint $table) {
+        Schema::table('transaksi', function (Blueprint $table) {
             $table->dropColumn([
                 'pickup_method',
                 'pickup_person_name',

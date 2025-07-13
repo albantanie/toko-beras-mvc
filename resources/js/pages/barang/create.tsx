@@ -26,20 +26,13 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const categories = [
-    { value: 'Beras', label: 'Beras (kg)', unit: 'kg' },
-    { value: 'Plastik', label: 'Plastik (pcs)', unit: 'pcs' }
-];
-
-
-
 export default function CreateBarang({ auth }: PageProps) {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     
     const { data, setData, post, processing, errors, reset } = useForm({
         nama: '',
         kode_barang: '',
-        kategori: '',
+        kategori: 'Beras', // Default ke Beras
         deskripsi: '',
         harga_beli: '',
         harga_jual: '',
@@ -157,27 +150,19 @@ export default function CreateBarang({ auth }: PageProps) {
                                             )}
                                         </div>
 
+                                        {/* Hidden kategori field - semua produk adalah beras */}
+                                        <input type="hidden" name="kategori" value="Beras" />
+
                                         <div>
-                                            <label htmlFor="kategori" className="block text-sm font-medium text-gray-700">
-                                                Kategori *
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Kategori Produk
                                             </label>
-                                            <select
-                                                id="kategori"
-                                                value={data.kategori}
-                                                onChange={(e) => setData('kategori', e.target.value)}
-                                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                                required
-                                            >
-                                                <option value="">Pilih kategori</option>
-                                                {categories.map((category) => (
-                                                    <option key={category.value} value={category.value}>
-                                                        {category.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.kategori && (
-                                                <p className="mt-1 text-sm text-red-600">{errors.kategori}</p>
-                                            )}
+                                            <div className="mt-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700">
+                                                Beras (kg)
+                                            </div>
+                                            <p className="mt-1 text-sm text-gray-500">
+                                                Semua produk di toko beras menggunakan satuan kilogram (kg)
+                                            </p>
                                         </div>
 
                                         <div>
@@ -222,8 +207,7 @@ export default function CreateBarang({ auth }: PageProps) {
                                                             </p>
                                                             <p className="mt-2">
                                                                 <strong>Kategori Produk:</strong><br/>
-                                                                • <strong>Beras (kg):</strong> Untuk produk beras yang diukur dalam kilogram<br/>
-                                                                • <strong>Plastik (pcs):</strong> Untuk produk kemasan plastik yang dihitung per pieces
+                                                                • <strong>Beras (kg):</strong> Semua produk beras diukur dalam kilogram
                                                             </p>
                                                         </div>
                                                     </div>
@@ -352,18 +336,18 @@ export default function CreateBarang({ auth }: PageProps) {
 
                                             <div>
                                                 <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">
-                                                    {data.kategori === 'Plastik' ? 'Jumlah per Satuan (pcs) *' : 'Berat per Satuan (kg) *'}
+                                                    Berat per Satuan (kg) *
                                                 </label>
                                                 <input
                                                     id="berat_per_unit"
                                                     type="number"
                                                     min="0"
-                                                    step={data.kategori === 'Plastik' ? '1' : '0.01'}
+                                                    step="0.01"
                                                     value={data.berat_per_unit}
                                                     onChange={(e) => setData('berat_per_unit', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
-                                                    placeholder={data.kategori === 'Plastik' ? '100' : '25.00'}
+                                                    placeholder="25.00"
                                                 />
                                                 {errors.berat_per_unit && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.berat_per_unit}</p>

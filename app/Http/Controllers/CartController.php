@@ -231,16 +231,18 @@ class CartController extends Controller
         // Validasi data checkout yang lengkap
         $request->validate([
             'nama_pelanggan' => 'required|string|max:255',
-            'telepon_pelanggan' => 'required|string|max:20',
+            'telepon_pelanggan' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'alamat_pelanggan' => 'required|string',
             'metode_pembayaran' => 'required|in:tunai,transfer',
             'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'pickup_method' => 'required|in:self,grab,gojek,other',
             'pickup_person_name' => 'nullable|string|max:255',
-            'pickup_person_phone' => 'nullable|string|max:20',
+            'pickup_person_phone' => 'nullable|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'pickup_notes' => 'nullable|string|max:500',
             'catatan' => 'nullable|string|max:500',
         ], [
+            'telepon_pelanggan.regex' => 'Nomor HP pelanggan hanya boleh berisi angka, spasi, +, -, dan tanda kurung.',
+            'pickup_person_phone.regex' => 'Nomor HP pengambil hanya boleh berisi angka, spasi, +, -, dan tanda kurung.',
             'payment_proof.file' => 'File bukti pembayaran tidak valid',
             'payment_proof.mimes' => 'Format file harus JPG, PNG, atau PDF',
             'payment_proof.max' => 'Ukuran file maksimal 5MB',
@@ -248,14 +250,21 @@ class CartController extends Controller
 
         // Validasi tambahan untuk pickup person jika bukan self
         if ($request->pickup_method !== 'self') {
+            $pickupTypeLabel = match($request->pickup_method) {
+                'grab' => 'Grab Driver',
+                'gojek' => 'Gojek Driver',
+                'other' => 'pengambil',
+                default => 'pengambil'
+            };
+
             if (empty($request->pickup_person_name)) {
                 return redirect()->back()
-                    ->withErrors(['pickup_person_name' => 'Nama pengambil wajib diisi jika tidak mengambil sendiri'])
+                    ->withErrors(['pickup_person_name' => "Nama {$pickupTypeLabel} wajib diisi"])
                     ->withInput();
             }
             if (empty($request->pickup_person_phone)) {
                 return redirect()->back()
-                    ->withErrors(['pickup_person_phone' => 'Nomor HP pengambil wajib diisi jika tidak mengambil sendiri'])
+                    ->withErrors(['pickup_person_phone' => "Nomor HP {$pickupTypeLabel} wajib diisi"])
                     ->withInput();
             }
         }

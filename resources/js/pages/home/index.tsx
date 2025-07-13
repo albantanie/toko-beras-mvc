@@ -1,7 +1,7 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { PageProps, Barang } from '@/types';
 import { formatCurrency, ProductImage, Icons, getProductUnit } from '@/utils/formatters';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 
 interface HomeProps extends PageProps {
@@ -34,7 +34,7 @@ interface HomeProps extends PageProps {
 
 export default function Home({ auth, barangs, categories, stats, filters, cartCount }: HomeProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
-    const [selectedCategory, setSelectedCategory] = useState(filters.kategori || 'all');
+    // Tidak perlu kategori filter karena semua produk adalah beras
     const [sortBy, setSortBy] = useState(filters.sort || 'nama');
     const [sortDirection, setSortDirection] = useState(filters.direction || 'asc');
 
@@ -45,14 +45,25 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
 
     const [addingToCart, setAddingToCart] = useState<number | null>(null);
 
+    // Debounced search - auto search when user stops typing
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleSearch();
+        }, 500); // Wait 500ms after user stops typing
+
+        return () => clearTimeout(timer);
+    }, [searchTerm, sortBy, sortDirection]);
+
     const handleSearch = () => {
-        const params = new URLSearchParams();
-        if (searchTerm) params.append('search', searchTerm);
-        if (selectedCategory !== 'all') params.append('kategori', selectedCategory);
-        if (sortBy) params.append('sort', sortBy);
-        if (sortDirection) params.append('direction', sortDirection);
-        
-        window.location.href = `/?${params.toString()}`;
+        const params: any = {};
+        if (searchTerm) params.search = searchTerm;
+        if (sortBy) params.sort = sortBy;
+        if (sortDirection) params.direction = sortDirection;
+
+        router.get('/', params, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
     const addToCart = (barangId: number) => {
@@ -128,38 +139,18 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                     </div>
                 </section>
 
-                {/* Category Section */}
+                {/* Beras Section */}
                 <section className="mb-8">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">Kategori Pilihan</h2>
-                        <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                            <button
-                                onClick={() => setSelectedCategory('all')}
-                                className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
-                                    selectedCategory === 'all'
-                                        ? 'border-green-500 bg-green-50/20 text-green-700'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:border-green-300:border-green-600'
-                                }`}
-                            >
-                                <div className="text-2xl mb-2">🌾</div>
-                                <span className="text-sm font-medium text-center">Semua</span>
-                            </button>
-                            {categories.map((category, index) => (
-                                <button
-                                    key={category}
-                                    onClick={() => setSelectedCategory(category)}
-                                    className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
-                                        selectedCategory === category
-                                            ? 'border-green-500 bg-green-50 text-green-700'
-                                            : 'border-gray-200 bg-white text-gray-600 hover:border-green-300'
-                                    }`}
-                                >
-                                    <div className="text-2xl mb-2">
-                                        {index === 0 ? '🍚' : index === 1 ? '🥄' : index === 2 ? '🌿' : '⭐'}
-                                    </div>
-                                    <span className="text-sm font-medium text-center">{category}</span>
-                                </button>
-                            ))}
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">Produk Beras Berkualitas</h2>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center">
+                                <div className="text-3xl mr-4">🌾</div>
+                                <div>
+                                    <h3 className="font-semibold text-green-800">Beras Premium</h3>
+                                    <p className="text-green-600 text-sm">Semua produk beras berkualitas tinggi dengan harga terjangkau</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -196,7 +187,6 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                         placeholder="Cari produk beras..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-sm bg-white text-gray-900 placeholder-gray-400"
                                     />
                                     <Icons.search className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
@@ -243,10 +233,8 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                 <h2 className="text-xl font-bold text-gray-900">
                                     {filters.search ? (
                                         <>Berdasarkan pencarianmu <span className="text-green-600">"{filters.search}"</span></>
-                                    ) : selectedCategory && selectedCategory !== 'all' ? (
-                                        <>Kategori <span className="text-green-600">{selectedCategory}</span></>
                                     ) : (
-                                        'Semua Produk'
+                                        'Semua Produk Beras'
                                     )}
                                 </h2>
                                 <p className="text-sm text-gray-600 mt-1">
@@ -254,11 +242,10 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                 </p>
                             </div>
 
-                            {(filters.search || (selectedCategory && selectedCategory !== 'all')) && (
+                            {filters.search && (
                                 <button
                                     onClick={() => {
                                         setSearchTerm('');
-                                        setSelectedCategory('all');
                                         router.get('/', {}, { preserveState: true });
                                     }}
                                     className="text-sm text-green-600 hover:text-green-700 font-medium"

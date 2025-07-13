@@ -86,7 +86,7 @@ class UserController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'username' => 'required|string|max:255|unique:users',
-                'phone_number' => 'required|string|max:20',
+                'phone_number' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
                 'address' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
@@ -96,6 +96,7 @@ class UserController extends Controller
                 'username.required' => 'Username harus diisi.',
                 'username.unique' => 'Username sudah digunakan.',
                 'phone_number.required' => 'Nomor HP harus diisi.',
+                'phone_number.regex' => 'Nomor HP hanya boleh berisi angka, spasi, +, -, dan tanda kurung.',
                 'address.required' => 'Alamat harus diisi.',
                 'email.required' => 'Email harus diisi.',
                 'email.email' => 'Format email tidak valid.',
@@ -173,7 +174,7 @@ class UserController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'username' => 'required|string|max:255|unique:users,username,' . $user->id,
-                'phone_number' => 'required|string|max:20',
+                'phone_number' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
                 'address' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
                 'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
@@ -183,6 +184,7 @@ class UserController extends Controller
                 'username.required' => 'Username harus diisi.',
                 'username.unique' => 'Username sudah digunakan.',
                 'phone_number.required' => 'Nomor HP harus diisi.',
+                'phone_number.regex' => 'Nomor HP hanya boleh berisi angka, spasi, +, -, dan tanda kurung.',
                 'address.required' => 'Alamat harus diisi.',
                 'email.required' => 'Email harus diisi.',
                 'email.email' => 'Format email tidak valid.',

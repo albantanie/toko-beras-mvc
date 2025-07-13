@@ -57,6 +57,24 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
         catatan: '',
     });
 
+    // Helper function untuk validasi nomor HP (hanya angka)
+    const handlePhoneChange = (value: string, field: 'telepon_pelanggan' | 'pickup_person_phone') => {
+        // Hanya izinkan angka, spasi, tanda +, tanda -, dan tanda kurung
+        const cleanedValue = value.replace(/[^0-9+\-\s()]/g, '');
+        setData(field, cleanedValue);
+    };
+
+    // Helper function untuk handle perubahan pickup method
+    const handlePickupMethodChange = (method: string) => {
+        setData(prevData => ({
+            ...prevData,
+            pickup_method: method,
+            // Clear pickup person data jika pilih "Ambil Sendiri"
+            pickup_person_name: method === 'self' ? '' : prevData.pickup_person_name,
+            pickup_person_phone: method === 'self' ? '' : prevData.pickup_person_phone,
+        }));
+    };
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         // Kirim data sebagai FormData agar file terupload
@@ -146,7 +164,10 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                 <input
                                                     type="tel"
                                                     value={data.telepon_pelanggan}
-                                                    onChange={(e) => setData('telepon_pelanggan', e.target.value)}
+                                                    onChange={(e) => handlePhoneChange(e.target.value, 'telepon_pelanggan')}
+                                                    placeholder="08123456789"
+                                                    pattern="[0-9+\-\s()]+"
+                                                    title="Hanya boleh berisi angka, spasi, +, -, dan tanda kurung"
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                                                     required
                                                 />
@@ -309,7 +330,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             name="pickup_method"
                                                             value="self"
                                                             checked={data.pickup_method === 'self'}
-                                                            onChange={(e) => setData('pickup_method', e.target.value)}
+                                                            onChange={(e) => handlePickupMethodChange(e.target.value)}
                                                             className="text-green-600 focus:ring-green-500"
                                                         />
                                                         <span className="ml-3">Ambil Sendiri</span>
@@ -320,7 +341,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             name="pickup_method"
                                                             value="grab"
                                                             checked={data.pickup_method === 'grab'}
-                                                            onChange={(e) => setData('pickup_method', e.target.value)}
+                                                            onChange={(e) => handlePickupMethodChange(e.target.value)}
                                                             className="text-green-600 focus:ring-green-500"
                                                         />
                                                         <span className="ml-3">Grab Driver</span>
@@ -331,7 +352,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             name="pickup_method"
                                                             value="gojek"
                                                             checked={data.pickup_method === 'gojek'}
-                                                            onChange={(e) => setData('pickup_method', e.target.value)}
+                                                            onChange={(e) => handlePickupMethodChange(e.target.value)}
                                                             className="text-green-600 focus:ring-green-500"
                                                         />
                                                         <span className="ml-3">Gojek Driver</span>
@@ -342,7 +363,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             name="pickup_method"
                                                             value="other"
                                                             checked={data.pickup_method === 'other'}
-                                                            onChange={(e) => setData('pickup_method', e.target.value)}
+                                                            onChange={(e) => handlePickupMethodChange(e.target.value)}
                                                             className="text-green-600 focus:ring-green-500"
                                                         />
                                                         <span className="ml-3">Orang Lain</span>
@@ -357,12 +378,19 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                            Nama Pengambil *
+                                                            {data.pickup_method === 'grab' && 'Nama Grab Driver *'}
+                                                            {data.pickup_method === 'gojek' && 'Nama Gojek Driver *'}
+                                                            {data.pickup_method === 'other' && 'Nama Pengambil *'}
                                                         </label>
                                                         <input
                                                             type="text"
                                                             value={data.pickup_person_name}
                                                             onChange={(e) => setData('pickup_person_name', e.target.value)}
+                                                            placeholder={
+                                                                data.pickup_method === 'grab' ? 'Nama driver Grab' :
+                                                                data.pickup_method === 'gojek' ? 'Nama driver Gojek' :
+                                                                'Nama orang yang mengambil'
+                                                            }
                                                     className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                                                             required={data.pickup_method !== 'self'}
                                                         />
@@ -373,12 +401,21 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
 
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                            Nomor HP Pengambil *
+                                                            {data.pickup_method === 'grab' && 'Nomor HP Grab Driver *'}
+                                                            {data.pickup_method === 'gojek' && 'Nomor HP Gojek Driver *'}
+                                                            {data.pickup_method === 'other' && 'Nomor HP Pengambil *'}
                                                         </label>
                                                         <input
                                                             type="tel"
                                                             value={data.pickup_person_phone}
-                                                            onChange={(e) => setData('pickup_person_phone', e.target.value)}
+                                                            onChange={(e) => handlePhoneChange(e.target.value, 'pickup_person_phone')}
+                                                            placeholder={
+                                                                data.pickup_method === 'grab' ? 'HP driver Grab' :
+                                                                data.pickup_method === 'gojek' ? 'HP driver Gojek' :
+                                                                '08123456789'
+                                                            }
+                                                            pattern="[0-9+\-\s()]+"
+                                                            title="Hanya boleh berisi angka, spasi, +, -, dan tanda kurung"
                                                     className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                                                             required={data.pickup_method !== 'self'}
                                                         />
@@ -398,7 +435,12 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             onChange={(e) => setData('pickup_notes', e.target.value)}
                                             rows={3}
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-                                            placeholder="Contoh: Ambil di depan toko, pakai motor merah"
+                                            placeholder={
+                                                data.pickup_method === 'self' ? 'Contoh: Ambil di depan toko, pakai motor merah' :
+                                                data.pickup_method === 'grab' ? 'Contoh: Driver pakai jaket hijau, motor Honda Beat' :
+                                                data.pickup_method === 'gojek' ? 'Contoh: Driver pakai jaket hijau, motor Yamaha' :
+                                                'Contoh: Ciri-ciri orang yang mengambil, kendaraan yang dipakai'
+                                            }
                                                         />
                                                         {errors.pickup_notes && (
                                                             <p className="mt-1 text-sm text-red-600">{errors.pickup_notes}</p>

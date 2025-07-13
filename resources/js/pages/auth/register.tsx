@@ -27,6 +27,13 @@ export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
+    // Helper function untuk validasi nomor HP (hanya angka)
+    const handlePhoneChange = (value: string) => {
+        // Hanya izinkan angka, spasi, tanda +, tanda -, dan tanda kurung
+        const cleanedValue = value.replace(/[^0-9+\-\s()]/g, '');
+        setData('phone_number', cleanedValue);
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('register'), {
@@ -145,10 +152,12 @@ export default function Register() {
                                         autoComplete="tel"
                                         required
                                         value={data.phone_number}
-                                        onChange={(e) => setData('phone_number', e.target.value)}
+                                        onChange={(e) => handlePhoneChange(e.target.value)}
                                         disabled={processing}
+                                        pattern="[0-9+\-\s()]+"
+                                        title="Hanya boleh berisi angka, spasi, +, -, dan tanda kurung"
                                         className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm disabled:opacity-50 text-gray-900 bg-white"
-                                        placeholder="Masukkan nomor HP aktif"
+                                        placeholder="08123456789"
                                     />
                                     <Icons.mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                                 </div>

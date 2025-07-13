@@ -30,6 +30,13 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
+    // Helper function untuk validasi nomor HP (hanya angka)
+    const handlePhoneChange = (value: string) => {
+        // Hanya izinkan angka, spasi, tanda +, tanda -, dan tanda kurung
+        const cleanedValue = value.replace(/[^0-9+\-\s()]/g, '');
+        setData('phone_number', cleanedValue);
+    };
+
     const { data, setData, post, processing, errors } = useForm({
         name: user.name || '',
         username: user.username || '',
@@ -108,10 +115,13 @@ export default function EditUser({ auth, user, roles }: EditUserProps) {
                                     </label>
                                     <input
                                         id="phone_number"
-                                        type="text"
+                                        type="tel"
                                         value={data.phone_number}
-                                        onChange={(e) => setData('phone_number', e.target.value)}
+                                        onChange={(e) => handlePhoneChange(e.target.value)}
+                                        pattern="[0-9+\-\s()]+"
+                                        title="Hanya boleh berisi angka, spasi, +, -, dan tanda kurung"
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="08123456789"
                                         required
                                     />
                                     {errors.phone_number && (

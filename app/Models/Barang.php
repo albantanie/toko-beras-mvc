@@ -384,17 +384,11 @@ class Barang extends Model
     }
 
     /**
-     * Get unit based on category
-     * Beras = kg, Plastik/Kemasan = pcs
+     * Get unit for rice products
+     * Semua produk beras menggunakan satuan kg
      */
     public function getSatuanAttribute(): string
     {
-        $kategoriLower = strtolower($this->kategori);
-        if (str_contains($kategoriLower, 'plastik') ||
-            str_contains($kategoriLower, 'kemasan') ||
-            str_contains($kategoriLower, 'karung')) {
-            return 'pcs';
-        }
-        return 'kg'; // Default untuk beras
+        return 'kg'; // Semua produk beras menggunakan kg
     }
 }

@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, Barang } from '@/types';
 import { formatCurrency, ProductImage, Icons } from '@/utils/formatters';
 import Header from '@/components/Header';
@@ -17,28 +17,116 @@ interface CartProps extends PageProps {
 }
 
 export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
-    const { patch, delete: destroy, processing } = useForm();
 
     const updateQuantity = (barangId: number, quantity: number) => {
-        patch(route('cart.update'), {
-            data: {
-                barang_id: barangId,
-                quantity: quantity,
-            },
-        });
+        if (quantity <= 0) {
+            removeItem(barangId);
+            return;
+        }
+
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = route('cart.update');
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+        }
+
+        // Add method override for PATCH
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'PATCH';
+        form.appendChild(methodInput);
+
+        // Add barang_id
+        const barangIdInput = document.createElement('input');
+        barangIdInput.type = 'hidden';
+        barangIdInput.name = 'barang_id';
+        barangIdInput.value = barangId.toString();
+        form.appendChild(barangIdInput);
+
+        // Add quantity
+        const quantityInput = document.createElement('input');
+        quantityInput.type = 'hidden';
+        quantityInput.name = 'quantity';
+        quantityInput.value = quantity.toString();
+        form.appendChild(quantityInput);
+
+        document.body.appendChild(form);
+        form.submit();
     };
 
     const removeItem = (barangId: number) => {
-        destroy(route('cart.remove'), {
-            data: {
-                barang_id: barangId,
-            },
-        });
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = route('cart.remove');
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+        }
+
+        // Add method override for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+
+        // Add barang_id
+        const barangIdInput = document.createElement('input');
+        barangIdInput.type = 'hidden';
+        barangIdInput.name = 'barang_id';
+        barangIdInput.value = barangId.toString();
+        form.appendChild(barangIdInput);
+
+        document.body.appendChild(form);
+        form.submit();
     };
 
     const clearCart = () => {
         if (confirm('Apakah Anda yakin ingin mengosongkan keranjang?')) {
-            destroy(route('cart.clear'));
+            // Create a form and submit it
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = route('cart.clear');
+            form.style.display = 'none';
+
+            // Add CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+            }
+
+            // Add method override for DELETE
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'DELETE';
+            form.appendChild(methodInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
     };
 
@@ -108,8 +196,7 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                             {cartItems.length > 0 && (
                                                 <button
                                                     onClick={clearCart}
-                                                    disabled={processing}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                 >
                                                     Kosongkan Keranjang
                                                 </button>
@@ -146,7 +233,7 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => updateQuantity(item.barang.id, item.quantity - 1)}
-                                                                    disabled={processing || item.quantity <= 1}
+                                                                    disabled={item.quantity <= 1}
                                                                     className="px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 >
                                                                     -
@@ -157,7 +244,7 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => updateQuantity(item.barang.id, item.quantity + 1)}
-                                                                    disabled={processing || item.quantity >= item.barang.stok}
+                                                                    disabled={item.quantity >= item.barang.stok}
                                                                     className="px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 >
                                                                     +
@@ -170,8 +257,7 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                                                 </p>
                                                                 <button
                                                                     onClick={() => removeItem(item.barang.id)}
-                                                                    disabled={processing}
-                                                                    className="text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
+                                                                    className="text-red-600 hover:text-red-800 text-sm"
                                                                 >
                                                                     Hapus
                                                                 </button>
@@ -201,10 +287,6 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600">Subtotal</span>
                                                 <span className="font-semibold">{formatCurrency(total)}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Ongkos Kirim</span>
-                                                <span className="text-green-600">Gratis</span>
                                             </div>
                                             <div className="border-t pt-3">
                                                 <div className="flex justify-between">
@@ -249,16 +331,7 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                             </Link>
                                         </div>
 
-                                        <div className="mt-6 text-sm text-gray-600">
-                                            <p className="flex items-center">
-                                                <Icons.check className="w-4 h-4 text-green-600 mr-2" />
-                                                Gratis ongkos kirim
-                                            </p>
-                                            <p className="flex items-center mt-1">
-                                                <Icons.check className="w-4 h-4 text-green-600 mr-2" />
-                                                Garansi kualitas produk
-                                            </p>
-                                        </div>
+
                                     </div>
                                 </div>
                             </div>

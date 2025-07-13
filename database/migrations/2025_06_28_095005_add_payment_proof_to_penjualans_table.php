@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('penjualans', function (Blueprint $table) {
+        Schema::table('transaksi', function (Blueprint $table) {
             $table->string('payment_proof')->nullable()->after('metode_pembayaran');
             $table->timestamp('payment_confirmed_at')->nullable()->after('payment_proof');
             $table->foreignId('payment_confirmed_by')->nullable()->after('payment_confirmed_at')->constrained('users')->onDelete('set null');
@@ -26,7 +26,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('penjualans', function (Blueprint $table) {
+        Schema::table('transaksi', function (Blueprint $table) {
             $table->dropForeign(['payment_confirmed_by']);
             $table->dropForeign(['payment_rejected_by']);
             $table->dropColumn([
