@@ -85,12 +85,12 @@ class UserController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'username' => 'required|string|max:255|unique:users',
+                'username' => 'required|string|max:255|unique:pengguna',
                 'phone_number' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
                 'address' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
+                'email' => 'required|string|email|max:255|unique:pengguna',
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
-                'role_id' => 'required|exists:roles,id',
+                'role_id' => 'required|exists:peran,id',
             ], [
                 'name.required' => 'Nama harus diisi.',
                 'username.required' => 'Username harus diisi.',
@@ -173,12 +173,12 @@ class UserController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'username' => 'required|string|max:255|unique:users,username,' . $user->id,
+                'username' => 'required|string|max:255|unique:pengguna,username,' . $user->id,
                 'phone_number' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
                 'address' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+                'email' => 'required|string|email|max:255|unique:pengguna,email,' . $user->id,
                 'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-                'role_id' => 'required|exists:roles,id',
+                'role_id' => 'required|exists:peran,id',
             ], [
                 'name.required' => 'Nama harus diisi.',
                 'username.required' => 'Username harus diisi.',
