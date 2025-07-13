@@ -17,5 +17,10 @@ class VerifyCsrfToken extends Middleware
         'laporan/generate-*',
         'laporan/*',
         'test/csrf-bypass',
+        'csrf-token', // Allow CSRF token refresh
+        'test-session', // Test route
+        'login', // Disable CSRF for login
+        'logout', // Disable CSRF for logout
+        'register', // Disable CSRF for register
     ];
 }

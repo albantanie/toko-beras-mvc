@@ -351,18 +351,18 @@ class DashboardController extends Controller
      */
     private function getTopProducts(int $limit = 5): array
     {
-        return DB::table('detail_penjualans')
-            ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
-            ->join('penjualans', 'detail_penjualans.penjualan_id', '=', 'penjualans.id')
-            ->where('penjualans.status', '!=', 'dibatalkan')
-            ->whereDate('penjualans.tanggal_transaksi', '>=', Carbon::now()->subDays(30))
+        return DB::table('rekap')
+            ->join('produk', 'rekap.barang_id', '=', 'produk.id')
+            ->join('transaksi', 'rekap.penjualan_id', '=', 'transaksi.id')
+            ->where('transaksi.status', '!=', 'dibatalkan')
+            ->whereDate('transaksi.tanggal_transaksi', '>=', Carbon::now()->subDays(30))
             ->select(
-                'barangs.nama',
-                'barangs.kategori',
-                DB::raw('SUM(detail_penjualans.jumlah) as total_sold'),
-                DB::raw('SUM(detail_penjualans.subtotal) as total_revenue')
+                'produk.nama',
+                'produk.kategori',
+                DB::raw('SUM(rekap.jumlah) as total_sold'),
+                DB::raw('SUM(rekap.subtotal) as total_revenue')
             )
-            ->groupBy('barangs.id', 'barangs.nama', 'barangs.kategori')
+            ->groupBy('produk.id', 'produk.nama', 'produk.kategori')
             ->orderBy('total_sold', 'desc')
             ->limit($limit)
             ->get()
@@ -656,11 +656,11 @@ class DashboardController extends Controller
             $date = Carbon::now()->subDays($i);
 
             // Get sales for this date (stock out)
-            $salesData = DB::table('detail_penjualans')
-                ->join('penjualans', 'detail_penjualans.penjualan_id', '=', 'penjualans.id')
-                ->whereDate('penjualans.tanggal_transaksi', $date)
-                ->where('penjualans.status', '!=', 'dibatalkan')
-                ->sum('detail_penjualans.jumlah');
+            $salesData = DB::table('rekap')
+                ->join('transaksi', 'rekap.penjualan_id', '=', 'transaksi.id')
+                ->whereDate('transaksi.tanggal_transaksi', $date)
+                ->where('transaksi.status', '!=', 'dibatalkan')
+                ->sum('rekap.jumlah');
 
             // For demo purposes, simulate stock in (purchases/restocks)
             // In real scenario, you would have a purchases/stock_movements table
@@ -757,24 +757,24 @@ class DashboardController extends Controller
     {
         $thirtyDaysAgo = Carbon::parse($dateFrom);
 
-        $bestSellers = DB::table('detail_penjualans')
-            ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
-            ->join('penjualans', 'detail_penjualans.penjualan_id', '=', 'penjualans.id')
-            ->where('penjualans.tanggal_transaksi', '>=', $thirtyDaysAgo)
-            ->where('penjualans.status', '!=', 'dibatalkan')
+        $bestSellers = DB::table('rekap')
+            ->join('produk', 'rekap.barang_id', '=', 'produk.id')
+            ->join('transaksi', 'rekap.penjualan_id', '=', 'transaksi.id')
+            ->where('transaksi.tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('transaksi.status', '!=', 'dibatalkan')
             ->select(
-                'barangs.id',
-                'barangs.nama',
-                'barangs.kategori',
-                'barangs.harga_jual',
-                'barangs.stok',
-                'barangs.gambar',
-                DB::raw('SUM(detail_penjualans.jumlah) as total_terjual'),
-                DB::raw('SUM(detail_penjualans.jumlah * detail_penjualans.harga_satuan) as total_revenue'),
-                DB::raw('COUNT(DISTINCT penjualans.id) as total_transaksi'),
-                DB::raw('AVG(detail_penjualans.harga_satuan) as avg_price')
+                'produk.id',
+                'produk.nama',
+                'produk.kategori',
+                'produk.harga_jual',
+                'produk.stok',
+                'produk.gambar',
+                DB::raw('SUM(rekap.jumlah) as total_terjual'),
+                DB::raw('SUM(rekap.jumlah * rekap.harga_satuan) as total_revenue'),
+                DB::raw('COUNT(DISTINCT transaksi.id) as total_transaksi'),
+                DB::raw('AVG(rekap.harga_satuan) as avg_price')
             )
-            ->groupBy('barangs.id', 'barangs.nama', 'barangs.kategori', 'barangs.harga_jual', 'barangs.stok', 'barangs.gambar')
+            ->groupBy('produk.id', 'produk.nama', 'produk.kategori', 'produk.harga_jual', 'produk.stok', 'produk.gambar')
             ->orderBy('total_terjual', 'desc')
             ->limit(8)
             ->get()
@@ -821,14 +821,14 @@ class DashboardController extends Controller
         }
 
         // 2. Best seller out of stock
-        $bestSellerOutOfStock = DB::table('detail_penjualans')
-            ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
-            ->join('penjualans', 'detail_penjualans.penjualan_id', '=', 'penjualans.id')
-            ->where('penjualans.tanggal_transaksi', '>=', $thirtyDaysAgo)
-            ->where('penjualans.status', '!=', 'dibatalkan')
-            ->where('barangs.stok', '<=', 5)
-            ->select('barangs.nama', DB::raw('SUM(detail_penjualans.jumlah) as total_terjual'))
-            ->groupBy('barangs.id', 'barangs.nama')
+        $bestSellerOutOfStock = DB::table('rekap')
+            ->join('produk', 'rekap.barang_id', '=', 'produk.id')
+            ->join('transaksi', 'rekap.penjualan_id', '=', 'transaksi.id')
+            ->where('transaksi.tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('transaksi.status', '!=', 'dibatalkan')
+            ->where('produk.stok', '<=', 5)
+            ->select('produk.nama', DB::raw('SUM(rekap.jumlah) as total_terjual'))
+            ->groupBy('produk.id', 'produk.nama')
             ->orderBy('total_terjual', 'desc')
             ->first();
 
@@ -928,18 +928,18 @@ class DashboardController extends Controller
             ->avg('total') ?? 0;
 
         // Top customers by revenue
-        $topCustomers = DB::table('penjualans')
-            ->join('users', 'penjualans.pelanggan_id', '=', 'users.id')
-            ->where('penjualans.tanggal_transaksi', '>=', $thirtyDaysAgo)
-            ->where('penjualans.status', '!=', 'dibatalkan')
-            ->whereNotNull('penjualans.pelanggan_id')
+        $topCustomers = DB::table('transaksi')
+            ->join('pengguna', 'transaksi.pelanggan_id', '=', 'pengguna.id')
+            ->where('transaksi.tanggal_transaksi', '>=', $thirtyDaysAgo)
+            ->where('transaksi.status', '!=', 'dibatalkan')
+            ->whereNotNull('transaksi.pelanggan_id')
             ->select(
-                'users.name',
-                'users.email',
-                DB::raw('SUM(penjualans.total) as total_spent'),
-                DB::raw('COUNT(penjualans.id) as total_orders')
+                'pengguna.name',
+                'pengguna.email',
+                DB::raw('SUM(transaksi.total) as total_spent'),
+                DB::raw('COUNT(transaksi.id) as total_orders')
             )
-            ->groupBy('users.id', 'users.name', 'users.email')
+            ->groupBy('pengguna.id', 'pengguna.name', 'pengguna.email')
             ->orderBy('total_spent', 'desc')
             ->limit(5)
             ->get()

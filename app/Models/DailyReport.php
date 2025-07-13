@@ -22,6 +22,8 @@ class DailyReport extends Model
 {
     use HasFactory;
 
+    protected $table = 'laporan';
+
     /**
      * The attributes that are mass assignable.
      */

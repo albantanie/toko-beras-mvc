@@ -40,8 +40,25 @@ class HomeController extends Controller
      * @param Request $request - Request dengan parameter search, filter, sort
      * @return Response - Halaman catalog dengan data produk
      */
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
+        // Redirect authenticated users to their respective dashboards
+        if (auth()->check()) {
+            $user = auth()->user();
+
+            // Check user roles and redirect accordingly
+            if ($user->hasRole('owner')) {
+                return redirect()->route('owner.dashboard');
+            } elseif ($user->hasRole('admin')) {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->hasRole('kasir')) {
+                return redirect()->route('kasir.dashboard');
+            } elseif ($user->hasRole('karyawan')) {
+                return redirect()->route('karyawan.dashboard');
+            }
+            // If user is pelanggan or has no specific role, continue to catalog
+        }
+
         // Ambil parameter dari request untuk filtering dan sorting
         $search = $request->get('search');        // Kata kunci pencarian
         $kategori = $request->get('kategori');    // Filter kategori

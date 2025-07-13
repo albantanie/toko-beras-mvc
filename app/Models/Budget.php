@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Budget extends Model
 {
+    protected $table = 'anggaran';
+
     protected $fillable = [
         'budget_code',
         'budget_name',

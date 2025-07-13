@@ -23,6 +23,8 @@ class Penjualan extends Model
 {
     use HasFactory;
 
+    protected $table = 'transaksi';
+
     /**
      * Atribut yang dapat diisi secara massal
      *

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CashFlow extends Model
 {
+    protected $table = 'arus_kas';
+
     protected $fillable = [
         'flow_date',
         'flow_type',

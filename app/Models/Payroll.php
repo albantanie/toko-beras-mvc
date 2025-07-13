@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payroll extends Model
 {
+    protected $table = 'gaji';
+
     protected $fillable = [
         'payroll_code',
         'user_id',

@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'csrf_token' => csrf_token(),
             'auth' => [
                 'user' => $request->user() ? $request->user()->load('roles') : null,
             ],

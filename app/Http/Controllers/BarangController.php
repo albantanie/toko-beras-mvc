@@ -243,7 +243,7 @@ class BarangController extends Controller
                 'kategori' => 'required|string|max:255',
                 'stok_minimum' => 'required|integer|min:0',
                 'berat_per_unit' => 'required|numeric|min:0.01',
-                'kode_barang' => 'required|string|max:255|unique:barangs',
+                'kode_barang' => 'required|string|max:255|unique:produk',
                 'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             ];
 
@@ -386,7 +386,7 @@ class BarangController extends Controller
                     'kategori' => 'required|string|max:255',
                     'stok_minimum' => 'required|integer|min:0',
                     'berat_per_unit' => 'required|numeric|min:0.01',
-                    'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
+                    'kode_barang' => 'required|string|max:255|unique:produk,kode_barang,' . $barang->id,
                     'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
                     'is_active' => 'boolean',
                     'stok' => 'required|integer|min:0',
@@ -399,7 +399,7 @@ class BarangController extends Controller
                     'kategori' => 'required|string|max:255',
                     'stok_minimum' => 'required|integer|min:0',
                     'berat_per_unit' => 'required|numeric|min:0.01',
-                    'kode_barang' => 'required|string|max:255|unique:barangs,kode_barang,' . $barang->id,
+                    'kode_barang' => 'required|string|max:255|unique:produk,kode_barang,' . $barang->id,
                     'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
                     'is_active' => 'boolean',
                     'harga_beli' => 'nullable|numeric|min:0',

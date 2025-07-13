@@ -11,6 +11,8 @@ class Purchase extends Model
 {
     use HasFactory;
 
+    protected $table = 'pembelian';
+
     protected $fillable = [
         'purchase_code',
         'user_id',

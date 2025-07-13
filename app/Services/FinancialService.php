@@ -245,7 +245,7 @@ class FinancialService
         $latestValuations = StockValuation::with('barang')
             ->whereIn('id', function($query) {
                 $query->select(DB::raw('MAX(id)'))
-                    ->from('stock_valuations')
+                    ->from('stok_barang')
                     ->groupBy('barang_id');
             })
             ->get();

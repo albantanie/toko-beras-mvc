@@ -168,14 +168,33 @@ export default function OrderDetail({ auth, order }: OrderDetailProps) {
                                 <Link href={route('user.orders')} className="text-gray-900 hover:text-green-600">
                                     Pesanan Saya
                                 </Link>
-                                <Link
-                                    href={route('logout')}
-                                    method="post"
-                                    as="button"
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const response = await fetch('/api/auth/logout', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Accept': 'application/json',
+                                                },
+                                            });
+
+                                            const result = await response.json();
+
+                                            if (response.ok && result.success) {
+                                                window.location.href = result.redirect || '/';
+                                            } else {
+                                                window.location.href = '/';
+                                            }
+                                        } catch (error) {
+                                            console.error('Logout error:', error);
+                                            window.location.href = '/';
+                                        }
+                                    }}
                                     className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
                                 >
                                     Logout
-                                </Link>
+                                </button>
                             </nav>
                         </div>
                     </div>

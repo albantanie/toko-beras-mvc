@@ -76,7 +76,7 @@ class CartController extends Controller
     {
         // Validasi input: barang harus ada dan quantity valid
         $request->validate([
-            'barang_id' => 'required|exists:barangs,id',
+            'barang_id' => 'required|exists:produk,id',
             'quantity' => 'required|integer|min:1',
         ]);
 
@@ -128,7 +128,7 @@ class CartController extends Controller
     {
         // Validasi input: quantity bisa 0 untuk hapus item
         $request->validate([
-            'barang_id' => 'required|exists:barangs,id',
+            'barang_id' => 'required|exists:produk,id',
             'quantity' => 'required|integer|min:0',
         ]);
 

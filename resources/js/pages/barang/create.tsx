@@ -220,6 +220,11 @@ export default function CreateBarang({ auth }: PageProps) {
                                                                 Sebagai karyawan, Anda dapat menambahkan produk baru dengan informasi dasar dan stok.
                                                                 Harga beli dan harga jual akan diatur oleh admin atau owner nanti.
                                                             </p>
+                                                            <p className="mt-2">
+                                                                <strong>Kategori Produk:</strong><br/>
+                                                                • <strong>Beras (kg):</strong> Untuk produk beras yang diukur dalam kilogram<br/>
+                                                                • <strong>Plastik (pcs):</strong> Untuk produk kemasan plastik yang dihitung per pieces
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -347,18 +352,18 @@ export default function CreateBarang({ auth }: PageProps) {
 
                                             <div>
                                                 <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">
-                                                    Berat per Satuan (kg) *
+                                                    {data.kategori === 'Plastik' ? 'Jumlah per Satuan (pcs) *' : 'Berat per Satuan (kg) *'}
                                                 </label>
                                                 <input
                                                     id="berat_per_unit"
                                                     type="number"
                                                     min="0"
-                                                    step="0.01"
+                                                    step={data.kategori === 'Plastik' ? '1' : '0.01'}
                                                     value={data.berat_per_unit}
                                                     onChange={(e) => setData('berat_per_unit', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
-                                                    placeholder="25.00"
+                                                    placeholder={data.kategori === 'Plastik' ? '100' : '25.00'}
                                                 />
                                                 {errors.berat_per_unit && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.berat_per_unit}</p>

@@ -25,7 +25,7 @@ class PdfReport extends Model
     /**
      * The table associated with the model.
      */
-    protected $table = 'pdf_reports';
+    protected $table = 'laporan_pdf';
 
     /**
      * The attributes that are mass assignable.

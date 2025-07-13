@@ -50,6 +50,159 @@ use Illuminate\Http\Request;
 // Halaman utama - menampilkan catalog produk beras untuk pelanggan
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Route untuk mendapatkan CSRF token fresh
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+});
+
+// Route test session
+Route::get('/test-session', function () {
+    return response()->json([
+        'session_id' => session()->getId(),
+        'csrf_token' => csrf_token(),
+        'session_driver' => config('session.driver'),
+        'session_lifetime' => config('session.lifetime'),
+        'test_value' => session('test', 'not_set'),
+    ]);
+});
+
+Route::post('/test-session', function () {
+    session(['test' => 'session_works']);
+    return response()->json(['message' => 'Session set']);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Alternative login endpoint without CSRF
+Route::post('/api/login', function (\Illuminate\Http\Request $request) {
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $request->session()->regenerate();
+
+        // Redirect based on role
+        $user = Auth::user();
+        if ($user->hasRole('owner')) {
+            return response()->json(['redirect' => '/owner/dashboard']);
+        } elseif ($user->hasRole('admin')) {
+            return response()->json(['redirect' => '/admin/dashboard']);
+        } elseif ($user->hasRole('kasir')) {
+            return response()->json(['redirect' => '/kasir/dashboard']);
+        } elseif ($user->hasRole('karyawan')) {
+            return response()->json(['redirect' => '/karyawan/dashboard']);
+        }
+
+        return response()->json(['redirect' => '/dashboard']);
+    }
+
+    return response()->json(['error' => 'Email atau password salah'], 422);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Alternative logout endpoint without CSRF
+Route::post('/api/logout', function (\Illuminate\Http\Request $request) {
+    Auth::guard('web')->logout();
+
+    // Clear cart when user logs out
+    $request->session()->forget('cart');
+
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return response()->json(['success' => true, 'redirect' => '/']);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Test traditional form login
+Route::get('/test-login', function () {
+    return view('test-login');
+});
+
+Route::post('/test-login', function (\Illuminate\Http\Request $request) {
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+        return redirect('/dashboard')->with('success', 'Login berhasil!');
+    }
+
+    return back()->withErrors(['email' => 'Email atau password salah']);
+});
+
+// Very simple test route
+Route::get('/simple-test', function () {
+    return 'Simple test works!';
+});
+
+Route::post('/simple-test', function (\Illuminate\Http\Request $request) {
+    return 'POST test works! Data: ' . json_encode($request->all());
+});
+
+// Test route outside web middleware
+Route::post('/raw-test', function (\Illuminate\Http\Request $request) {
+    return 'RAW POST test works! Data: ' . json_encode($request->all());
+})->middleware([]);
+
+// Simple login endpoint in web routes (CSRF already disabled)
+Route::post('/auth/login', function (\Illuminate\Http\Request $request) {
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    $user = \App\Models\User::where('email', $credentials['email'])->first();
+
+    if (!$user || !\Hash::check($credentials['password'], $user->password)) {
+        return response()->json(['error' => 'Email atau password salah'], 422);
+    }
+
+    Auth::login($user, $request->boolean('remember'));
+    $request->session()->regenerate();
+
+    // Load user with roles
+    $user = $user->load('roles');
+    $userRole = $user->roles->first()?->name;
+
+    // Determine redirect URL
+    $redirectUrl = match($userRole) {
+        'owner' => '/owner/dashboard',
+        'admin' => '/admin/dashboard',
+        'kasir' => '/kasir/dashboard',
+        'karyawan' => '/karyawan/dashboard',
+        'pelanggan' => '/user/dashboard',
+        default => '/dashboard'
+    };
+
+    return response()->json([
+        'success' => true,
+        'redirect' => $redirectUrl,
+        'user' => $user->name,
+        'role' => $userRole
+    ]);
+});
+
+// Simple logout endpoint in web routes
+Route::post('/auth/logout', function (\Illuminate\Http\Request $request) {
+    Auth::guard('web')->logout();
+
+    // Clear cart when user logs out
+    $request->session()->forget('cart');
+
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return response()->json(['success' => true, 'redirect' => '/']);
+});
+
+// Auth routes using controller with explicit CSRF disable
+Route::post('/api/auth/login', [App\Http\Controllers\AuthController::class, 'login'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+Route::post('/api/auth/logout', [App\Http\Controllers\AuthController::class, 'logout'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
 // Detail produk - menampilkan informasi lengkap produk beras
 Route::get('/product/{barang}', [HomeController::class, 'show'])->name('product.show');
 
@@ -729,3 +882,9 @@ Route::post('/debug/barang/{barang}/update', function (Request $request, \App\Mo
         'data' => $request->all()
     ]);
 })->middleware(['auth']);
+
+
+
+
+
+

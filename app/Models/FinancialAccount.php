@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FinancialAccount extends Model
 {
+    protected $table = 'akun_keuangan';
+
     protected $fillable = [
         'account_code',
         'account_name',

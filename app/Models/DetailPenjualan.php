@@ -21,6 +21,8 @@ class DetailPenjualan extends Model
 {
     use HasFactory;
 
+    protected $table = 'rekap';
+
     /**
      * Atribut yang dapat diisi secara massal
      *

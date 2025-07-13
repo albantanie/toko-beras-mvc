@@ -133,14 +133,33 @@ export default function Header({
                                     </Link>
                                     {/* Logout (hidden on desktop, pindah ke dropdown) */}
                                     <div className="md:hidden">
-                                        <Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch('/api/auth/logout', {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            'Accept': 'application/json',
+                                                        },
+                                                    });
+
+                                                    const result = await response.json();
+
+                                                    if (response.ok && result.success) {
+                                                        window.location.href = result.redirect || '/';
+                                                    } else {
+                                                        window.location.href = '/';
+                                                    }
+                                                } catch (error) {
+                                                    console.error('Logout error:', error);
+                                                    window.location.href = '/';
+                                                }
+                                            }}
                                             className="text-red-600 hover:text-red-700 text-xs font-medium"
                                         >
                                             Logout
-                                        </Link>
+                                        </button>
                                     </div>
                                 </div>
                                 {/* Profile/Avatar Dropdown */}

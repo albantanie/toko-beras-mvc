@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FinancialTransaction extends Model
 {
+    protected $table = 'pembayaran';
+
     protected $fillable = [
         'transaction_code',
         'transaction_type',

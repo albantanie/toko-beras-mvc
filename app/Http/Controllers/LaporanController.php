@@ -891,25 +891,16 @@ class LaporanController extends Controller
         
         // Map parameter type ke field type di database
         $typeMap = [
-            'stok' => 'stok_movement',
-            'keuangan' => 'keuangan',
-            'barang_stok' => 'barang_stok',
-        ];
-        
-        $dbType = $typeMap[$type] ?? $type;
-        
-        // Map old type names to new type names for backward compatibility
-        $newTypeMap = [
-            'stok_movement' => 'stock',
+            'stok' => 'stock',
             'keuangan' => 'financial',
             'barang_stok' => 'stock',
+            'penjualan' => 'sales',
         ];
 
-        $newType = $newTypeMap[$dbType] ?? $dbType;
+        $newType = $typeMap[$type] ?? $type;
 
         // Cari laporan berdasarkan type dan periode (jika ada)
-        $query = PdfReport::where('type', $newType)
-            ->where('generated_by', auth()->id());
+        $query = PdfReport::where('type', $newType);
 
         // Filter berdasarkan periode jika tanggal disediakan oleh request
         if ($request->has('date_from') && $request->has('date_to')) {
@@ -922,7 +913,6 @@ class LaporanController extends Controller
         if (!$report) {
             // Jika tidak ditemukan laporan dengan filter tanggal, coba ambil yang terbaru saja
             $report = PdfReport::where('type', $newType)
-                ->where('generated_by', auth()->id())
                 ->latest()
                 ->first();
                 
@@ -1014,8 +1004,8 @@ class LaporanController extends Controller
                   ->whereDate('tanggal_transaksi', '>=', $dateFrom)
                   ->whereDate('tanggal_transaksi', '<=', $dateTo);
             })
-            ->join('barangs', 'detail_penjualans.barang_id', '=', 'barangs.id')
-            ->sum(DB::raw('detail_penjualans.jumlah * barangs.harga_beli'));
+            ->join('produk', 'rekap.barang_id', '=', 'produk.id')
+            ->sum(DB::raw('rekap.jumlah * produk.harga_beli'));
         return $totalPenjualan - $totalModal;
     }
 }

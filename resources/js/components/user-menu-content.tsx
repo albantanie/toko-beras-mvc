@@ -12,9 +12,37 @@ interface UserMenuContentProps {
 export function UserMenuContent({ user }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         cleanup();
         router.flushAll();
+
+        // Add a small delay to ensure cleanup is complete
+        setTimeout(async () => {
+            try {
+                // Use API logout directly since web routes have CSRF issues
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    window.location.href = result.redirect || '/';
+                } else {
+                    console.error('Logout failed:', result);
+                    // Force redirect as fallback
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force redirect as fallback
+                window.location.href = '/';
+            }
+        }, 100);
     };
 
     return (
@@ -35,10 +63,10 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-                <Link className="block w-full" method="post" href={route('logout')} as="button" onClick={handleLogout}>
+                <button className="flex items-center w-full text-left" onClick={handleLogout}>
                     <LogOut className="mr-2" />
                     Keluar
-                </Link>
+                </button>
             </DropdownMenuItem>
         </>
     );

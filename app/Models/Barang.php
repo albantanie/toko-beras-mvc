@@ -22,6 +22,8 @@ class Barang extends Model
 {
     use HasFactory;
 
+    protected $table = 'produk';
+
     /**
      * Atribut yang dapat diisi secara massal
      *

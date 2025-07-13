@@ -10,6 +10,8 @@ class PurchaseDetail extends Model
 {
     use HasFactory;
 
+    protected $table = 'detail_pembelian';
+
     protected $fillable = [
         'purchase_id',
         'barang_id',

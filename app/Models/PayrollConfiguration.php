@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PayrollConfiguration extends Model
 {
+    protected $table = 'konfigurasi_gaji';
+
     protected $fillable = [
         'config_key',
         'config_name',

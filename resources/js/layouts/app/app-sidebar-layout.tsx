@@ -8,6 +8,16 @@ import { usePage } from '@inertiajs/react';
 
 export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWithChildren<{ breadcrumbs?: BreadcrumbItem[] }>) {
     const { auth } = usePage().props;
+
+    // Guard against undefined auth.user
+    if (!auth || !auth.user) {
+        // Redirect to login if no user data
+        if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+        }
+        return null;
+    }
+
     const userRole = auth.user?.roles?.[0]?.name;
     const isPelanggan = userRole === 'pelanggan';
     const isSettingsPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/settings');

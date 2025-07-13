@@ -21,6 +21,8 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    protected $table = 'pengguna';
+
     /**
      * Atribut yang dapat diisi secara massal
      *
@@ -70,7 +72,7 @@ class User extends Authenticatable
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'user_roles');
+        return $this->belongsToMany(Role::class, 'pengguna_peran');
     }
 
     /**

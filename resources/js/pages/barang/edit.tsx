@@ -404,18 +404,18 @@ export default function EditBarang({ auth, barang }: EditBarangProps) {
 
                                             <div>
                                                 <label htmlFor="berat_per_unit" className="block text-sm font-medium text-gray-700">
-                                                    Weight per Unit (kg) *
+                                                    {data.kategori === 'Plastik' ? 'Jumlah per Satuan (pcs) *' : 'Berat per Satuan (kg) *'}
                                                 </label>
                                                 <input
                                                     id="berat_per_unit"
                                                     type="number"
                                                     min="0"
-                                                    step="0.01"
+                                                    step={data.kategori === 'Plastik' ? '1' : '0.01'}
                                                     value={data.berat_per_unit}
                                                     onChange={(e) => setData('berat_per_unit', e.target.value)}
                                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                     required
-                                                    placeholder="25.00"
+                                                    placeholder={data.kategori === 'Plastik' ? '100' : '25.00'}
                                                 />
                                                 {errors.berat_per_unit && (
                                                     <p className="mt-1 text-sm text-red-600">{errors.berat_per_unit}</p>

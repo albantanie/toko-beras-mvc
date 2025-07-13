@@ -11,6 +11,8 @@ class StockMovement extends Model
 {
     use HasFactory;
 
+    protected $table = 'pergerakan_stok';
+
     protected $fillable = [
         'barang_id',
         'user_id',

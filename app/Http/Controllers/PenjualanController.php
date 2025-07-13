@@ -266,7 +266,7 @@ class PenjualanController extends Controller
         $request->validate([
             'nama_pelanggan' => 'required|string|max:255',
             'items' => 'required|array|min:1',
-            'items.*.barang_id' => 'required|exists:barangs,id',
+            'items.*.barang_id' => 'required|exists:produk,id',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.harga_satuan' => 'required|numeric|min:0',
             'metode_pembayaran' => 'required|in:tunai,transfer,qris',
@@ -471,7 +471,7 @@ class PenjualanController extends Controller
             'bayar' => 'nullable|numeric|min:0',
             'catatan' => 'nullable|string',
             'items' => 'required|array',
-            'items.*.barang_id' => 'required|exists:barangs,id',
+            'items.*.barang_id' => 'required|exists:produk,id',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.harga_satuan' => 'required|numeric|min:0',
             'items.*.catatan' => 'nullable|string',

@@ -1,4 +1,4 @@
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 import { Icons } from '@/utils/formatters';
 
@@ -21,11 +21,44 @@ export default function Login({ status }: LoginProps) {
 
     const [showPassword, setShowPassword] = useState(false);
 
-    const submit: FormEventHandler = (e) => {
+    const submit: FormEventHandler = async (e) => {
         e.preventDefault();
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
+
+        try {
+            // Use API login directly since web routes have CSRF issues
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: data.email,
+                    password: data.password,
+                    remember: data.remember,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success && result.redirect) {
+                // Force full page reload to ensure Inertia gets fresh data
+                window.location.href = result.redirect;
+            } else {
+                console.error('Login failed:', result);
+                // Show error message if available
+                if (result.error) {
+                    alert(result.error);
+                } else {
+                    alert('Login gagal. Silakan coba lagi.');
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Terjadi kesalahan saat login. Silakan coba lagi.');
+        }
+
+        reset('password');
     };
 
     return (
@@ -76,6 +109,12 @@ export default function Login({ status }: LoginProps) {
                         )}
 
                         <form className="space-y-6" onSubmit={submit}>
+                            {/* CSRF Token */}
+                            <input
+                                type="hidden"
+                                name="_token"
+                                value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''}
+                            />
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                                     Alamat Email
