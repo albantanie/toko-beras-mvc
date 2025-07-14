@@ -137,7 +137,7 @@ class UserController extends Controller
         // Validasi input form dengan pengecualian email untuk user yang sedang diedit
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:users,email,'.$user->id,
+            'email' => 'required|string|lowercase|email|max:255|unique:pengguna,email,'.$user->id,
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'role' => 'required|string|in:'.implode(',', [Role::ADMIN, Role::OWNER, Role::KARYAWAN, Role::KASIR]),
         ]);
