@@ -33,6 +33,8 @@ return new class extends Migration
             $table->boolean('is_financial_recorded')->default(false); // Apakah sudah dicatat ke keuangan
             $table->text('catatan')->nullable();
             $table->timestamp('tanggal_transaksi');
+            $table->unsignedBigInteger('financial_account_id')->nullable()->after('id');
+            $table->foreign('financial_account_id')->references('id')->on('akun_keuangan')->nullOnDelete();
             $table->timestamps();
         });
     }

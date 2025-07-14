@@ -4,7 +4,7 @@ import { PageProps, BreadcrumbItem, Penjualan } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
 import { formatCurrency, formatDateTime, StatusBadge, Icons } from '@/utils/formatters';
 import { useState, useEffect } from 'react';
-import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
+import { SweetAlert } from '@/utils/sweetalert';
 import { Button } from '@/components/ui/button';
 import { Eye, CheckCircle, XCircle, Clock, X } from 'lucide-react';
 
@@ -160,25 +160,11 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
         // All actions will redirect now, so handle them the same way
         patch(route(routes[actionType], selectedTransaction.id), formData, {
             onSuccess: () => {
-                // Show SweetAlert2 after redirect
-                setTimeout(() => {
-                    switch (actionType) {
-                        case 'confirm':
-                            RiceStoreAlerts.info.paymentConfirmed(selectedTransaction.nomor_transaksi, selectedTransaction.total);
-                            break;
-                        case 'ready':
-                            RiceStoreAlerts.info.orderReady(selectedTransaction.nomor_transaksi, 'Customer pickup');
-                            break;
-                        case 'complete':
-                            RiceStoreAlerts.order.completed(selectedTransaction.nomor_transaksi);
-                            break;
-                        case 'reject':
-                            RiceStoreAlerts.order.paymentRejected(selectedTransaction.nomor_transaksi);
-                            break;
-                    }
-                }, 100);
+                setShowModal(false);
+                reset();
+                // Flash messages will be handled by useEffect after redirect
             },
-            onError: (errors) => {
+            onError: (errors: any) => {
                 console.error('Form submission errors:', errors);
                 if (Object.keys(errors).length > 0) {
                     SweetAlert.error.validation(errors);
@@ -402,9 +388,9 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                         filters={tableFilters}
                         routeName="penjualan.online"
                         currentSearch={filters?.search}
-                        currentFilters={{ status: filters?.status }}
+                        currentFilters={{ status: filters?.status || 'all' }}
                         currentSort={filters?.sort}
-                        currentDirection={filters?.direction}
+                        currentDirection={filters?.direction as 'asc' | 'desc' | undefined}
                         emptyState={{
                             title: 'No online transactions found',
                             description: 'No online transactions found matching your criteria.',
@@ -488,18 +474,34 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                                     <button
                                         type="submit"
                                         disabled={processing || (actionType === 'confirm' && selectedTransaction?.status === 'pending' && !selectedTransaction?.payment_proof)}
-                                        className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                                            actionType === 'reject' 
-                                                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-                                                : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
+                                        className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
+                                            actionType === 'reject'
+                                                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white'
+                                                : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 text-white'
                                         }`}
+                                        style={actionType === 'reject' ? {
+                                            backgroundColor: '#dc2626 !important',
+                                            color: 'white !important',
+                                            borderColor: 'transparent !important'
+                                        } : {
+                                            backgroundColor: '#4f46e5 !important',
+                                            color: 'white !important',
+                                            borderColor: 'transparent !important'
+                                        }}
                                     >
-                                        {processing ? 'Memproses...' : 
-                                         actionType === 'reject' ? 'Tolak Bukti' : 
-                                         (actionType === 'confirm' && selectedTransaction?.status === 'pending' && !selectedTransaction?.payment_proof) 
-                                            ? 'Menunggu Bukti Pembayaran' 
-                                            : 'Konfirmasi'
-                                        }
+                                        <span style={{
+                                            color: 'white !important',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            display: 'inline-block'
+                                        }}>
+                                            {processing ? 'Memproses...' :
+                                             actionType === 'reject' ? 'Tolak Bukti' :
+                                             (actionType === 'confirm' && selectedTransaction?.status === 'pending' && !selectedTransaction?.payment_proof)
+                                                ? 'Menunggu Bukti Pembayaran'
+                                                : 'Konfirmasi'
+                                            }
+                                        </span>
                                     </button>
                                 </div>
                             </form>
@@ -546,16 +548,36 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                                                         : 'Konfirmasi Pembayaran'
                                                     }
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleReject(selectedTransaction)}
-                                                    className="text-red-600 border-red-600 hover:bg-red-50"
-                                                    disabled={selectedTransaction.status === 'pending' && !selectedTransaction.payment_proof}
+                                                <div
+                                                    onClick={() => {
+                                                        if (!(selectedTransaction.status === 'pending' && !selectedTransaction.payment_proof)) {
+                                                            handleReject(selectedTransaction);
+                                                        }
+                                                    }}
+                                                    className={`inline-flex items-center px-3 py-1.5 border-2 border-red-600 text-sm font-medium rounded-md bg-white hover:bg-red-50 cursor-pointer select-none ${
+                                                        (selectedTransaction.status === 'pending' && !selectedTransaction.payment_proof)
+                                                            ? 'opacity-50 cursor-not-allowed'
+                                                            : ''
+                                                    }`}
+                                                    style={{
+                                                        color: '#dc2626',
+                                                        borderColor: '#dc2626',
+                                                        backgroundColor: 'white'
+                                                    }}
                                                 >
-                                                    <XCircle className="w-4 h-4 mr-1" />
-                                                    Tolak Bukti
-                                                </Button>
+                                                    <XCircle
+                                                        className="w-4 h-4 mr-1"
+                                                        style={{ color: '#dc2626', stroke: '#dc2626' }}
+                                                    />
+                                                    <span style={{
+                                                        color: '#dc2626',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500',
+                                                        textDecoration: 'none'
+                                                    }}>
+                                                        Tolak Bukti
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     ) : (

@@ -48,13 +48,14 @@ class CartController extends Controller
 
             // Pastikan barang masih ada dan stok mencukupi
             if ($barang && $barang->stok >= $item['quantity']) {
+                $quantity = (int) $item['quantity']; // Ensure quantity is integer
                 $cartItems[] = [
                     'id' => $id,
                     'barang' => $barang,
-                    'quantity' => $item['quantity'],
-                    'subtotal' => $barang->harga_jual * $item['quantity'],
+                    'quantity' => $quantity,
+                    'subtotal' => $barang->harga_jual * $quantity,
                 ];
-                $total += $barang->harga_jual * $item['quantity'];
+                $total += $barang->harga_jual * $quantity;
             }
         }
 
@@ -95,7 +96,7 @@ class CartController extends Controller
 
         // Jika item sudah ada di cart, tambahkan quantity
         if (isset($cart[$id])) {
-            $newQuantity = $cart[$id]['quantity'] + $request->quantity;
+            $newQuantity = (int) $cart[$id]['quantity'] + (int) $request->quantity;
 
             // Pastikan total quantity tidak melebihi stok
             if ($newQuantity > $barang->stok) {
@@ -106,7 +107,7 @@ class CartController extends Controller
         } else {
             // Jika item belum ada, buat entry baru
             $cart[$id] = [
-                'quantity' => $request->quantity,
+                'quantity' => (int) $request->quantity,
             ];
         }
 
@@ -147,7 +148,7 @@ class CartController extends Controller
                     ->with('error', 'Stok tidak mencukupi. Stok tersedia: ' . $barang->stok);
             }
             // Update quantity item di cart
-            $cart[$id]['quantity'] = $request->quantity;
+            $cart[$id]['quantity'] = (int) $request->quantity;
         }
 
         // Simpan cart yang sudah diupdate
@@ -233,7 +234,7 @@ class CartController extends Controller
             'nama_pelanggan' => 'required|string|max:255',
             'telepon_pelanggan' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'alamat_pelanggan' => 'required|string',
-            'metode_pembayaran' => 'required|in:tunai,transfer',
+            'metode_pembayaran' => 'required|in:tunai,transfer_bca',
             'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'pickup_method' => 'required|in:self,grab,gojek,other',
             'pickup_person_name' => 'nullable|string|max:255',
@@ -270,7 +271,7 @@ class CartController extends Controller
         }
 
         // Validasi payment proof untuk transfer
-        if ($request->metode_pembayaran === 'transfer' && !$request->hasFile('payment_proof')) {
+        if ($request->metode_pembayaran === 'transfer_bca' && !$request->hasFile('payment_proof')) {
             return redirect()->back()
                 ->withErrors(['payment_proof' => 'Bukti pembayaran wajib diupload untuk pembayaran transfer'])
                 ->withInput();
@@ -317,7 +318,7 @@ class CartController extends Controller
 
             // Handle upload payment proof jika ada (hanya untuk transfer)
             $paymentProofPath = null;
-            if ($request->hasFile('payment_proof') && $request->metode_pembayaran === 'transfer') {
+            if ($request->hasFile('payment_proof') && $request->metode_pembayaran === 'transfer_bca') {
                 $file = $request->file('payment_proof');
                 $fileName = time() . '_' . $file->getClientOriginalName();
                 $paymentProofPath = $file->storeAs('payment-proofs', $fileName, 'public');
@@ -457,6 +458,9 @@ class CartController extends Controller
     private function getCartCount(): int
     {
         $cart = session()->get('cart', []);
-        return array_sum(array_column($cart, 'quantity'));
+        $quantities = array_column($cart, 'quantity');
+        // Ensure all quantities are integers
+        $quantities = array_map('intval', $quantities);
+        return array_sum($quantities);
     }
 }

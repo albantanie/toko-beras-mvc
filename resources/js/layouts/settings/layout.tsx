@@ -21,7 +21,7 @@ const sidebarNavItems: NavItem[] = [
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
-    const { auth } = usePage().props;
+    const { auth } = usePage().props as any;
     
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
@@ -34,18 +34,10 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     const userRoles = auth.user?.roles || [];
     const userRole = userRoles.length > 0 ? userRoles[0].name : null;
     const isPelanggan = userRole === 'pelanggan' || 
-                       userRoles.some(role => role.name === 'pelanggan') ||
+                       userRoles.some((role: any) => role.name === 'pelanggan') ||
                        auth.user?.role === 'pelanggan'; // fallback for different data structure
     
-    // DEBUG: Log untuk memastikan deteksi role berfungsi
-    console.log('SettingsLayout Debug:', {
-        userRole,
-        isPelanggan,
-        userRoles: userRoles,
-        userRolesNames: userRoles.map(r => r.name),
-        authUser: auth.user,
-        authUserRole: auth.user?.role
-    });
+
 
     return (
         <div className="px-4 py-6">

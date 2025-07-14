@@ -97,7 +97,6 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
     // Calculate totals
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const total = subtotal;
-    const kembalian = data.bayar > total ? data.bayar - total : 0;
 
     // Add product to cart
     const addToCart = () => {
@@ -185,10 +184,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
             return;
         }
 
-        if (data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && data.bayar < total) {
-            SweetAlert.error.custom('Insufficient Payment!', 'The payment amount is less than the total amount.');
-            return;
-        }
+        // Payment validation removed - payment amount is automatically set to total
 
         // Prepare items data
         const items = cart.map(item => ({
@@ -221,12 +217,11 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
         });
     };
 
-    // Auto-calculate bayar for non-cash payments and online transactions
+    // Auto-calculate bayar for all transactions
     useEffect(() => {
-        if (data.jenis_transaksi === 'online' || data.metode_pembayaran !== 'tunai') {
-            setData('bayar', total);
-        }
-    }, [data.metode_pembayaran, data.jenis_transaksi, total]);
+        // Always set payment amount to total for easier processing
+        setData('bayar', total);
+    }, [total]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -431,12 +426,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                                 <span>Total:</span>
                                                 <span>{formatCurrency(total)}</span>
                                             </div>
-                                            {data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && data.bayar > 0 && (
-                                                <div className="flex justify-between text-sm text-green-600">
-                                                    <span>Change:</span>
-                                                    <span>{formatCurrency(kembalian)}</span>
-                                                </div>
-                                            )}
+                                            {/* Change section removed - payment is exact amount */}
                                         </div>
                                     </div>
                                 </div>
@@ -536,21 +526,12 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
 
 
 
-                                                    {data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && (
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700">
-                                                                Amount Paid *
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                min={total}
-                                                                value={data.bayar}
-                                                                onChange={(e) => setData('bayar', parseFloat(e.target.value) || 0)}
-                                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                                required
-                                                            />
-                                                        </div>
-                                                    )}
+                                                    {/* Payment amount section removed - automatically set to total */}
+                                                    <div className="bg-green-50 p-3 rounded-md">
+                                                        <p className="text-sm text-green-800">
+                                                            <strong>Pembayaran:</strong> Jumlah pembayaran otomatis disesuaikan dengan total transaksi ({formatCurrency(total)})
+                                                        </p>
+                                                    </div>
 
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700">

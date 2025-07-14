@@ -3,6 +3,7 @@ import { PageProps, Barang } from '@/types';
 import { formatCurrency, ProductImage, Icons, getProductUnit } from '@/utils/formatters';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
+import Swal from 'sweetalert2';
 
 interface HomeProps extends PageProps {
     barangs: {
@@ -43,7 +44,11 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
         quantity: 1,
     });
 
-    const [addingToCart, setAddingToCart] = useState<number | null>(null);
+    const [showQuantityModal, setShowQuantityModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<Barang | null>(null);
+    const [quantity, setQuantity] = useState(1);
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [currentCartCount, setCurrentCartCount] = useState(cartCount);
 
     // Debounced search - auto search when user stops typing
     useEffect(() => {
@@ -66,35 +71,72 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
         });
     };
 
-    const addToCart = (barangId: number) => {
-        setAddingToCart(barangId);
-        setData('barang_id', barangId.toString());
+    // Fungsi untuk membuka modal quantity
+    const openQuantityModal = (barang: Barang) => {
+        setSelectedProduct(barang);
+        setQuantity(1);
+        setShowQuantityModal(true);
+    };
 
-        post(route('cart.add'), {
+    // Fungsi untuk menutup modal
+    const closeQuantityModal = () => {
+        setShowQuantityModal(false);
+        setSelectedProduct(null);
+        setQuantity(1);
+    };
+
+    // Fungsi untuk menambah ke keranjang dengan quantity yang dipilih
+    const addToCart = () => {
+        if (!selectedProduct || addingToCart) {
+            return;
+        }
+
+        // Validasi quantity tidak boleh lebih dari stock
+        if (quantity > selectedProduct.stok) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Stok Tidak Mencukupi!',
+                text: `Stok tersedia hanya ${selectedProduct.stok} kg`,
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        setAddingToCart(true);
+
+        // Menggunakan router.post dari Inertia
+        router.post(route('cart.add'), {
+            barang_id: selectedProduct.id,
+            quantity: quantity,
+        }, {
             onSuccess: () => {
-                setData('quantity', 1);
-                setAddingToCart(null);
+                setAddingToCart(false);
+                setCurrentCartCount(prev => prev + quantity);
+                closeQuantityModal();
 
-                // Show success animation
-                const button = document.querySelector(`[data-product-id="${barangId}"]`);
-                if (button) {
-                    button.classList.add('animate-bounce');
-                    setTimeout(() => {
-                        button.classList.remove('animate-bounce');
-                    }, 1000);
-                }
-
-                // Show cart icon animation
-                const cartIcon = document.querySelector('.cart-icon');
-                if (cartIcon) {
-                    cartIcon.classList.add('animate-pulse');
-                    setTimeout(() => {
-                        cartIcon.classList.remove('animate-pulse');
-                    }, 1500);
-                }
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: `${quantity} kg ${selectedProduct.nama} ditambahkan`,
+                    timer: 1500,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
             },
-            onError: () => {
-                setAddingToCart(null);
+            onError: (errors) => {
+                setAddingToCart(false);
+                console.error('Cart add errors:', errors);
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Gagal menambahkan ke keranjang.',
+                    confirmButtonText: 'OK'
+                });
+            },
+            onFinish: () => {
+                setAddingToCart(false);
             }
         });
     };
@@ -106,7 +148,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
             <div className="min-h-screen bg-gray-50">
                 <Header
                     auth={auth}
-                    cartCount={cartCount}
+                    cartCount={currentCartCount}
                     showSearch={true}
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
@@ -315,29 +357,19 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                 <div className="mb-3">
                                                     <span className="text-xs text-gray-600">
                                                         Stok: {barang.stok} {getProductUnit(barang.kategori)}
+                                                        {barang.berat_per_unit && (
+                                                            <span className="text-gray-500"> ({barang.berat_per_unit}kg/{getProductUnit(barang.kategori)})</span>
+                                                        )}
                                                     </span>
                                                 </div>
 
                                                 <div className="space-y-2">
                                                     {barang.stok > 0 ? (
                                                         <button
-                                                            onClick={() => addToCart(barang.id)}
-                                                            disabled={processing || addingToCart === barang.id}
-                                                            data-product-id={barang.id}
-                                                            className={`w-full px-3 py-2 rounded-md text-sm font-medium btn-cart ${
-                                                                addingToCart === barang.id
-                                                                    ? 'bg-orange-500 text-white scale-105'
-                                                                    : 'bg-green-600 text-white hover:bg-green-700'
-                                                            } disabled:opacity-50`}
+                                                            onClick={() => openQuantityModal(barang)}
+                                                            className="w-full px-3 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors duration-200"
                                                         >
-                                                            {addingToCart === barang.id ? (
-                                                                <div className="flex items-center justify-center">
-                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                                                    Menambah...
-                                                                </div>
-                                                            ) : (
-                                                                '🛒 + Keranjang'
-                                                            )}
+                                                            🛒 + Keranjang
                                                         </button>
                                                     ) : (
                                                         <button
@@ -479,23 +511,10 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
 
                                         {barang.stok > 0 ? (
                                             <button
-                                                onClick={() => addToCart(barang.id)}
-                                                disabled={processing || addingToCart === barang.id}
-                                                data-product-id={barang.id}
-                                                className={`w-full px-3 py-2 rounded-md text-sm font-medium btn-cart ${
-                                                    addingToCart === barang.id
-                                                        ? 'bg-orange-500 text-white scale-105'
-                                                        : 'bg-green-600 text-white hover:bg-green-700'
-                                                } disabled:opacity-50`}
+                                                onClick={() => openQuantityModal(barang)}
+                                                className="w-full px-3 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors duration-200"
                                             >
-                                                {addingToCart === barang.id ? (
-                                                    <div className="flex items-center justify-center">
-                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                                        Menambah...
-                                                    </div>
-                                                ) : (
-                                                    '🛒 + Keranjang'
-                                                )}
+                                                🛒 + Keranjang
                                             </button>
                                         ) : (
                                             <button
@@ -558,6 +577,105 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                     </div>
                 </footer>
             </div>
+
+            {/* Modal Quantity */}
+            {showQuantityModal && selectedProduct && (
+                <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl border pointer-events-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                Tambah ke Keranjang
+                            </h3>
+                            <button
+                                onClick={closeQuantityModal}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="mb-4">
+                            <div className="flex items-center space-x-4">
+                                <ProductImage
+                                    src={selectedProduct.gambar}
+                                    alt={selectedProduct.nama}
+                                    className="w-16 h-16 object-cover rounded-lg"
+                                />
+                                <div className="flex-1">
+                                    <h4 className="font-medium text-gray-900">
+                                        {selectedProduct.nama}
+                                    </h4>
+                                    <p className="text-sm text-gray-500">
+                                        Stok tersedia: {selectedProduct.stok} kg
+                                    </p>
+                                    <p className="text-lg font-bold text-green-600">
+                                        {formatCurrency(selectedProduct.harga_jual)}/kg
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Jumlah (kg)
+                            </label>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={quantity <= 1}
+                                >
+                                    -
+                                </button>
+                                <input
+                                    type="number"
+                                    value={quantity}
+                                    onChange={(e) => {
+                                        const value = parseInt(e.target.value) || 1;
+                                        setQuantity(Math.min(selectedProduct.stok, Math.max(1, value)));
+                                    }}
+                                    className="w-20 text-center border border-gray-300 rounded-md py-2"
+                                    min="1"
+                                    max={selectedProduct.stok}
+                                />
+                                <button
+                                    onClick={() => setQuantity(Math.min(selectedProduct.stok, quantity + 1))}
+                                    className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={quantity >= selectedProduct.stok}
+                                >
+                                    +
+                                </button>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-2">
+                                Total: {formatCurrency(selectedProduct.harga_jual * quantity)}
+                            </p>
+                        </div>
+
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={closeQuantityModal}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={addToCart}
+                                disabled={addingToCart}
+                                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                            >
+                                {addingToCart ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Menambah...
+                                    </div>
+                                ) : (
+                                    'Tambah ke Keranjang'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

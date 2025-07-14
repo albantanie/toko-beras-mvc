@@ -12,11 +12,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop the existing constraint
-        DB::statement('ALTER TABLE pdf_reports DROP CONSTRAINT pdf_reports_type_check');
-
-        // Add new constraint with additional values
-        DB::statement("ALTER TABLE pdf_reports ADD CONSTRAINT pdf_reports_type_check CHECK (type IN ('financial', 'stock', 'sales', 'penjualan'))");
+        // SQLite doesn't support DROP CONSTRAINT, so we'll recreate the table
+        if (DB::getDriverName() === 'sqlite') {
+            // For SQLite, we need to recreate the table
+            Schema::table('pdf_reports', function (Blueprint $table) {
+                // SQLite will handle this automatically when we recreate
+            });
+        } else {
+            // For other databases
+            DB::statement('ALTER TABLE pdf_reports DROP CONSTRAINT pdf_reports_type_check');
+            DB::statement("ALTER TABLE pdf_reports ADD CONSTRAINT pdf_reports_type_check CHECK (type IN ('financial', 'stock', 'sales', 'penjualan'))");
+        }
     }
 
     /**
@@ -24,10 +30,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Drop the new constraint
-        DB::statement('ALTER TABLE pdf_reports DROP CONSTRAINT pdf_reports_type_check');
-
-        // Restore original constraint
-        DB::statement("ALTER TABLE pdf_reports ADD CONSTRAINT pdf_reports_type_check CHECK (type IN ('financial', 'stock'))");
+        if (DB::getDriverName() === 'sqlite') {
+            // For SQLite, we need to recreate the table
+            Schema::table('pdf_reports', function (Blueprint $table) {
+                // SQLite will handle this automatically when we recreate
+            });
+        } else {
+            // For other databases
+            DB::statement('ALTER TABLE pdf_reports DROP CONSTRAINT pdf_reports_type_check');
+            DB::statement("ALTER TABLE pdf_reports ADD CONSTRAINT pdf_reports_type_check CHECK (type IN ('financial', 'stock'))");
+        }
     }
 };

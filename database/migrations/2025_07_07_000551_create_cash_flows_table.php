@@ -18,7 +18,7 @@ return new class extends Migration
             $table->enum('direction', ['inflow', 'outflow']);
             $table->string('category'); // e.g., 'sales', 'purchases', 'salaries', 'equipment'
             $table->decimal('amount', 15, 2);
-            $table->foreignId('account_id')->constrained('financial_accounts');
+            $table->foreignId('account_id')->constrained('akun_keuangan');
             $table->foreignId('transaction_id')->nullable()->constrained('financial_transactions');
             $table->text('description');
             $table->decimal('running_balance', 15, 2); // Saldo berjalan

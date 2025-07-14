@@ -21,18 +21,36 @@ class StockMovement extends Model
         'stock_before',
         'stock_after',
         'unit_price',
+        'unit_cost',
+        'total_value',
+        'stock_value_in',
+        'stock_value_out',
+        'stock_value_change',
+        'purchase_price',
+        'selling_price',
         'description',
+        'value_calculation_notes',
+        'movement_category',
         'reference_type',
         'reference_id',
         'metadata',
+        'is_financial_recorded',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'unit_price' => 'decimal:2',
+        'unit_cost' => 'decimal:2',
+        'total_value' => 'decimal:2',
+        'stock_value_in' => 'decimal:2',
+        'stock_value_out' => 'decimal:2',
+        'stock_value_change' => 'decimal:2',
+        'purchase_price' => 'decimal:2',
+        'selling_price' => 'decimal:2',
         'quantity' => 'integer',
         'stock_before' => 'integer',
         'stock_after' => 'integer',
+        'is_financial_recorded' => 'boolean',
     ];
 
     /**
@@ -200,6 +218,97 @@ class StockMovement extends Model
     public function isNegative(): bool
     {
         return in_array($this->type, ['out', 'damage']);
+    }
+
+    /**
+     * Calculate and set stock values based on movement type
+     */
+    public function calculateStockValues(): void
+    {
+        $quantity = abs($this->quantity);
+
+        switch ($this->type) {
+            case 'in':
+            case 'return':
+            case 'initial':
+                // Stock masuk - gunakan harga beli/purchase price
+                $price = $this->purchase_price ?? $this->unit_cost ?? $this->barang->harga_beli ?? 0;
+                $this->stock_value_in = $quantity * $price;
+                $this->stock_value_out = 0;
+                $this->stock_value_change = $this->stock_value_in;
+                $this->movement_category = 'stock_in';
+                $this->value_calculation_notes = "Stock masuk {$quantity} unit @ Rp " . number_format($price) . " = Rp " . number_format($this->stock_value_in);
+                break;
+
+            case 'out':
+            case 'damage':
+                // Stock keluar - gunakan harga jual/selling price untuk penjualan, harga beli untuk kerusakan
+                if ($this->type === 'out' && $this->reference_type === 'App\\Models\\Penjualan') {
+                    $price = $this->selling_price ?? $this->unit_price ?? $this->barang->harga_jual ?? 0;
+                    $this->movement_category = 'sale';
+                    $this->value_calculation_notes = "Penjualan {$quantity} unit @ Rp " . number_format($price) . " = Rp " . number_format($quantity * $price);
+                } else {
+                    $price = $this->unit_cost ?? $this->barang->harga_beli ?? 0;
+                    $this->movement_category = 'stock_out';
+                    $this->value_calculation_notes = "Stock keluar {$quantity} unit @ Rp " . number_format($price) . " = Rp " . number_format($quantity * $price);
+                }
+                $this->stock_value_in = 0;
+                $this->stock_value_out = $quantity * $price;
+                $this->stock_value_change = -$this->stock_value_out;
+                break;
+
+            case 'adjustment':
+            case 'correction':
+                // Penyesuaian - bisa positif atau negatif
+                $price = $this->unit_cost ?? $this->barang->harga_beli ?? 0;
+                if ($this->quantity > 0) {
+                    $this->stock_value_in = $quantity * $price;
+                    $this->stock_value_out = 0;
+                    $this->stock_value_change = $this->stock_value_in;
+                    $this->value_calculation_notes = "Penyesuaian +{$quantity} unit @ Rp " . number_format($price) . " = +Rp " . number_format($this->stock_value_in);
+                } else {
+                    $this->stock_value_in = 0;
+                    $this->stock_value_out = $quantity * $price;
+                    $this->stock_value_change = -$this->stock_value_out;
+                    $this->value_calculation_notes = "Penyesuaian -{$quantity} unit @ Rp " . number_format($price) . " = -Rp " . number_format($this->stock_value_out);
+                }
+                $this->movement_category = 'adjustment';
+                break;
+
+            default:
+                $this->stock_value_in = 0;
+                $this->stock_value_out = 0;
+                $this->stock_value_change = 0;
+                $this->movement_category = 'other';
+                $this->value_calculation_notes = "Pergerakan lainnya: {$this->type}";
+        }
+
+        // Set total_value untuk backward compatibility
+        $this->total_value = abs($this->stock_value_change);
+    }
+
+    /**
+     * Get formatted stock value change with sign
+     */
+    public function getFormattedStockValueChangeAttribute(): string
+    {
+        $value = $this->stock_value_change;
+        $sign = $value >= 0 ? '+' : '';
+        return $sign . 'Rp ' . number_format(abs($value));
+    }
+
+    /**
+     * Get movement impact description
+     */
+    public function getMovementImpactAttribute(): string
+    {
+        if ($this->stock_value_change > 0) {
+            return 'Menambah nilai stock sebesar Rp ' . number_format($this->stock_value_change);
+        } elseif ($this->stock_value_change < 0) {
+            return 'Mengurangi nilai stock sebesar Rp ' . number_format(abs($this->stock_value_change));
+        } else {
+            return 'Tidak mempengaruhi nilai stock';
+        }
     }
 
     /**

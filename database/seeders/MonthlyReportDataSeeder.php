@@ -198,7 +198,7 @@ class MonthlyReportDataSeeder extends Seeder
             'telepon_pelanggan' => '081' . rand(10000000, 99999999),
             'alamat_pelanggan' => 'Alamat ' . rand(1, 50),
             'jenis_transaksi' => 'offline',
-            'metode_pembayaran' => collect(['tunai', 'transfer'])->random(),
+            'metode_pembayaran' => collect(['tunai', 'transfer_bca'])->random(),
             'status' => 'selesai',
             'catatan' => 'Transaksi seeder untuk laporan bulanan',
             'subtotal' => 0, // Will be calculated

@@ -65,6 +65,7 @@ class Penjualan extends Model
         'is_financial_recorded',
         'catatan',
         'tanggal_transaksi',
+        'financial_account_id',
     ];
 
     /**
@@ -176,8 +177,6 @@ class Penjualan extends Model
         return $this->status === 'dibayar';
     }
 
-
-
     /**
      * Mendapatkan label status dalam bahasa Indonesia
      *
@@ -188,6 +187,7 @@ class Penjualan extends Model
         return match($this->status) {
             'pending' => 'Menunggu Pembayaran',
             'dibayar' => 'Sudah Dibayar',
+            'siap_pickup' => 'Siap Pickup',
             'selesai' => 'Selesai',
             'dibatalkan' => 'Dibatalkan',
             default => ucfirst($this->status),
@@ -205,7 +205,8 @@ class Penjualan extends Model
 
         return match($this->status) {
             'pending' => 'dibayar',
-            'dibayar' => 'selesai',
+            'dibayar' => 'siap_pickup',
+            'siap_pickup' => 'selesai',
             default => null,
         };
     }
@@ -217,8 +218,6 @@ class Penjualan extends Model
     {
         return $this->getNextStatus() !== null;
     }
-
-
 
     /**
      * Get total items count
@@ -304,5 +303,10 @@ class Penjualan extends Model
     public function getTransactionTimeAgoAttribute(): string
     {
         return $this->tanggal_transaksi->setTimezone('Asia/Jakarta')->diffForHumans();
+    }
+
+    public function financialAccount()
+    {
+        return $this->belongsTo(FinancialAccount::class, 'financial_account_id');
     }
 }

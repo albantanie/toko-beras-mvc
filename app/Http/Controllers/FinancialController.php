@@ -195,8 +195,8 @@ class FinancialController extends Controller
             'category' => 'required|string|max:255',
             'subcategory' => 'nullable|string|max:255',
             'amount' => 'required|numeric|min:0.01',
-            'from_account_id' => 'nullable|exists:financial_accounts,id',
-            'to_account_id' => 'nullable|exists:financial_accounts,id',
+            'from_account_id' => 'nullable|exists:akun_keuangan,id',
+            'to_account_id' => 'nullable|exists:akun_keuangan,id',
             'description' => 'required|string',
             'transaction_date' => 'required|date',
         ]);
@@ -366,7 +366,7 @@ class FinancialController extends Controller
         }
 
         $validated = $request->validate([
-            'account_id' => 'required|exists:financial_accounts,id',
+            'account_id' => 'required|exists:akun_keuangan,id',
             'payment_notes' => 'nullable|string|max:500',
         ]);
 

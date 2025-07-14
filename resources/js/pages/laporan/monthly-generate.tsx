@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, FileText, TrendingUp, Package, AlertCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
 import axios from '@/bootstrap';
+import { formatCurrency } from '@/utils/formatters';
 
 interface AvailableMonth {
     value: string;
@@ -274,7 +275,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                                         </div>
                                         <div className="text-lg font-bold text-green-900">
                                             {reportType === 'transaction' 
-                                                ? `Rp ${preview.summary?.total_amount?.toLocaleString('id-ID') || 0}`
+                                                ? formatCurrency(preview.summary?.total_amount || 0)
                                                 : `${preview.summary?.total_movements || 0} item`
                                             }
                                         </div>
@@ -309,7 +310,7 @@ export default function MonthlyGenerate({ user_role, available_months, generated
                                         <div className="bg-gray-50 p-4 rounded-lg">
                                             <div className="text-sm text-gray-600 font-medium">Nilai Stok</div>
                                             <div className="text-lg font-bold">
-                                                Rp {preview.summary.total_stock_value?.toLocaleString('id-ID') || 0}
+                                                {formatCurrency(preview.summary.total_stock_value || 0)}
                                             </div>
                                         </div>
                                         <div className="bg-gray-50 p-4 rounded-lg">

@@ -80,23 +80,17 @@ export default function PenjualanIndex({ auth, penjualans, filters = {}, uiPermi
     };
 
     const getPaymentMethodBadge = (method: string) => {
-        const colors = {
+        const colors: Record<string, string> = {
             tunai: 'bg-green-100 text-green-800',
-            transfer: 'bg-blue-100 text-blue-800',
-            kartu_debit: 'bg-purple-100 text-purple-800',
-            kartu_kredit: 'bg-orange-100 text-orange-800',
+            transfer_bca: 'bg-blue-100 text-blue-800',
         };
 
         let label = '';
         switch (method) {
             case 'tunai':
-                label = 'Tunai'; break;
-            case 'transfer':
-                label = 'Transfer'; break;
-            case 'kartu_debit':
-                label = 'Kartu Debit'; break;
-            case 'kartu_kredit':
-                label = 'Kartu Kredit'; break;
+                label = 'Cash'; break;
+            case 'transfer_bca':
+                label = 'Transfer Bank BCA'; break;
             default:
                 label = 'Metode Lain'; // fallback label in Bahasa Indonesia
         }

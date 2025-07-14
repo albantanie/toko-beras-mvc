@@ -254,9 +254,14 @@
                     <td class="text-center">{{ $daily['total_transactions'] }}</td>
                     <td class="text-center">{{ $daily['total_items_sold'] }}</td>
                     <td class="text-center">
-                        @if(isset($daily['payment_methods']))
-                            @foreach($daily['payment_methods'] as $method => $count)
-                                {{ ucfirst($method) }}: {{ $count }}
+                        @if(isset($daily['payment_methods']) && is_array($daily['payment_methods']))
+                            @foreach($daily['payment_methods'] as $method => $data)
+                                {{ ucfirst($method) }}:
+                                @if(is_array($data))
+                                    {{ $data['count'] ?? $data }}
+                                @else
+                                    {{ $data }}
+                                @endif
                                 @if(!$loop->last), @endif
                             @endforeach
                         @else

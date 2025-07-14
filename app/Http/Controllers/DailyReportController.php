@@ -407,11 +407,8 @@ class DailyReportController extends Controller
 
                     // Group by payment method
                     $paymentMethods = $transactions->groupBy('metode_pembayaran')->map(function ($group) {
-                        return [
-                            'count' => $group->count(),
-                            'total' => $group->sum('total')
-                        ];
-                    });
+                        return $group->count();
+                    })->toArray();
 
                     // Create daily report
                     DailyReport::create([

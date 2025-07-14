@@ -171,7 +171,7 @@ export default function ShowLaporanBarang({ report }: Props) {
                             <Card>
                                 <CardContent className="p-4">
                                     <div className="text-2xl font-bold text-purple-600">
-                                        Rp {(report.data.summary?.total_movement_value || 0).toLocaleString('id-ID')}
+                                        {formatCurrency(report.data.summary?.total_movement_value || 0)}
                                     </div>
                                     <div className="text-sm text-gray-600">Nilai Pergerakan</div>
                                 </CardContent>

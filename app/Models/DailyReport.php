@@ -176,7 +176,9 @@ class DailyReport extends Model
                 'total_amount' => $totalAmount,
                 'total_transactions' => $totalTransactions,
                 'total_items_sold' => $totalItemsSold,
-                'payment_methods' => $transactions->groupBy('metode_pembayaran')->map->count(),
+                'payment_methods' => $transactions->groupBy('metode_pembayaran')->map(function ($group) {
+                    return $group->count();
+                })->toArray(),
             ],
         ];
 
@@ -207,6 +209,36 @@ class DailyReport extends Model
             ->with('barang')
             ->get();
 
+        // Get all transactions for the date to check consistency
+        $transactions = Penjualan::whereDate('tanggal_transaksi', $date)
+            ->where('status', 'selesai')
+            ->with('detailPenjualans.barang')
+            ->get();
+
+        // Check for inconsistencies: transactions without corresponding stock movements
+        $inconsistencies = [];
+        foreach ($transactions as $transaction) {
+            foreach ($transaction->detailPenjualans as $detail) {
+                $hasStockMovement = $stockMovements->where('reference_type', 'App\Models\DetailPenjualan')
+                    ->where('reference_id', $detail->id)
+                    ->where('barang_id', $detail->barang_id)
+                    ->where('type', 'out')
+                    ->isNotEmpty();
+
+                if (!$hasStockMovement) {
+                    $inconsistencies[] = [
+                        'type' => 'missing_stock_movement',
+                        'transaction_id' => $transaction->id,
+                        'nomor_transaksi' => $transaction->nomor_transaksi,
+                        'barang_id' => $detail->barang_id,
+                        'barang_nama' => $detail->barang->nama ?? 'Unknown',
+                        'quantity_sold' => $detail->jumlah,
+                        'message' => "Transaksi {$transaction->nomor_transaksi} menjual {$detail->jumlah} karung {$detail->barang->nama} tapi tidak ada stock movement"
+                    ];
+                }
+            }
+        }
+
         // Calculate totals
         $totalMovements = $stockMovements->count();
         $totalStockValue = $stockMovements->sum(function ($movement) {
@@ -233,6 +265,16 @@ class DailyReport extends Model
                 'total_stock_value' => $totalStockValue,
                 'movement_types' => $stockMovements->groupBy('type')->map->count(),
                 'items_affected' => $stockMovements->groupBy('barang_id')->count(),
+            ],
+            'inconsistencies' => $inconsistencies,
+            'consistency_check' => [
+                'total_transactions' => $transactions->count(),
+                'total_inconsistencies' => count($inconsistencies),
+                'is_consistent' => count($inconsistencies) === 0,
+                'check_date' => $date->format('Y-m-d'),
+                'message' => count($inconsistencies) === 0
+                    ? 'Semua transaksi sudah sesuai dengan stock movement'
+                    : count($inconsistencies) . ' transaksi tidak memiliki stock movement yang sesuai'
             ],
         ];
 

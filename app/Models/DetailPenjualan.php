@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Model DetailPenjualan - Mengelola detail item dalam transaksi penjualan
@@ -76,6 +77,17 @@ class DetailPenjualan extends Model
     public function barang(): BelongsTo
     {
         return $this->belongsTo(Barang::class);
+    }
+
+    /**
+     * Relasi dengan model StockMovement
+     *
+     * Detail penjualan ini dapat memiliki pergerakan stok terkait
+     */
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'reference_id')
+                    ->where('reference_type', 'App\\Models\\DetailPenjualan');
     }
 
     /**

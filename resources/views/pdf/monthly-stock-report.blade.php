@@ -234,6 +234,39 @@
         </div>
     </div>
 
+    <!-- Penjelasan Jenis Pergerakan Stock -->
+    <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #007bff; page-break-inside: avoid;">
+        <h3 style="margin-top: 0; color: #333; font-size: 16px;">📋 Panduan Membaca Laporan Stock</h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+            <div>
+                <h4 style="color: #28a745; margin: 10px 0 5px 0; font-size: 14px;">✅ PERGERAKAN POSITIF (+)</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 11px; line-height: 1.6;">
+                    <li><strong>Stock Masuk:</strong> Pembelian dari supplier</li>
+                    <li><strong>Retur Barang:</strong> Pengembalian dari pelanggan</li>
+                    <li><strong>Penyesuaian:</strong> Koreksi stok naik</li>
+                    <li><strong>Stock Awal:</strong> Stok pembukaan</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 style="color: #dc3545; margin: 10px 0 5px 0; font-size: 14px;">❌ PERGERAKAN NEGATIF (-)</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 11px; line-height: 1.6;">
+                    <li><strong>Stock Keluar:</strong> Penjualan barang</li>
+                    <li><strong>Kerusakan:</strong> Barang rusak/hilang</li>
+                    <li><strong>Penyesuaian:</strong> Koreksi stok turun</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+            <p style="margin: 0; font-size: 11px; color: #856404; line-height: 1.5;">
+                <strong>💡 Catatan:</strong> Satuan stock = karung (1 karung = 25kg). Nilai PLUS menambah inventory, MINUS mengurangi inventory.
+                Total Pergerakan = selisih stock masuk dan keluar. Nilai Stock = nilai moneter pergerakan.
+            </p>
+        </div>
+    </div>
+
     <div class="table-container">
         <div class="table-title">Ringkasan Pergerakan Stok Harian</div>
         <table>

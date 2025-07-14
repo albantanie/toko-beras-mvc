@@ -145,7 +145,8 @@ export default function KelolaStokPage({ barang, movements }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{barang.stok.toLocaleString('id-ID')}</div>
-                            <p className="text-xs text-muted-foreground">{barang.satuan}</p>
+                            <p className="text-xs text-muted-foreground">karung</p>
+                            <p className="text-xs text-gray-500">({(barang.stok * 25).toLocaleString('id-ID')}kg total)</p>
                         </CardContent>
                     </Card>
 

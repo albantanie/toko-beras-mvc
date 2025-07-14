@@ -175,6 +175,13 @@ class PdfReportService
         }
 
         try {
+            \Log::info('Generating stock report PDF', [
+                'barangs_count' => $barangs->count(),
+                'stock_movements_count' => $stockMovements->count(),
+                'report_data' => $reportData,
+                'file_path' => $filePath
+            ]);
+
             // Generate PDF
             $pdf = Pdf::loadView('pdf.stock-report', [
                 'reportData' => $reportData,

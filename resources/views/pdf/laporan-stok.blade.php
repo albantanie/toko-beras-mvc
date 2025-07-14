@@ -123,6 +123,37 @@
         </div>
     </div>
 
+    <!-- Penjelasan Jenis Pergerakan Stock -->
+    <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+        <h3 style="margin-top: 0; color: #333; font-size: 14px;">📋 Penjelasan Jenis Pergerakan Stock</h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+            <div>
+                <h4 style="color: #28a745; margin: 8px 0 5px 0; font-size: 12px;">✅ POSITIF (+)</h4>
+                <ul style="margin: 0; padding-left: 15px; font-size: 10px; line-height: 1.5;">
+                    <li><strong>in:</strong> Stock masuk dari supplier</li>
+                    <li><strong>return:</strong> Retur dari pelanggan</li>
+                    <li><strong>adjustment:</strong> Penyesuaian stok naik</li>
+                    <li><strong>initial:</strong> Stock awal</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 style="color: #dc3545; margin: 8px 0 5px 0; font-size: 12px;">❌ NEGATIF (-)</h4>
+                <ul style="margin: 0; padding-left: 15px; font-size: 10px; line-height: 1.5;">
+                    <li><strong>out:</strong> Stock keluar (penjualan)</li>
+                    <li><strong>damage:</strong> Kerusakan/hilang</li>
+                    <li><strong>adjustment:</strong> Penyesuaian stok turun</li>
+                </ul>
+            </div>
+        </div>
+
+        <p style="margin: 10px 0 0 0; font-size: 10px; color: #856404; background-color: #fff3cd; padding: 8px; border-radius: 3px;">
+            <strong>💡 Catatan:</strong> Satuan = karung (1 karung = 25kg). Qty positif = menambah stok, Qty negatif = mengurangi stok.
+            Stok Awal = stok sebelum pergerakan, Stok Akhir = stok setelah pergerakan.
+        </p>
+    </div>
+
     <!-- Tabel Mutasi Stok -->
     @if($movements->count() > 0)
         <table>

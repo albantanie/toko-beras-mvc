@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('category'); // e.g., 'sales', 'salary', 'utilities', 'inventory'
             $table->string('subcategory')->nullable(); // e.g., 'basic_salary', 'overtime', 'bonus'
             $table->decimal('amount', 15, 2);
-            $table->foreignId('from_account_id')->nullable()->constrained('financial_accounts');
-            $table->foreignId('to_account_id')->nullable()->constrained('financial_accounts');
+            $table->foreignId('from_account_id')->nullable()->constrained('akun_keuangan');
+            $table->foreignId('to_account_id')->nullable()->constrained('akun_keuangan');
             $table->string('reference_type')->nullable(); // e.g., 'penjualan', 'payroll', 'purchase'
             $table->unsignedBigInteger('reference_id')->nullable(); // ID dari tabel referensi
             $table->text('description');

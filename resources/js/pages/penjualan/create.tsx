@@ -4,6 +4,8 @@ import { BreadcrumbItem, Barang, User } from '@/types';
 import { formatCurrency, ProductImage, Icons } from '@/utils/formatters';
 import { useState, useEffect } from 'react';
 import { RiceStoreAlerts, SweetAlert } from '@/utils/sweetalert';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface PenjualanCreateProps {
     auth: {
@@ -12,6 +14,7 @@ interface PenjualanCreateProps {
     barangs: Barang[];
     pelanggans: User[];
     nomor_transaksi: string;
+    financialAccounts?: { id: number; account_name: string; account_type: string; current_balance: number }[];
 }
 
 interface CartItem {
@@ -34,7 +37,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_transaksi }: PenjualanCreateProps) {
+export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_transaksi, financialAccounts }: PenjualanCreateProps) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchProduct, setSearchProduct] = useState('');
     const [selectedProduct, setSelectedProduct] = useState<Barang | null>(null);
@@ -51,6 +54,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
         metode_pembayaran: 'tunai',
         bayar: 0,
         catatan: '',
+        financial_account_id: '',
     });
 
     // Filter products based on search
@@ -62,7 +66,6 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
     // Calculate totals
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const total = subtotal;
-    const kembalian = data.bayar > total ? data.bayar - total : 0;
 
     // Add product to cart
     const addToCart = () => {
@@ -165,10 +168,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
             return;
         }
 
-        if (data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && data.bayar < total) {
-            SweetAlert.error.custom('Pembayaran Tidak Cukup!', `Jumlah bayar (${formatCurrency(data.bayar)}) kurang dari total (${formatCurrency(total)}).`);
-            return;
-        }
+        // Payment validation removed - payment amount is automatically set to total
 
         // Prepare items data with explicit validation
         const items = cart.map(item => {
@@ -356,29 +356,71 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                     <label className="block text-sm font-medium text-gray-700">
                                                         Jumlah
                                                     </label>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max={selectedProduct.stok}
-                                                        value={quantity}
-                                                        onChange={(e) => {
-                                                            const newQuantity = parseInt(e.target.value) || 1;
-                                                            const existingCartItem = cart.find(item => item.barang_id === selectedProduct.id);
-                                                            const currentCartQuantity = existingCartItem ? existingCartItem.jumlah : 0;
-                                                            const maxAllowed = selectedProduct.stok - currentCartQuantity;
+                                                    <div className="flex items-center border border-gray-300 rounded-md mt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newQuantity = quantity - 1;
+                                                                if (newQuantity >= 1) {
+                                                                    setQuantity(newQuantity);
+                                                                }
+                                                            }}
+                                                            disabled={quantity <= 1}
+                                                            className="px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max={selectedProduct.stok}
+                                                            value={quantity}
+                                                            onChange={(e) => {
+                                                                const newQuantity = parseInt(e.target.value) || 1;
+                                                                const existingCartItem = cart.find(item => item.barang_id === selectedProduct.id);
+                                                                const currentCartQuantity = existingCartItem ? existingCartItem.jumlah : 0;
+                                                                const maxAllowed = selectedProduct.stok - currentCartQuantity;
 
-                                                            if (newQuantity > maxAllowed) {
-                                                                SweetAlert.error.custom(
-                                                                    'Jumlah Melebihi Stok!',
-                                                                    `Maksimal yang bisa ditambah: ${maxAllowed} ${selectedProduct.satuan}`
-                                                                );
-                                                                setQuantity(maxAllowed > 0 ? maxAllowed : 1);
-                                                            } else {
-                                                                setQuantity(newQuantity);
-                                                            }
-                                                        }}
-                                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                    />
+                                                                if (newQuantity > maxAllowed) {
+                                                                    SweetAlert.error.custom(
+                                                                        'Jumlah Melebihi Stok!',
+                                                                        `Maksimal yang bisa ditambah: ${maxAllowed} ${selectedProduct.satuan}`
+                                                                    );
+                                                                    setQuantity(maxAllowed > 0 ? maxAllowed : 1);
+                                                                } else {
+                                                                    setQuantity(newQuantity);
+                                                                }
+                                                            }}
+                                                            className="w-16 px-3 py-2 text-center border-0 focus:ring-0"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const existingCartItem = cart.find(item => item.barang_id === selectedProduct.id);
+                                                                const currentCartQuantity = existingCartItem ? existingCartItem.jumlah : 0;
+                                                                const maxAllowed = selectedProduct.stok - currentCartQuantity;
+                                                                const newQuantity = quantity + 1;
+
+                                                                if (newQuantity <= maxAllowed) {
+                                                                    setQuantity(newQuantity);
+                                                                } else {
+                                                                    SweetAlert.error.custom(
+                                                                        'Jumlah Melebihi Stok!',
+                                                                        `Maksimal yang bisa ditambah: ${maxAllowed} ${selectedProduct.satuan}`
+                                                                    );
+                                                                }
+                                                            }}
+                                                            disabled={(() => {
+                                                                const existingCartItem = cart.find(item => item.barang_id === selectedProduct.id);
+                                                                const currentCartQuantity = existingCartItem ? existingCartItem.jumlah : 0;
+                                                                const maxAllowed = selectedProduct.stok - currentCartQuantity;
+                                                                return quantity >= maxAllowed;
+                                                            })()}
+                                                            className="px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
                                                     <p className="mt-1 text-xs text-gray-500">
                                                         Stok tersedia: {selectedProduct.stok} {selectedProduct.satuan}
                                                         {cart.find(item => item.barang_id === selectedProduct.id) && (
@@ -439,15 +481,15 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                         <div className="flex items-center space-x-2">
                                                             <button
                                                                 type="button"
-                                                                onClick={() => updateQuantity(index, item.jumlah - 1)}
+                                                                onClick={() => updateQuantity(index, parseInt(item.jumlah) - 1)}
                                                                 className="text-gray-400 hover:text-gray-600"
                                                             >
                                                                 -
                                                             </button>
-                                                            <span className="text-sm font-medium">{item.jumlah}</span>
+                                                            <span className="text-sm font-medium">{parseInt(item.jumlah) || 0}</span>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => updateQuantity(index, item.jumlah + 1)}
+                                                                onClick={() => updateQuantity(index, parseInt(item.jumlah) + 1)}
                                                                 className="text-gray-400 hover:text-gray-600"
                                                             >
                                                                 +
@@ -473,12 +515,7 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                 <span>Total:</span>
                                                 <span>{formatCurrency(total)}</span>
                                             </div>
-                                            {data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && data.bayar > 0 && (
-                                                <div className="flex justify-between text-sm text-green-600">
-                                                    <span>Kembalian:</span>
-                                                    <span>{formatCurrency(kembalian)}</span>
-                                                </div>
-                                            )}
+                                            {/* Kembalian section removed - payment is exact amount */}
                                         </div>
                                     </div>
                                 </div>
@@ -621,33 +658,17 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                             onChange={(e) => setData('metode_pembayaran', e.target.value)}
                                                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                                         >
-                                                            <option value="tunai">Tunai</option>
-                                                            <option value="transfer">Transfer Bank</option>
+                                                            <option value="tunai">Cash</option>
+                                                            <option value="transfer_bca">Transfer Bank BCA</option>
                                                         </select>
                                                     </div>
 
-
-
-                                                    {data.jenis_transaksi === 'offline' && data.metode_pembayaran === 'tunai' && (
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700">
-                                                                Jumlah Bayar *
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                min={total}
-                                                                value={data.bayar}
-                                                                onChange={(e) => setData('bayar', parseFloat(e.target.value) || 0)}
-                                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                                required
-                                                            />
-                                                            {data.bayar < total && (
-                                                                <p className="mt-1 text-sm text-red-600">
-                                                                    Jumlah bayar harus minimal {formatCurrency(total)}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    {/* Payment amount section removed - automatically set to total */}
+                                                    <div className="bg-green-50 p-3 rounded-md">
+                                                        <p className="text-sm text-green-800">
+                                                            <strong>Pembayaran:</strong> Jumlah pembayaran otomatis disesuaikan dengan total transaksi ({formatCurrency(total)})
+                                                        </p>
+                                                    </div>
 
                                                     {data.jenis_transaksi === 'online' && (
                                                         <div className="bg-blue-50 p-3 rounded-md">
@@ -668,6 +689,35 @@ export default function PenjualanCreate({ auth, barangs, pelanggans, nomor_trans
                                                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                                             placeholder="Catatan tambahan untuk transaksi ini..."
                                                         />
+                                                    </div>
+
+                                                    {/* Akun Kas/Bank */}
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="financial_account_id">Akun Kas/Bank *</Label>
+                                                        <Select
+                                                            value={data.financial_account_id}
+                                                            onValueChange={(value) => setData('financial_account_id', value)}
+                                                        >
+                                                            <SelectTrigger className={errors.financial_account_id ? 'border-red-500' : ''}>
+                                                                <SelectValue placeholder="Pilih akun kas/bank" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {financialAccounts && financialAccounts.length > 0 ? (
+                                                                    financialAccounts.map((acc) => (
+                                                                        <SelectItem key={acc.id} value={acc.id.toString()}>
+                                                                            {acc.account_name} - {formatCurrency(acc.current_balance)}
+                                                                        </SelectItem>
+                                                                    ))
+                                                                ) : (
+                                                                    <SelectItem value="" disabled>
+                                                                        Tidak ada akun keuangan tersedia
+                                                                    </SelectItem>
+                                                                )}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        {errors.financial_account_id && (
+                                                            <p className="text-sm text-red-500">{errors.financial_account_id}</p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

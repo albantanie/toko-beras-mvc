@@ -58,6 +58,7 @@ interface DataTableProps<T = any> {
     currentFilters?: Record<string, string>;
     currentSort?: string;
     currentDirection?: 'asc' | 'desc';
+    className?: string;
 }
 
 export default function DataTable<T = any>({
@@ -250,7 +251,7 @@ export default function DataTable<T = any>({
             {/* Table */}
             <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 table-fixed">
                         <thead className="bg-gray-50">
                             <tr>
                                 {columns.map((column) => (
@@ -274,8 +275,8 @@ export default function DataTable<T = any>({
                                 data.data.map((row: any, index) => (
                                     <tr key={index} className="hover:bg-gray-50">
                                         {columns.map((column) => (
-                                            <td key={column.key} className={`px-6 py-4 whitespace-nowrap ${column.className || ''}`}>
-                                                {column.render 
+                                            <td key={column.key} className={`px-6 py-4 ${column.className || ''}`}>
+                                                {column.render
                                                     ? column.render(row[column.key], row)
                                                     : row[column.key]
                                                 }

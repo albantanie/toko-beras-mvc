@@ -76,10 +76,10 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
 
     const getProductUnit = (kategori: string): string => {
         const kategoriLower = kategori.toLowerCase();
-        if (kategoriLower.includes('plastik') || kategoriLower.includes('kemasan') || kategoriLower.includes('karung')) {
+        if (kategoriLower.includes('plastik') || kategoriLower.includes('kemasan')) {
             return 'pcs';
         }
-        return 'kg'; // Default untuk beras
+        return 'karung'; // Default untuk beras (1 karung = 25kg)
     };
 
     const getStockStatus = () => {
@@ -232,12 +232,12 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Current Stock</label>
                                                 <p className="text-2xl font-bold text-gray-900">{barang.stok} {getProductUnit(barang.kategori)}</p>
-                                                <p className="text-sm text-gray-500">({(barang.stok * barang.berat_per_unit).toFixed(2)}kg total)</p>
+                                                <p className="text-sm text-gray-500">({(barang.stok * 25).toFixed(0)}kg total)</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Minimum Stock</label>
                                                 <p className="text-lg font-semibold text-orange-600">{barang.stok_minimum} {getProductUnit(barang.kategori)}</p>
-                                                <p className="text-sm text-gray-500">({(barang.stok_minimum * barang.berat_per_unit).toFixed(2)}kg min)</p>
+                                                <p className="text-sm text-gray-500">({(barang.stok_minimum * 25).toFixed(0)}kg min)</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-600">Stock Value</label>
@@ -285,6 +285,19 @@ export default function ShowBarang({ auth, barang }: ShowBarangProps) {
                     <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                         <div className="mt-3">
                             <h3 className="text-lg font-medium text-gray-900 mb-4">Update Stock</h3>
+
+                            {/* Stock Movement Explanation */}
+                            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 className="font-semibold text-blue-800 mb-2">💡 Panduan Jenis Movement:</h4>
+                                <div className="text-sm text-blue-700 space-y-1">
+                                    <div><strong>Stock Masuk (in):</strong> Pembelian dari supplier</div>
+                                    <div><strong>Retur Barang (return):</strong> Pengembalian dari pelanggan</div>
+                                    <div><strong>Penyesuaian (adjustment):</strong> Koreksi berdasarkan stock opname</div>
+                                    <div><strong>Koreksi Sistem (correction):</strong> Perbaikan kesalahan input</div>
+                                    <div><strong>Stock Awal (initial):</strong> Penetapan stok pembukaan</div>
+                                </div>
+                            </div>
+
                             <form onSubmit={handleStockUpdate} className="space-y-4">
                                 <div>
                                     <label htmlFor="stok" className="block text-sm font-medium text-gray-700">

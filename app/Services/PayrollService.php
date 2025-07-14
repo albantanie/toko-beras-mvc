@@ -6,7 +6,7 @@ use App\Models\Payroll;
 use App\Models\User;
 use App\Models\FinancialTransaction;
 use App\Models\FinancialAccount;
-use App\Models\PayrollConfiguration;
+
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -139,14 +139,12 @@ class PayrollService
         // Calculate gross salary
         $grossSalary = $baseSalary + $overtimeData['amount'] + $bonus + $allowance;
         
-        // Calculate taxes
-        $tax = $this->calculateTax($grossSalary);
-        
-        // Calculate insurance
-        $insurance = $this->calculateInsurance($grossSalary);
-        
-        // Calculate net salary
-        $netSalary = $grossSalary - $tax - $insurance - $deductions;
+        // No taxes or insurance for rice store - keep it simple
+        $tax = 0;
+        $insurance = 0;
+
+        // Net salary = Gross salary (no deductions)
+        $netSalary = $grossSalary;
 
         return [
             'basic_salary' => $baseSalary,
@@ -157,8 +155,8 @@ class PayrollService
             'allowance_amount' => $allowance,
             'deduction_amount' => $deductions,
             'gross_salary' => $grossSalary,
-            'tax_amount' => $tax,
-            'insurance_amount' => $insurance,
+            'tax_amount' => 0,
+            'insurance_amount' => 0,
             'other_deductions' => 0,
             'net_salary' => $netSalary,
             'breakdown' => [
@@ -167,58 +165,40 @@ class PayrollService
                 'bonus_details' => $this->getBonusDetails($user, $periodStart, $periodEnd),
                 'allowance_details' => $this->getAllowanceDetails($user),
                 'deduction_details' => $this->getDeductionDetails($user),
-                'tax_details' => $this->getTaxDetails($grossSalary),
-                'insurance_details' => $this->getInsuranceDetails($grossSalary),
+                'tax_details' => ['note' => 'Tidak ada pajak untuk toko beras'],
+                'insurance_details' => ['note' => 'Tidak ada BPJS untuk toko beras'],
             ],
         ];
     }
 
     /**
-     * Get base salary for user
+     * Get base salary for user - Fixed rates for rice store
      */
     private function getBaseSalary($user)
     {
         $role = $user->roles->first()->name;
 
-        // Get from configuration table
-        $baseSalary = PayrollConfiguration::getBasicSalary($role);
+        // Fixed salary rates for rice store
+        $salaries = [
+            'admin' => 5000000,    // Rp 5.000.000
+            'karyawan' => 3500000, // Rp 3.500.000
+            'kasir' => 3000000,    // Rp 3.000.000
+        ];
 
-        // Fallback to default if not configured
-        if (!$baseSalary) {
-            $defaultSalaries = [
-                'admin' => 5000000,
-                'karyawan' => 3500000,
-                'kasir' => 3000000,
-            ];
-            $baseSalary = $defaultSalaries[$role] ?? 3000000;
-        }
-
-        return $baseSalary;
+        return $salaries[$role] ?? 3000000;
     }
 
     /**
-     * Calculate overtime
+     * Calculate overtime - Simplified for rice store
      */
     private function calculateOvertime($user, $periodStart, $periodEnd)
     {
-        $role = $user->roles->first()->name;
-
-        // Get overtime rate from configuration
-        $overtimeRate = PayrollConfiguration::getOvertimeRate($role);
-
-        // Fallback to default if not configured
-        if (!$overtimeRate) {
-            $overtimeRate = 25000; // Default per hour
-        }
-
-        // For now, return default values
-        // In real implementation, this would calculate based on attendance/work hours
-        $overtimeHours = 0; // This should come from attendance system
-
+        // Rice store doesn't use overtime system
+        // All work is considered regular hours
         return [
-            'hours' => $overtimeHours,
-            'rate' => $overtimeRate,
-            'amount' => $overtimeHours * $overtimeRate,
+            'hours' => 0,
+            'rate' => 0,
+            'amount' => 0,
         ];
     }
 
@@ -233,82 +213,47 @@ class PayrollService
     }
 
     /**
-     * Calculate allowance
+     * Calculate allowance - Fixed rates for rice store
      */
     private function calculateAllowance($user)
     {
         $role = $user->roles->first()->name;
 
-        // Get allowances from configuration
-        $allowanceConfigs = PayrollConfiguration::getAllowances($role);
-        $totalAllowance = $allowanceConfigs->sum('amount');
+        // Fixed allowance rates for rice store
+        $allowances = [
+            'admin' => 800000,    // Transport (500k) + Meal (300k)
+            'karyawan' => 500000, // Transport (300k) + Meal (200k)
+            'kasir' => 400000,    // Transport (250k) + Meal (150k)
+        ];
 
-        // Fallback to default if not configured
-        if (!$totalAllowance) {
-            $defaultAllowances = [
-                'admin' => 500000, // Transport + meal allowance
-                'karyawan' => 300000,
-                'kasir' => 250000,
-            ];
-            $totalAllowance = $defaultAllowances[$role] ?? 250000;
-        }
-
-        return $totalAllowance;
+        return $allowances[$role] ?? 400000;
     }
 
     /**
-     * Calculate deductions
+     * Calculate deductions - No deductions for rice store
      */
     private function calculateDeductions($user)
     {
-        // Basic deductions (late, absence, etc.)
+        // Rice store uses fixed salary - no deductions
         return 0;
     }
 
     /**
-     * Calculate tax (PPh 21)
+     * Calculate tax - No tax for rice store
      */
     private function calculateTax($grossSalary)
     {
-        // Get tax configuration
-        $taxRate = PayrollConfiguration::getTaxRate();
-
-        // Get tax-free threshold from configuration
-        $taxFreeThreshold = PayrollConfiguration::active()
-            ->where('config_key', 'tax_free_threshold')
-            ->first();
-
-        $threshold = $taxFreeThreshold ? $taxFreeThreshold->amount : 4500000;
-        $rate = $taxRate ? ($taxRate / 100) : 0.05; // Convert percentage to decimal
-
-        // Calculate tax
-        if ($grossSalary <= $threshold) {
-            return 0; // Tax-free threshold
-        }
-
-        return ($grossSalary - $threshold) * $rate;
+        // Rice store doesn't handle tax - keep it simple
+        return 0;
     }
 
     /**
-     * Calculate insurance (BPJS)
+     * Calculate insurance - No insurance for rice store
      */
     private function calculateInsurance($grossSalary)
     {
-        // Get insurance configuration
-        $insuranceRate = PayrollConfiguration::getInsuranceRate();
-
-        // Get max salary for insurance calculation
-        $maxSalaryConfig = PayrollConfiguration::active()
-            ->where('config_key', 'insurance_max_salary')
-            ->first();
-
-        $maxSalary = $maxSalaryConfig ? $maxSalaryConfig->amount : 8000000;
-        $rate = $insuranceRate ? ($insuranceRate / 100) : 0.01; // Convert percentage to decimal
-
-        // BPJS calculation
-        $calculationBase = min($grossSalary, $maxSalary);
-
-        return $calculationBase * $rate;
+        // Rice store doesn't handle BPJS - keep it simple
+        return 0;
     }
 
     /**
@@ -425,11 +370,24 @@ class PayrollService
 
     private function getAllowanceDetails($user)
     {
-        return [
-            'transport_allowance' => 150000,
-            'meal_allowance' => 100000,
-            'communication_allowance' => 50000,
+        $role = $user->roles->first()->name;
+
+        $details = [
+            'admin' => [
+                'transport_allowance' => 500000,
+                'meal_allowance' => 300000,
+            ],
+            'karyawan' => [
+                'transport_allowance' => 300000,
+                'meal_allowance' => 200000,
+            ],
+            'kasir' => [
+                'transport_allowance' => 250000,
+                'meal_allowance' => 150000,
+            ],
         ];
+
+        return $details[$role] ?? $details['kasir'];
     }
 
     private function getDeductionDetails($user)
@@ -444,17 +402,16 @@ class PayrollService
     private function getTaxDetails($grossSalary)
     {
         return [
-            'taxable_income' => max(0, $grossSalary - 4500000),
-            'tax_rate' => 5,
-            'tax_amount' => $this->calculateTax($grossSalary),
+            'note' => 'Toko beras tidak menangani pajak PPh',
+            'tax_amount' => 0,
         ];
     }
 
     private function getInsuranceDetails($grossSalary)
     {
         return [
-            'bpjs_kesehatan' => $grossSalary * 0.01,
-            'bpjs_ketenagakerjaan' => 0,
+            'note' => 'Toko beras tidak menangani BPJS',
+            'bpjs_amount' => 0,
         ];
     }
 }

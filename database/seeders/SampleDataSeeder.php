@@ -91,7 +91,7 @@ class SampleDataSeeder extends Seeder
                     'diskon' => 0,
                     'pajak' => 0,
                     'total' => 0, // Will be calculated
-                    'metode_pembayaran' => rand(0, 1) ? 'tunai' : 'transfer',
+                    'metode_pembayaran' => rand(0, 1) ? 'tunai' : 'transfer_bca',
                     'status' => 'selesai',
                     'catatan' => 'Sample transaction for testing',
                 ]);

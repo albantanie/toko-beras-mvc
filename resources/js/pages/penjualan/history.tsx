@@ -49,16 +49,24 @@ export default function PenjualanHistory({ auth, penjualans, filters = {} }: Pen
     };
 
     const getPaymentMethodBadge = (method: string) => {
-        const colors = {
+        const colors: Record<string, string> = {
             tunai: 'bg-green-100 text-green-800',
-            transfer: 'bg-blue-100 text-blue-800',
-            kartu_debit: 'bg-purple-100 text-purple-800',
-            kartu_kredit: 'bg-orange-100 text-orange-800',
+            transfer_bca: 'bg-blue-100 text-blue-800',
         };
+
+        let label = '';
+        switch (method) {
+            case 'tunai':
+                label = 'Cash'; break;
+            case 'transfer_bca':
+                label = 'Transfer Bank BCA'; break;
+            default:
+                label = 'Metode Lain';
+        }
 
         return (
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${colors[method] || 'bg-gray-100 text-gray-800'}`}>
-                {method.replace('_', ' ').toUpperCase()}
+                {label}
             </span>
         );
     };

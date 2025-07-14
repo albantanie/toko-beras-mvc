@@ -232,19 +232,19 @@ export default function Cart({ auth, cartItems, total, cartCount }: CartProps) {
                                                             <div className="flex items-center border border-gray-300 rounded-md">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => updateQuantity(item.barang.id, item.quantity - 1)}
-                                                                    disabled={item.quantity <= 1}
+                                                                    onClick={() => updateQuantity(item.barang.id, parseInt(item.quantity) - 1)}
+                                                                    disabled={parseInt(item.quantity) <= 1}
                                                                     className="px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 >
                                                                     -
                                                                 </button>
                                                                 <span className="px-4 py-2 text-center min-w-[3rem]">
-                                                                    {item.quantity}
+                                                                    {parseInt(item.quantity) || 0}
                                                                 </span>
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => updateQuantity(item.barang.id, item.quantity + 1)}
-                                                                    disabled={item.quantity >= item.barang.stok}
+                                                                    onClick={() => updateQuantity(item.barang.id, parseInt(item.quantity) + 1)}
+                                                                    disabled={parseInt(item.quantity) >= item.barang.stok}
                                                                     className="px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 >
                                                                     +

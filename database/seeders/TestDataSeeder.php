@@ -181,7 +181,7 @@ class TestDataSeeder extends Seeder
                 'nama_pelanggan' => 'Pelanggan ' . $i,
                 'alamat_pelanggan' => 'Alamat Pelanggan ' . $i,
                 'telepon_pelanggan' => '0812345678' . str_pad($i, 2, '0', STR_PAD_LEFT),
-                'metode_pembayaran' => ['tunai', 'transfer', 'kartu_debit'][rand(0, 2)],
+                'metode_pembayaran' => ['tunai', 'transfer_bca'][rand(0, 1)],
                 'status' => ['pending', 'selesai'][rand(0, 1)], // Use only valid statuses from migration
                 'subtotal' => 0, // Will be calculated after adding details
                 'diskon' => $diskon,

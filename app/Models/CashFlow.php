@@ -73,12 +73,7 @@ class CashFlow extends Model
 
     public function getFlowTypeDisplayAttribute()
     {
-        $types = [
-            'operating' => 'Operasional',
-            'investing' => 'Investasi',
-            'financing' => 'Pendanaan',
-        ];
-
-        return $types[$this->flow_type] ?? $this->flow_type;
+        // Simplified for rice store - only operating
+        return 'Operasional';
     }
 }

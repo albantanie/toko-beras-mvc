@@ -305,11 +305,18 @@ class Barang extends Model
             'stock_before' => $stockBefore,
             'stock_after' => $newStock,
             'unit_price' => $unitPrice,
+            'unit_cost' => $this->harga_beli,
+            'purchase_price' => $metadata['purchase_price'] ?? null,
+            'selling_price' => $metadata['selling_price'] ?? $unitPrice,
             'description' => $description,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
             'metadata' => $metadata,
         ]);
+
+        // Calculate stock values
+        $movement->calculateStockValues();
+        $movement->save();
 
         // Update barang stock
         $this->update(['stok' => $newStock]);
@@ -385,10 +392,10 @@ class Barang extends Model
 
     /**
      * Get unit for rice products
-     * Semua produk beras menggunakan satuan kg
+     * Semua produk beras menggunakan satuan karung
      */
     public function getSatuanAttribute(): string
     {
-        return 'kg'; // Semua produk beras menggunakan kg
+        return 'karung'; // Semua produk beras menggunakan karung
     }
 }

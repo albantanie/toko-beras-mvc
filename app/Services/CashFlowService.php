@@ -224,22 +224,12 @@ class CashFlowService
 
     /**
      * Determine flow type from transaction
+     * Simplified for rice store - only operating activities
      */
     private function determineFlowType(FinancialTransaction $transaction)
     {
-        $operatingCategories = ['sales', 'salary', 'utilities', 'rent', 'supplies'];
-        $investingCategories = ['equipment', 'investment', 'asset_purchase'];
-        $financingCategories = ['loan', 'capital', 'dividend'];
-
-        if (in_array($transaction->category, $operatingCategories)) {
-            return 'operating';
-        } elseif (in_array($transaction->category, $investingCategories)) {
-            return 'investing';
-        } elseif (in_array($transaction->category, $financingCategories)) {
-            return 'financing';
-        }
-
-        return 'operating'; // Default
+        // All transactions are considered operating for rice store
+        return 'operating';
     }
 
     /**
@@ -317,16 +307,11 @@ class CashFlowService
 
     /**
      * Get flow type display name
+     * Simplified for rice store - only operating
      */
     private function getFlowTypeDisplay($type)
     {
-        $displays = [
-            'operating' => 'Aktivitas Operasional',
-            'investing' => 'Aktivitas Investasi',
-            'financing' => 'Aktivitas Pendanaan',
-        ];
-
-        return $displays[$type] ?? $type;
+        return 'Operasional';
     }
 
     /**

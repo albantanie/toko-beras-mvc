@@ -172,6 +172,9 @@ export default function ProductDetail({ auth, barang, relatedProducts }: Product
                                         <span className="text-gray-700 mr-2">Stok tersedia:</span>
                                         <span className={`font-semibold ${barang.stok > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             {barang.stok} {getProductUnit(barang.kategori)}
+                                            {barang.berat_per_unit && (
+                                                <span className="text-sm text-gray-500 font-normal"> ({barang.berat_per_unit}kg/{getProductUnit(barang.kategori)})</span>
+                                            )}
                                         </span>
                                     </div>
                                 </div>

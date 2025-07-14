@@ -19,7 +19,7 @@ export default function KaryawanDailySimple({ reports, filters, todayStats }: Pr
                     {todayStats ? (
                         <div>
                             <p><strong>Total Movements:</strong> {todayStats.total_movements}</p>
-                            <p><strong>Total Stock Value:</strong> Rp {todayStats.total_stock_value?.toLocaleString()}</p>
+                            <p><strong>Total Stock Value:</strong> {formatCurrency(todayStats.total_stock_value || 0)}</p>
                             <p><strong>Items Affected:</strong> {todayStats.items_affected}</p>
                         </div>
                     ) : (
@@ -46,7 +46,7 @@ export default function KaryawanDailySimple({ reports, filters, todayStats }: Pr
                                         }}>
                                             <p><strong>Date:</strong> {report.report_date}</p>
                                             <p><strong>Movements:</strong> {report.total_stock_movements}</p>
-                                            <p><strong>Value:</strong> Rp {report.total_stock_value?.toLocaleString()}</p>
+                                            <p><strong>Value:</strong> {formatCurrency(report.total_stock_value || 0)}</p>
                                             <p><strong>Status:</strong> {report.status}</p>
                                         </div>
                                     ))}

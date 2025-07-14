@@ -17,11 +17,12 @@ class SalesFinancialService
     public function recordSalesTransaction(Penjualan $penjualan)
     {
         return DB::transaction(function () use ($penjualan) {
-            // Determine target account based on payment method
-            $targetAccount = $this->getTargetAccount($penjualan->metode_pembayaran);
-            
+            // Gunakan akun dari penjualan jika ada
+            $targetAccount = $penjualan->financial_account_id
+                ? FinancialAccount::find($penjualan->financial_account_id)
+                : $this->getTargetAccount($penjualan->metode_pembayaran);
             if (!$targetAccount) {
-                throw new \Exception("Akun untuk metode pembayaran {$penjualan->metode_pembayaran} tidak ditemukan");
+                throw new \Exception("Akun untuk transaksi penjualan tidak ditemukan");
             }
 
             // Create financial transaction
@@ -132,7 +133,7 @@ class SalesFinancialService
         // For online transactions, depends on payment confirmation
         if ($penjualan->jenis_transaksi === 'online') {
             return match($penjualan->status) {
-                'dibayar', 'siap_diambil', 'selesai' => 'completed',
+                'dibayar', 'siap_pickup', 'selesai' => 'completed',
                 'menunggu_pembayaran', 'menunggu_konfirmasi' => 'pending',
                 default => 'pending',
             };

@@ -147,18 +147,20 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Seed barangs
+        // Seed barangs first
         $this->call(BarangSeeder::class);
-        // Seed penjualans
-        $this->call(PenjualanSeeder::class);
 
-        // Seed daily reports for existing transactions
-        $this->call(DailyReportsSeeder::class);
+        // Seed comprehensive realistic data for demo
+        $this->call(ComprehensiveRealisticDataSeeder::class);
 
-        // Seed monthly report data (transactions, stock movements, daily reports)
-        // $this->call(MonthlyReportDataSeeder::class);
+        $this->command->info('🎉 Database seeded successfully with realistic demo data!');
+        $this->command->info('📊 All stock values, transactions, and reports now have realistic non-zero values');
+        $this->command->info('💰 Financial accounts have been set up with proper balances');
+        $this->command->info('🌾 All rice products have realistic stock and pricing');
+        $this->command->info('📈 30 days of realistic transaction and stock movement history created');
+        $this->command->info('📋 Daily reports and stock valuations generated with proper data');
 
-        // Note: ReportSubmissionSeeder removed as ReportSubmission model no longer exists
-        // The old report submission system has been replaced with a simpler PDF report system
+        // Note: Other seeders are now handled by ComprehensiveRealisticDataSeeder
+        // to ensure all data is realistic and consistent for demo purposes
     }
 }

@@ -12,6 +12,18 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface RecentTransaction {
+    id: number;
+    nomor_transaksi: string;
+    nama_pelanggan: string;
+    kasir: string;
+    total: number;
+    metode_pembayaran: string;
+    tanggal_transaksi: string;
+    item_count: number;
+    status: string;
+}
+
 interface KasirDashboardProps {
     todaysSalesTrend: Array<{
         hour: string;
@@ -47,13 +59,15 @@ interface KasirDashboardProps {
         };
         walk_in_sales: number;
     };
+    recentTransactions: RecentTransaction[];
 }
 
 export default function KasirDashboard({
     todaysSalesTrend,
     todaysTransactionTypes,
     pendingOrders,
-    todaysSummary
+    todaysSummary,
+    recentTransactions
 }: KasirDashboardProps) {
     // Prepare chart data
     const salesTrendData = {
@@ -440,20 +454,38 @@ export default function KasirDashboard({
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            <tr>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">14:30</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">John Doe</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3 item</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp 75,000</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Tunai</td>
-                                            </tr>
-                                            <tr>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">14:15</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jane Smith</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2 item</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp 45,000</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Kartu</td>
-                                            </tr>
+                                            {recentTransactions && recentTransactions.length > 0 ? (
+                                                recentTransactions.map((transaction) => (
+                                                    <tr key={transaction.id}>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {new Date(transaction.tanggal_transaksi).toLocaleTimeString('id-ID', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {transaction.nama_pelanggan}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {transaction.item_count} item
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {formatCurrency(transaction.total)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {transaction.metode_pembayaran === 'tunai' ? 'Tunai' :
+                                                             transaction.metode_pembayaran === 'transfer_bca' ? 'Transfer BCA' :
+                                                             transaction.metode_pembayaran}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                                                        Belum ada transaksi hari ini
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>

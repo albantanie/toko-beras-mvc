@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Barang;
 use App\Models\DetailPenjualan;
+use App\Models\FinancialAccount;
 use App\Models\Penjualan;
 use App\Models\User;
 use App\Services\SalesFinancialService;
@@ -250,10 +251,17 @@ class PenjualanController extends Controller
             });
         }
 
+        // Get financial accounts for payment method selection
+        $financialAccounts = FinancialAccount::select('id', 'account_name', 'account_type', 'current_balance')
+            ->whereIn('account_name', ['Kas Utama', 'Bank BCA'])
+            ->where('is_active', true)
+            ->get();
+
         return Inertia::render('penjualan/create', [
             'barangs' => $barangs,
             'pelanggans' => $pelanggans,
             'nomor_transaksi' => Penjualan::generateNomorTransaksi(),
+            'financialAccounts' => $financialAccounts,
             'is_kasir' => $isKasir,
         ]);
     }
@@ -269,7 +277,7 @@ class PenjualanController extends Controller
             'items.*.barang_id' => 'required|exists:produk,id',
             'items.*.jumlah' => 'required|integer|min:1',
             'items.*.harga_satuan' => 'required|numeric|min:0',
-            'metode_pembayaran' => 'required|in:tunai,transfer,qris',
+            'metode_pembayaran' => 'required|in:tunai,transfer_bca',
             'catatan' => 'nullable|string',
         ]);
 
@@ -331,8 +339,13 @@ class PenjualanController extends Controller
                 );
             }
 
-            // Update total
-            $penjualan->update(['total' => $total]);
+            // Update total and set payment amount to exact total (no change)
+            $penjualan->update([
+                'subtotal' => $total,
+                'total' => $total,
+                'bayar' => $total,
+                'kembalian' => 0
+            ]);
 
             // Record and complete financial transaction (offline sales are immediately completed)
             try {
@@ -465,7 +478,7 @@ class PenjualanController extends Controller
             'telepon_pelanggan' => 'nullable|string|max:20',
             'alamat_pelanggan' => 'nullable|string',
             'jenis_transaksi' => 'required|in:offline,online',
-            'metode_pembayaran' => 'required|in:tunai,transfer,kartu_debit,kartu_kredit',
+            'metode_pembayaran' => 'required|in:tunai,transfer_bca',
             'bayar' => 'nullable|numeric|min:0',
             'catatan' => 'nullable|string',
             'items' => 'required|array',
@@ -571,10 +584,10 @@ class PenjualanController extends Controller
                 'alamat_pelanggan' => $request->alamat_pelanggan,
                 'jenis_transaksi' => $request->jenis_transaksi,
                 'metode_pembayaran' => $request->metode_pembayaran,
-                'subtotal' => $subtotal,
+                'subtotal' => $total,
                 'total' => $total,
-                'bayar' => $request->jenis_transaksi === 'offline' ? $request->bayar : null,
-                'kembalian' => ($request->jenis_transaksi === 'offline' && $request->bayar) ? $request->bayar - $total : null,
+                'bayar' => $total, // Payment amount is always equal to total
+                'kembalian' => 0, // No change given
                 'catatan' => $request->catatan,
             ]);
 
@@ -650,10 +663,17 @@ class PenjualanController extends Controller
         try {
             // Restore stock and record movement if transaction was pending
             if ($penjualan->status === 'pending') {
+                \Log::info('Restoring stock for pending transaction', ['penjualan_id' => $penjualan->id]);
                 foreach ($penjualan->detailPenjualans as $detail) {
+                    \Log::info('Processing detail for stock restoration', [
+                        'detail_id' => $detail->id,
+                        'barang_id' => $detail->barang_id,
+                        'quantity' => $detail->jumlah
+                    ]);
+
                     // Lock row barang untuk update - mencegah race condition
                     $barang = Barang::lockForUpdate()->find($detail->barang_id);
-                    
+
                     // Record stock movement for deletion
                     $barang->recordStockMovement(
                         type: 'return',
@@ -673,7 +693,17 @@ class PenjualanController extends Controller
                             'deleted_by' => auth()->user()->name,
                         ]
                     );
+
+                    \Log::info('Stock movement recorded for deletion', [
+                        'barang_id' => $detail->barang_id,
+                        'new_stock' => $barang->fresh()->stok
+                    ]);
                 }
+            } else {
+                \Log::info('Skipping stock restoration - transaction not pending', [
+                    'penjualan_id' => $penjualan->id,
+                    'status' => $penjualan->status
+                ]);
             }
 
             $penjualan->detailPenjualans()->delete();
@@ -778,13 +808,14 @@ class PenjualanController extends Controller
         }
 
         // Validate payment proof exists for transfer payment
-        if ($penjualan->metode_pembayaran === 'transfer' && !$penjualan->payment_proof) {
+        if ($penjualan->metode_pembayaran === 'transfer_bca' && !$penjualan->payment_proof) {
             return Inertia::location(route('penjualan.online'));
         }
 
         try {
             $penjualan->update([
                 'status' => 'dibayar',
+                'user_id' => auth()->id(), // Assign to kasir who confirmed payment
                 'payment_confirmed_at' => now(),
                 'payment_confirmed_by' => auth()->id(),
             ]);
@@ -900,5 +931,116 @@ class PenjualanController extends Controller
         }
     }
 
+    /**
+     * Mark order as ready for pickup
+     */
+    public function readyPickup(Request $request, Penjualan $penjualan)
+    {
+        // Check if user is kasir or admin
+        if (!auth()->user()->isKasir() && !auth()->user()->isAdmin()) {
+            return Inertia::location(route('penjualan.online'));
+        }
 
+        // Validate that payment is confirmed
+        if ($penjualan->status !== 'dibayar') {
+            session()->flash('error', 'Hanya pesanan yang sudah dibayar yang dapat ditandai siap pickup.');
+            return Inertia::location(route('penjualan.online'));
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update status to ready for pickup and assign to current kasir
+            $penjualan->update([
+                'status' => 'siap_pickup',
+                'user_id' => auth()->id(), // Assign to kasir who processed the order
+                'pickup_time' => now(),
+                'catatan' => $request->input('catatan_kasir'),
+            ]);
+
+            // Log the action
+            \Log::info('Order marked ready for pickup', [
+                'penjualan_id' => $penjualan->id,
+                'ready_pickup_by' => auth()->user()->name,
+                'catatan_kasir' => $request->input('catatan_kasir'),
+            ]);
+
+            DB::commit();
+
+            // Add success flash message to session before redirect
+            session()->flash('success', 'Pesanan berhasil ditandai siap untuk pickup.');
+
+            return Inertia::location(route('penjualan.online'));
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            \Log::error('Failed to mark order ready for pickup', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+                'user' => auth()->user()->name,
+            ]);
+
+            // Add error flash message to session before redirect
+            session()->flash('error', 'Gagal menandai pesanan siap pickup: ' . $e->getMessage());
+
+            return Inertia::location(route('penjualan.online'));
+        }
+    }
+
+    /**
+     * Complete the order (mark as finished)
+     */
+    public function complete(Request $request, Penjualan $penjualan)
+    {
+        // Check if user is kasir or admin
+        if (!auth()->user()->isKasir() && !auth()->user()->isAdmin()) {
+            return Inertia::location(route('penjualan.online'));
+        }
+
+        // Validate that order is ready for pickup
+        if ($penjualan->status !== 'siap_pickup') {
+            session()->flash('error', 'Hanya pesanan yang siap pickup yang dapat diselesaikan.');
+            return Inertia::location(route('penjualan.online'));
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update status to completed and assign to current kasir
+            $penjualan->update([
+                'status' => 'selesai',
+                'user_id' => auth()->id(), // Assign to kasir who completed the transaction
+                'catatan' => $request->input('catatan_kasir'),
+            ]);
+
+            // Log the action
+            \Log::info('Order completed', [
+                'penjualan_id' => $penjualan->id,
+                'completed_by' => auth()->user()->name,
+                'catatan_kasir' => $request->input('catatan_kasir'),
+            ]);
+
+            DB::commit();
+
+            // Add success flash message to session before redirect
+            session()->flash('success', 'Pesanan berhasil diselesaikan.');
+
+            return Inertia::location(route('penjualan.online'));
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            \Log::error('Failed to complete order', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+                'user' => auth()->user()->name,
+            ]);
+
+            // Add error flash message to session before redirect
+            session()->flash('error', 'Gagal menyelesaikan pesanan: ' . $e->getMessage());
+
+            return Inertia::location(route('penjualan.online'));
+        }
+    }
 }

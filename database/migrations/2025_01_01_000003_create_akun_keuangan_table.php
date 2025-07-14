@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('financial_accounts', function (Blueprint $table) {
+        Schema::create('akun_keuangan', function (Blueprint $table) {
             $table->id();
             $table->string('account_code', 20)->unique(); // e.g., 'CASH-001', 'BANK-001'
             $table->string('account_name'); // e.g., 'Kas Utama', 'Bank BCA'
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('financial_accounts');
+        Schema::dropIfExists('akun_keuangan');
     }
 };

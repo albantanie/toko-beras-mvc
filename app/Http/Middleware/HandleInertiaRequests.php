@@ -41,7 +41,10 @@ class HandleInertiaRequests extends Middleware
 
         // Calculate cart count
         $cart = $request->session()->get('cart', []);
-        $cartCount = array_sum(array_column($cart, 'quantity'));
+        $quantities = array_column($cart, 'quantity');
+        // Ensure all quantities are integers
+        $quantities = array_map('intval', $quantities);
+        $cartCount = array_sum($quantities);
 
         return [
             ...parent::share($request),

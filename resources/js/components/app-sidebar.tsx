@@ -49,6 +49,11 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
                     icon: DollarSign,
                 },
                 {
+                    title: 'Pengeluaran',
+                    href: '/owner/keuangan/pengeluaran',
+                    icon: DollarSign,
+                },
+                {
                     title: 'Laporan Penjualan',
                     href: '/owner/laporan/penjualan',
                     icon: BarChart3,

@@ -58,7 +58,6 @@ class PenjualanCrudTest extends TestCase
             'harga_jual' => 15000,
             'stok' => 100,
             'stok_minimum' => 10,
-            'satuan' => 'kg',
             'berat_per_unit' => 25.00,
             'kode_barang' => 'TST001',
             'is_active' => true,
@@ -690,10 +689,10 @@ class PenjualanCrudTest extends TestCase
         $response->assertSessionHas('success');
 
         // Check stock movement recorded
-        $this->assertDatabaseHas('stock_movements', [
+        $this->assertDatabaseHas('pergerakan_stok', [
             'barang_id' => $barang->id,
             'type' => 'out',
-            'quantity' => -5,
+            'quantity' => 5, // Quantity is stored as positive value, type indicates direction
         ]);
 
         // Check stock reduced (100 - 5 = 95)

@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Download, Filter, Search } from 'lucide-react';
+import { ArrowLeft, Download, Filter, Search, Info, Plus, Minus } from 'lucide-react';
+import { Icons } from '@/utils/formatters';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -253,6 +254,78 @@ export default function StockMovements({
                                         Cari
                                     </Button>
                                 </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Stock Movement Explanation */}
+                    <Card className="mb-6">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Info className="w-5 h-5 text-blue-600" />
+                                Panduan Jenis Pergerakan Stock
+                            </CardTitle>
+                            <CardDescription>
+                                Penjelasan lengkap tentang jenis-jenis pergerakan stock dan artinya
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold text-green-600 flex items-center gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        Pergerakan Positif (+)
+                                    </h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Stock Masuk (in):</span>
+                                            <span className="text-gray-600">Pembelian dari supplier</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Retur Barang (return):</span>
+                                            <span className="text-gray-600">Pengembalian dari pelanggan</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Penyesuaian (adjustment):</span>
+                                            <span className="text-gray-600">Koreksi stok naik</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Stock Awal (initial):</span>
+                                            <span className="text-gray-600">Stok pembukaan</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold text-red-600 flex items-center gap-2">
+                                        <Minus className="w-4 h-4" />
+                                        Pergerakan Negatif (-)
+                                    </h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Stock Keluar (out):</span>
+                                            <span className="text-gray-600">Penjualan barang</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Kerusakan (damage):</span>
+                                            <span className="text-gray-600">Barang rusak/hilang</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Penyesuaian (adjustment):</span>
+                                            <span className="text-gray-600">Koreksi stok turun</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <h5 className="font-semibold text-yellow-800 mb-2">💡 Catatan Penting:</h5>
+                                <ul className="text-sm text-yellow-700 space-y-1">
+                                    <li><strong>Nilai PLUS (+):</strong> Menambah stok dan nilai inventory (dihitung berdasarkan harga beli)</li>
+                                    <li><strong>Nilai MINUS (-):</strong> Mengurangi stok dan nilai inventory (penjualan: harga jual, kerusakan: harga beli)</li>
+                                    <li><strong>Stock Sebelum/Sesudah:</strong> Jumlah stok sebelum dan sesudah pergerakan terjadi</li>
+                                    <li><strong>Total Nilai:</strong> Nilai moneter dari pergerakan stock berdasarkan harga yang berlaku</li>
+                                </ul>
                             </div>
                         </CardContent>
                     </Card>

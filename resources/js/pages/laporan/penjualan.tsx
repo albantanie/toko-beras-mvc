@@ -81,10 +81,11 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
             label: 'No. Transaksi',
             sortable: true,
             searchable: true,
+            className: 'w-40 min-w-[160px]',
             render: (value, row) => (
-                <div>
-                    <div className="text-sm font-medium text-gray-900">{value}</div>
-                    <div className="text-xs text-gray-500">
+                <div className="truncate">
+                    <div className="text-sm font-medium text-gray-900 truncate">{value}</div>
+                    <div className="text-xs text-gray-500 truncate">
                         {formatDateTime(row.tanggal_transaksi)}
                     </div>
                 </div>
@@ -94,13 +95,14 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
             key: 'nama_pelanggan',
             label: 'Pelanggan',
             sortable: true,
+            className: 'w-48 min-w-[192px]',
             render: (value, row) => (
-                <div>
-                    <div className="text-sm font-medium text-gray-900">
+                <div className="truncate">
+                    <div className="text-sm font-medium text-gray-900 truncate">
                         {value || row.pelanggan?.name || 'Walk-in Customer'}
                     </div>
                     {row.telepon_pelanggan && (
-                        <div className="text-xs text-gray-500">{row.telepon_pelanggan}</div>
+                        <div className="text-xs text-gray-500 truncate">{row.telepon_pelanggan}</div>
                     )}
                 </div>
             ),
@@ -108,8 +110,9 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
         {
             key: 'user',
             label: 'Kasir',
+            className: 'w-32 min-w-[128px]',
             render: (_, row) => (
-                <div className="text-sm text-gray-900">
+                <div className="text-sm text-gray-900 truncate">
                     {row.user?.name || 'Unknown'}
                 </div>
             ),
@@ -117,10 +120,11 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
         {
             key: 'detail_penjualans',
             label: 'Items',
+            className: 'w-20 min-w-[80px] text-center',
             render: (value, row) => (
-                <div>
+                <div className="text-center">
                     <div className="text-sm font-medium text-gray-900">
-                        {value?.length || 0} items
+                        {value?.length || 0}
                     </div>
                     <div className="text-xs text-gray-500">
                         {value?.reduce((sum: number, item: any) => sum + item.jumlah, 0) || 0} qty
@@ -131,6 +135,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
         {
             key: 'pickup_method',
             label: 'Pickup',
+            className: 'w-32 min-w-[128px]',
             render: (value, row) => {
                 const getPickupLabel = (method: string) => {
                     switch (method) {
@@ -170,8 +175,9 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
             key: 'total',
             label: 'Total',
             sortable: true,
+            className: 'w-36 min-w-[144px] text-right',
             render: (value, row) => (
-                <div>
+                <div className="text-right">
                     <div className="text-sm font-medium text-gray-900">
                         {formatCurrency(value)}
                     </div>
@@ -185,6 +191,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
         ...(user_role?.is_admin_or_owner ? [{
             key: 'profit',
             label: 'Profit',
+            className: 'w-32 min-w-[128px] text-right',
             render: (_, row) => {
                 const profit = row.detail_penjualans?.reduce((sum: number, item: any) => {
                     const profitPerUnit = item.harga_satuan - (item.barang?.harga_beli || 0);
@@ -192,7 +199,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                 }, 0) || 0;
 
                 return (
-                    <div className="text-sm font-medium text-green-600">
+                    <div className="text-sm font-medium text-green-600 text-right">
                         {formatCurrency(profit)}
                     </div>
                 );
@@ -284,9 +291,9 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                                             </dt>
                                             <dd className="text-lg font-medium text-gray-900" title={formatCurrency(summary.total_sales)}>
                                                 {summary.total_sales >= 1000000
-                                                    ? `Rp ${(summary.total_sales / 1000000).toFixed(summary.total_sales % 1000000 === 0 ? 0 : 1)}jt`
+                                                    ? formatCurrency(summary.total_sales)
                                                     : summary.total_sales >= 1000
-                                                    ? `Rp ${(summary.total_sales / 1000).toFixed(summary.total_sales % 1000 === 0 ? 0 : 1)}K`
+                                                    ? formatCurrency(summary.total_sales)
                                                     : formatCurrency(summary.total_sales)
                                                 }
                                             </dd>
@@ -331,10 +338,10 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                                                 </dt>
                                                 <dd className="text-lg font-medium text-green-600" title={formatCurrency(summary.total_profit)}>
                                                     {summary.total_profit >= 1000000
-                                                        ? `Rp ${(summary.total_profit / 1000000).toFixed(summary.total_profit % 1000000 === 0 ? 0 : 1)}jt`
-                                                        : summary.total_profit >= 1000
-                                                        ? `Rp ${(summary.total_profit / 1000).toFixed(summary.total_profit % 1000 === 0 ? 0 : 1)}K`
-                                                        : formatCurrency(summary.total_profit)
+                                                                                                            ? formatCurrency(summary.total_profit)
+                                                    : summary.total_profit >= 1000
+                                                    ? formatCurrency(summary.total_profit)
+                                                    : formatCurrency(summary.total_profit)
                                                     }
                                                 </dd>
                                             </dl>
@@ -378,19 +385,32 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                     </div>
 
                     {/* Transactions Table */}
-                    <DataTable
-                        data={penjualans}
-                        columns={columns}
-                        searchPlaceholder="Cari berdasarkan nomor transaksi, pelanggan, atau kasir..."
-                        routeName="owner.laporan.penjualan"
-                        currentSearch={filters?.search}
-                        currentSort={filters?.sort}
-                        currentDirection={filters?.direction}
-                        emptyState={{
-                            title: 'No sales data found',
-                            description: 'No sales transactions found for the selected period.',
-                        }}
-                    />
+                    <div className="overflow-x-auto">
+                        <style jsx>{`
+                            .sales-table {
+                                min-width: 1200px;
+                            }
+                            .sales-table th,
+                            .sales-table td {
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            }
+                        `}</style>
+                        <DataTable
+                            data={penjualans}
+                            columns={columns}
+                            searchPlaceholder="Cari berdasarkan nomor transaksi, pelanggan, atau kasir..."
+                            routeName="owner.laporan.penjualan"
+                            currentSearch={filters?.search}
+                            currentSort={filters?.sort}
+                            currentDirection={filters?.direction}
+                            emptyState={{
+                                title: 'No sales data found',
+                                description: 'No sales transactions found for the selected period.',
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
         </AppLayout>

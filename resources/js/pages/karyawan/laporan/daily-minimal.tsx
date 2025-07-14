@@ -16,7 +16,7 @@ export default function KaryawanDailyMinimal({ reports, filters, todayStats }: P
                 {todayStats ? (
                     <div>
                         <p><strong>Total Movements:</strong> {todayStats.total_movements || 0}</p>
-                        <p><strong>Total Stock Value:</strong> Rp {(todayStats.total_stock_value || 0).toLocaleString()}</p>
+                        <p><strong>Total Stock Value:</strong> {formatCurrency(todayStats.total_stock_value || 0)}</p>
                         <p><strong>Items Affected:</strong> {todayStats.items_affected || 0}</p>
                     </div>
                 ) : (
@@ -43,7 +43,7 @@ export default function KaryawanDailyMinimal({ reports, filters, todayStats }: P
                                     }}>
                                         <p><strong>Date:</strong> {report.report_date || 'N/A'}</p>
                                         <p><strong>Movements:</strong> {report.total_stock_movements || 0}</p>
-                                        <p><strong>Value:</strong> Rp {(report.total_stock_value || 0).toLocaleString()}</p>
+                                        <p><strong>Value:</strong> {formatCurrency(report.total_stock_value || 0)}</p>
                                         <p><strong>Status:</strong> {report.status || 'N/A'}</p>
                                     </div>
                                 ))}

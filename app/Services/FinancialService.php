@@ -167,52 +167,29 @@ class FinancialService
 
     /**
      * Get profit summary
+     * Simplified for rice store - no COGS calculation
      */
     public function getProfitSummary($dateRange)
     {
         $revenue = $this->getRevenueSummary($dateRange);
         $expenses = $this->getExpenseSummary($dateRange);
-        
-        // Calculate COGS (Cost of Goods Sold)
-        $cogs = $this->calculateCOGS($dateRange);
-        
-        $grossProfit = $revenue['total_sales'] - $cogs;
-        $netProfit = $grossProfit - $expenses['total_expenses'];
-        
+
+        // Simple calculation: Revenue - Operating Expenses = Net Profit
+        $netProfit = $revenue['total_sales'] - $expenses['total_expenses'];
+
         return [
             'gross_revenue' => $revenue['total_sales'],
-            'cogs' => $cogs,
-            'gross_profit' => $grossProfit,
             'operating_expenses' => $expenses['total_expenses'],
             'net_profit' => $netProfit,
-            'gross_margin' => $revenue['total_sales'] > 0 ? ($grossProfit / $revenue['total_sales']) * 100 : 0,
             'net_margin' => $revenue['total_sales'] > 0 ? ($netProfit / $revenue['total_sales']) * 100 : 0,
         ];
     }
 
-    /**
-     * Calculate Cost of Goods Sold
-     */
-    private function calculateCOGS($dateRange)
-    {
-        $sales = Penjualan::with('detailPenjualans.barang')
-            ->where('status', 'selesai')
-            ->whereBetween('tanggal_transaksi', [$dateRange['start'], $dateRange['end']])
-            ->get();
 
-        $totalCOGS = 0;
-        
-        foreach ($sales as $sale) {
-            foreach ($sale->detailPenjualans as $detail) {
-                $totalCOGS += $detail->jumlah * $detail->barang->harga_beli;
-            }
-        }
-
-        return $totalCOGS;
-    }
 
     /**
      * Get cash flow summary
+     * Simplified for rice store - only operating activities
      */
     public function getCashFlowSummary($dateRange)
     {
@@ -221,17 +198,13 @@ class FinancialService
 
         $summary = [
             'operating' => ['inflow' => 0, 'outflow' => 0, 'net' => 0],
-            'investing' => ['inflow' => 0, 'outflow' => 0, 'net' => 0],
-            'financing' => ['inflow' => 0, 'outflow' => 0, 'net' => 0],
-            'total_net_flow' => 0,
         ];
 
         foreach ($cashFlows as $flow) {
             $amount = $flow->direction === 'inflow' ? $flow->amount : -$flow->amount;
-            
-            $summary[$flow->flow_type][$flow->direction] += $flow->amount;
-            $summary[$flow->flow_type]['net'] += $amount;
-            $summary['total_net_flow'] += $amount;
+
+            $summary['operating'][$flow->direction] += $flow->amount;
+            $summary['operating']['net'] += $amount;
         }
 
         return $summary;
@@ -239,28 +212,19 @@ class FinancialService
 
     /**
      * Get stock valuation summary
+     * Simplified for rice store - show quantities in kg, not monetary values
      */
     public function getStockValuationSummary()
     {
-        $latestValuations = StockValuation::with('barang')
-            ->whereIn('id', function($query) {
-                $query->select(DB::raw('MAX(id)'))
-                    ->from('stok_barang')
-                    ->groupBy('barang_id');
-            })
-            ->get();
+        // Get current stock from barang table directly
+        $barangs = Barang::where('stok', '>', 0)->get();
 
         $summary = [
-            'total_cost_value' => $latestValuations->sum('total_cost_value'),
-            'total_market_value' => $latestValuations->sum('total_market_value'),
-            'total_potential_profit' => $latestValuations->sum('potential_profit'),
-            'average_margin' => 0,
-            'items_count' => $latestValuations->count(),
+            'total_quantity_kg' => $barangs->sum('stok'),
+            'items_count' => $barangs->count(),
+            'low_stock_items' => $barangs->where('stok', '<=', 10)->count(), // Items with <= 10kg
+            'out_of_stock_items' => Barang::where('stok', 0)->count(),
         ];
-
-        if ($summary['total_cost_value'] > 0) {
-            $summary['average_margin'] = ($summary['total_potential_profit'] / $summary['total_cost_value']) * 100;
-        }
 
         return $summary;
     }
@@ -321,7 +285,7 @@ class FinancialService
      */
     public function getRecentTransactions($limit = 10)
     {
-        // Get financial transactions
+        // Get all financial transactions (no limit here)
         $financialTransactions = FinancialTransaction::with(['fromAccount', 'toAccount', 'creator'])
             ->select([
                 'id',
@@ -335,10 +299,9 @@ class FinancialService
                 'transaction_date',
                 DB::raw("'financial' as source_type")
             ])
-            ->orderBy('created_at', 'desc')
-            ->limit($limit * 2); // Get more to ensure we have enough after merging
+            ->orderBy('created_at', 'desc');
 
-        // Get sales transactions that are completed
+        // Get all sales transactions that are completed (no limit here)
         $salesTransactions = \App\Models\Penjualan::with(['user'])
             ->where('status', 'selesai')
             ->select([
@@ -353,10 +316,9 @@ class FinancialService
                 'tanggal_transaksi as transaction_date',
                 DB::raw("'sales' as source_type")
             ])
-            ->orderBy('created_at', 'desc')
-            ->limit($limit * 2); // Get more to ensure we have enough after merging
+            ->orderBy('created_at', 'desc');
 
-        // Combine and sort by created_at
+        // Combine and sort by created_at, then take $limit
         $allTransactions = collect()
             ->merge($financialTransactions->get())
             ->merge($salesTransactions->get())
@@ -369,6 +331,7 @@ class FinancialService
 
     /**
      * Get financial ratios
+     * Simplified for rice store
      */
     public function getFinancialRatios($dateRange)
     {
@@ -377,7 +340,6 @@ class FinancialService
         $stock = $this->getStockValuationSummary();
 
         return [
-            'gross_margin' => $profit['gross_margin'],
             'net_margin' => $profit['net_margin'],
             'inventory_turnover' => $this->calculateInventoryTurnover($dateRange),
             'cash_ratio' => $this->calculateCashRatio(),

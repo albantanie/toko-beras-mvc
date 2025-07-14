@@ -136,8 +136,8 @@ class StockMovementController extends Controller
                 'updated_by' => auth()->id(),
             ]);
 
-            // Catat stock movement
-            StockMovement::create([
+            // Catat stock movement dengan perhitungan nilai yang tepat
+            $movement = StockMovement::create([
                 'barang_id' => $barang->id,
                 'user_id' => auth()->id(),
                 'type' => $request->type,
@@ -145,10 +145,17 @@ class StockMovementController extends Controller
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
                 'unit_price' => $request->unit_price,
+                'unit_cost' => $barang->harga_beli,
+                'purchase_price' => $request->type === 'in' ? $request->unit_price : null,
+                'selling_price' => $request->type === 'out' ? $request->unit_price : null,
                 'description' => $request->description,
                 'reference_type' => null,
                 'reference_id' => null,
             ]);
+
+            // Calculate stock values
+            $movement->calculateStockValues();
+            $movement->save();
         });
 
         return redirect()->route('stock-movements.history', $barang->id)

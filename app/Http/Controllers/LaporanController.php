@@ -915,17 +915,79 @@ class LaporanController extends Controller
             $report = PdfReport::where('type', $newType)
                 ->latest()
                 ->first();
-                
+
             if (!$report) {
-                abort(404, "Laporan dengan type {$type} tidak ditemukan");
+                // Jika laporan stock tidak ada, generate otomatis
+                if ($newType === 'stock') {
+                    try {
+                        $pdfReportService = app(\App\Services\PdfReportService::class);
+                        $report = $pdfReportService->generateStockReport(auth()->id());
+
+                        \Log::info('Auto-generated stock report for download', [
+                            'report_id' => $report->id,
+                            'user_id' => auth()->id()
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to auto-generate stock report', [
+                            'error' => $e->getMessage(),
+                            'user_id' => auth()->id()
+                        ]);
+                        abort(500, "Gagal generate laporan stock: " . $e->getMessage());
+                    }
+                } else {
+                    abort(404, "Laporan dengan type {$type} tidak ditemukan. Silakan generate laporan terlebih dahulu.");
+                }
             }
         }
         
         if (!\Storage::exists($report->file_path)) {
-            abort(404, 'File laporan tidak ditemukan');
+            // Jika file tidak ada, coba regenerate
+            try {
+                if ($report->type === 'stock') {
+                    $pdfReportService = app(\App\Services\PdfReportService::class);
+                    $newReport = $pdfReportService->generateStockReport(auth()->id());
+                    $report = $newReport;
+
+                    \Log::info('Regenerated missing stock report file', [
+                        'old_report_id' => $report->id,
+                        'new_report_id' => $newReport->id,
+                        'user_id' => auth()->id()
+                    ]);
+                } else {
+                    abort(404, 'File laporan tidak ditemukan dan tidak dapat di-regenerate');
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to regenerate missing report file', [
+                    'report_id' => $report->id,
+                    'error' => $e->getMessage(),
+                    'user_id' => auth()->id()
+                ]);
+                abort(500, 'File laporan tidak ditemukan dan gagal di-regenerate: ' . $e->getMessage());
+            }
         }
         
-        return response()->download(storage_path('app/' . $report->file_path), basename($report->file_path));
+        try {
+            $filePath = storage_path('app/' . $report->file_path);
+
+            if (!file_exists($filePath)) {
+                \Log::error('Report file does not exist on filesystem', [
+                    'report_id' => $report->id,
+                    'file_path' => $report->file_path,
+                    'full_path' => $filePath,
+                    'user_id' => auth()->id()
+                ]);
+                abort(404, 'File laporan tidak ditemukan di sistem file');
+            }
+
+            return response()->download($filePath, basename($report->file_path));
+        } catch (\Exception $e) {
+            \Log::error('Error downloading report', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+            abort(500, 'Gagal mengunduh laporan: ' . $e->getMessage());
+        }
     }
     
     /**

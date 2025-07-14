@@ -145,6 +145,44 @@
         <strong>Tanggal Laporan: {{ \Carbon\Carbon::parse($reportData['report_date'])->format('d M Y') }}</strong>
     </div>
 
+    <!-- Penjelasan Jenis Pergerakan Stock -->
+    <div class="explanation-section" style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+        <h3 style="margin-top: 0; color: #333; font-size: 16px;">📋 Penjelasan Jenis Pergerakan Stock</h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+            <div>
+                <h4 style="color: #28a745; margin: 10px 0 5px 0; font-size: 14px;">✅ PERGERAKAN POSITIF (+)</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 11px; line-height: 1.6;">
+                    <li><strong>Stock Masuk (in):</strong> Pembelian barang baru dari supplier</li>
+                    <li><strong>Retur Barang (return):</strong> Barang dikembalikan oleh pelanggan</li>
+                    <li><strong>Penyesuaian Stok (adjustment):</strong> Koreksi stok naik berdasarkan stock opname</li>
+                    <li><strong>Koreksi Sistem (correction):</strong> Perbaikan data akibat kesalahan input</li>
+                    <li><strong>Stock Awal (initial):</strong> Penetapan stok pembukaan</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 style="color: #dc3545; margin: 10px 0 5px 0; font-size: 14px;">❌ PERGERAKAN NEGATIF (-)</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 11px; line-height: 1.6;">
+                    <li><strong>Stock Keluar (out):</strong> Penjualan atau penggunaan barang</li>
+                    <li><strong>Kerusakan (damage):</strong> Barang rusak, hilang, atau kadaluarsa</li>
+                    <li><strong>Penyesuaian Stok (adjustment):</strong> Koreksi stok turun berdasarkan stock opname</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+            <h4 style="margin: 0 0 10px 0; color: #856404; font-size: 13px;">💡 Catatan Penting:</h4>
+            <ul style="margin: 0; padding-left: 20px; font-size: 11px; line-height: 1.6; color: #856404;">
+                <li><strong>Satuan Stock:</strong> Semua stock menggunakan satuan karung (1 karung = 25kg)</li>
+                <li><strong>Nilai PLUS (+):</strong> Menambah stok dan nilai inventory (dihitung berdasarkan harga beli)</li>
+                <li><strong>Nilai MINUS (-):</strong> Mengurangi stok dan nilai inventory (penjualan: harga jual, kerusakan: harga beli)</li>
+                <li><strong>Total Pergerakan:</strong> Selisih antara stock masuk dan keluar dalam periode tertentu</li>
+                <li><strong>Nilai Stock:</strong> Nilai moneter dari pergerakan stock berdasarkan harga yang berlaku</li>
+            </ul>
+        </div>
+    </div>
+
     <div class="summary">
         <div class="summary-grid">
             <div class="summary-card">
@@ -194,7 +232,15 @@
                 <td>{{ $barang->kode_barang }}</td>
                 <td>{{ $barang->nama }}</td>
                 <td>{{ $barang->kategori }}</td>
-                <td class="text-right">{{ number_format($barang->stok) }} {{ $barang->satuan }}</td>
+                <td class="text-right">{{ number_format($barang->stok) }}
+                    @if(strtolower($barang->kategori) === 'beras' || strpos(strtolower($barang->kategori), 'beras') !== false)
+                        kg
+                    @elseif(strpos(strtolower($barang->kategori), 'plastik') !== false || strpos(strtolower($barang->kategori), 'kemasan') !== false || strpos(strtolower($barang->kategori), 'karung') !== false)
+                        pcs
+                    @else
+                        kg
+                    @endif
+                </td>
                 <td class="text-right">{{ number_format($barang->stok_minimum) }}</td>
                 <td class="text-center">
                     @if($barang->stok <= 0)

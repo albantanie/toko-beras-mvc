@@ -5,6 +5,7 @@ import BarChart from '@/components/Charts/BarChart';
 import LineChart from '@/components/Charts/LineChart';
 import { formatCurrency, formatCompactNumber, Icons } from '@/utils/formatters';
 import { Badge } from '@/components/ui/badge';
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 
 // Use global route function
@@ -479,30 +480,7 @@ export default function KaryawanDashboard({
                                 )}
                             </div>
 
-                            {/* Inventory Summary */}
-                            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Inventory Value Summary</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                                        <p className="text-2xl font-bold text-green-600 truncate" title={formatCurrency(inventorySummary?.total_stock_value || 0)}>
-                                            {formatCompactNumber(inventorySummary?.total_stock_value || 0, 'currency')}
-                                        </p>
-                                        <p className="text-sm text-green-700 mt-1">Total Stock Value</p>
-                                    </div>
-                                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                        <p className="text-2xl font-bold text-blue-600 truncate" title={(inventorySummary?.categories_count || 0).toString()}>
-                                            {formatCompactNumber(inventorySummary?.categories_count || 0)}
-                                        </p>
-                                        <p className="text-sm text-blue-700 mt-1">Product Categories</p>
-                                    </div>
-                                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                        <p className="text-2xl font-bold text-purple-600 truncate" title={`${((inventorySummary?.low_stock_items || 0) / (inventorySummary?.total_products || 1) * 100).toFixed(1)}%`}>
-                                            {((inventorySummary?.low_stock_items || 0) / (inventorySummary?.total_products || 1) * 100).toFixed(1)}%
-                                        </p>
-                                        <p className="text-sm text-purple-700 mt-1">Low Stock Ratio</p>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             {/* Quick Actions */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -538,6 +516,38 @@ export default function KaryawanDashboard({
                                         <Icons.fileText className="w-4 h-4 mr-2" />
                                         Lihat Laporan
                                     </Link>
+                                </div>
+                            </div>
+
+                            {/* Stock Movement Guide */}
+                            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-6">
+                                <h4 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+                                    <Info className="w-5 h-5" />
+                                    Panduan Pergerakan Stock
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <h5 className="font-semibold text-green-600">✅ Pergerakan Positif (+)</h5>
+                                        <div className="text-sm space-y-1 text-blue-700">
+                                            <div><strong>Stock Masuk (in):</strong> Barang dari supplier</div>
+                                            <div><strong>Retur (return):</strong> Pengembalian dari pelanggan</div>
+                                            <div><strong>Penyesuaian (adjustment):</strong> Koreksi stok naik</div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h5 className="font-semibold text-red-600">❌ Pergerakan Negatif (-)</h5>
+                                        <div className="text-sm space-y-1 text-blue-700">
+                                            <div><strong>Stock Keluar (out):</strong> Penjualan barang</div>
+                                            <div><strong>Kerusakan (damage):</strong> Barang rusak/hilang</div>
+                                            <div><strong>Penyesuaian (adjustment):</strong> Koreksi stok turun</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                                    <p className="text-sm text-yellow-800">
+                                        <strong>💡 Catatan:</strong> Nilai PLUS menambah stok, MINUS mengurangi stok.
+                                        Stock Sebelum/Sesudah menunjukkan jumlah stok sebelum dan sesudah pergerakan.
+                                    </p>
                                 </div>
                             </div>
 

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, DollarSign, Calendar, Plus, Eye, CreditCard, Settings } from 'lucide-react';
+import { Users, DollarSign, Calendar, Plus, Eye, CreditCard } from 'lucide-react';
 
 interface Payroll {
     id: number;
@@ -200,12 +200,6 @@ export default function PayrollPage({ payrolls, summary, accounts, filters }: Pr
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <Button variant="outline" asChild>
-                            <a href="/owner/keuangan/payroll-configuration">
-                                <Settings className="h-4 w-4 mr-2" />
-                                Konfigurasi
-                            </a>
-                        </Button>
                         <Button onClick={() => setShowGenerateDialog(true)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Generate Gaji

@@ -32,6 +32,7 @@ class Purchase extends Model
         'due_date',
         'notes',
         'is_financial_recorded',
+        'financial_account_id',
     ];
 
     protected $casts = [
@@ -71,6 +72,11 @@ class Purchase extends Model
     {
         return $this->hasMany(FinancialTransaction::class, 'reference_id')
                     ->where('reference_type', 'purchase');
+    }
+
+    public function financialAccount()
+    {
+        return $this->belongsTo(FinancialAccount::class, 'financial_account_id');
     }
 
     // Scopes
@@ -144,11 +150,12 @@ class Purchase extends Model
             return;
         }
 
-        // Get cash account (assuming ID 1 is cash)
-        $cashAccount = FinancialAccount::where('account_type', 'cash')->first();
-        
-        if (!$cashAccount) {
-            throw new \Exception('Cash account not found');
+        // Gunakan akun dari purchase jika ada
+        $account = $this->financial_account_id
+            ? FinancialAccount::find($this->financial_account_id)
+            : FinancialAccount::where('account_type', 'cash')->first();
+        if (!$account) {
+            throw new \Exception('Akun kas/bank tidak ditemukan');
         }
 
         // Create expense transaction for purchase
@@ -158,7 +165,7 @@ class Purchase extends Model
             'category' => 'inventory',
             'subcategory' => 'purchase',
             'amount' => $this->total,
-            'from_account_id' => $cashAccount->id,
+            'from_account_id' => $account->id,
             'reference_type' => 'purchase',
             'reference_id' => $this->id,
             'description' => "Pembelian barang dari {$this->supplier_name} - {$this->purchase_code}",
@@ -174,15 +181,15 @@ class Purchase extends Model
             'direction' => 'outflow',
             'category' => 'purchases',
             'amount' => $this->total,
-            'account_id' => $cashAccount->id,
+            'account_id' => $account->id,
             'transaction_id' => $transaction->id,
             'description' => "Pembelian barang - {$this->purchase_code}",
-            'running_balance' => $cashAccount->current_balance - $this->total,
+            'running_balance' => $account->current_balance - $this->total,
         ]);
 
         // Update account balance
-        $cashAccount->update([
-            'current_balance' => $cashAccount->current_balance - $this->total
+        $account->update([
+            'current_balance' => $account->current_balance - $this->total
         ]);
 
         // Mark as recorded

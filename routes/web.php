@@ -33,6 +33,7 @@ use App\Http\Controllers\HomeController;          // Controller untuk halaman pu
 use App\Http\Controllers\CartController;          // Controller untuk shopping cart
 use App\Http\Controllers\ReceiptController;       // Controller untuk receipt dan pickup
 use App\Http\Controllers\DashboardController;     // Controller untuk dashboard role-based
+use App\Http\Controllers\PengeluaranController;   // Controller untuk manajemen pengeluaran
 use App\Models\Role;                              // Model Role untuk konstanta role
 use Illuminate\Support\Facades\Route;            // Laravel Route facade
 use Inertia\Inertia;                             // Inertia.js untuk SPA dengan React
@@ -381,6 +382,446 @@ Route::middleware(['auth'])->group(function () {
 
         // Download laporan PDF berdasarkan type (untuk kompatibilitas)
         Route::get('download-report', [LaporanController::class, 'downloadReportByType'])->name('download-report-type');
+
+        // Debug route untuk test stock report template
+        Route::get('debug-stock-report', function() {
+            $barangs = \App\Models\Barang::all();
+            $stockMovements = \App\Models\StockMovement::with(['barang', 'user'])->latest()->take(10)->get();
+            $reportData = [
+                'report_date' => now()->toDateString(),
+                'total_items' => $barangs->count(),
+                'low_stock_items' => 0,
+                'out_of_stock_items' => 0,
+                'in_stock_items' => $barangs->count(),
+                'total_stock_value_sell' => 1000000,
+                'total_stock_value_buy' => 800000,
+                'potential_profit' => 200000,
+                'recent_movements_count' => $stockMovements->count(),
+            ];
+
+            return view('pdf.stock-report', [
+                'reportData' => $reportData,
+                'barangs' => $barangs,
+                'stockMovements' => $stockMovements,
+                'generatedAt' => now(),
+            ]);
+        })->name('debug-stock-report');
+
+        // Debug route untuk cek konsistensi data keuangan
+        Route::get('debug-financial-consistency', function() {
+            $financialService = app(\App\Services\FinancialService::class);
+            $integrationService = app(\App\Services\FinancialIntegrationService::class);
+
+            // Get current account balances
+            $accounts = \App\Models\FinancialAccount::active()->get();
+
+            // Get cash summary from service
+            $cashSummary = $financialService->getCashSummary();
+
+            // Get completed sales that should be recorded
+            $completedSales = \App\Models\Penjualan::where('status', 'selesai')
+                ->where('is_financial_recorded', true)
+                ->with('detailPenjualans.barang')
+                ->get();
+
+            // Calculate expected balances
+            $expectedCashFromSales = $completedSales->where('metode_pembayaran', 'tunai')->sum('total');
+            $expectedBankFromSales = $completedSales->whereIn('metode_pembayaran', ['transfer', 'debit', 'kredit'])->sum('total');
+
+            // Get financial transactions
+            $financialTransactions = \App\Models\FinancialTransaction::where('transaction_type', 'income')
+                ->where('category', 'sales')
+                ->sum('amount');
+
+            // Get cash flows
+            $cashFlows = \App\Models\CashFlow::where('direction', 'inflow')
+                ->where('category', 'sales')
+                ->sum('amount');
+
+            return response()->json([
+                'accounts' => $accounts->map(function($account) {
+                    return [
+                        'name' => $account->account_name,
+                        'type' => $account->account_type,
+                        'opening_balance' => $account->opening_balance,
+                        'current_balance' => $account->current_balance,
+                        'bank_name' => $account->bank_name,
+                    ];
+                }),
+                'cash_summary' => $cashSummary,
+                'sales_analysis' => [
+                    'total_completed_sales' => $completedSales->count(),
+                    'total_sales_amount' => $completedSales->sum('total'),
+                    'expected_cash_from_sales' => $expectedCashFromSales,
+                    'expected_bank_from_sales' => $expectedBankFromSales,
+                    'recorded_financial_transactions' => $financialTransactions,
+                    'recorded_cash_flows' => $cashFlows,
+                ],
+                'consistency_check' => [
+                    'sales_vs_financial_transactions' => $completedSales->sum('total') == $financialTransactions,
+                    'sales_vs_cash_flows' => $completedSales->sum('total') == $cashFlows,
+                    'financial_vs_cash_flows' => $financialTransactions == $cashFlows,
+                ],
+            ]);
+        })->name('debug-financial-consistency');
+
+        // Debug route untuk test button styling
+        Route::get('debug-button-test', function() {
+            return view('debug.button-test');
+        })->name('debug-button-test');
+
+        // Debug route untuk cek data transaksi untuk laporan harian
+        Route::get('debug-daily-report-data', function() {
+            $user = auth()->user();
+            $today = now()->format('Y-m-d');
+
+            // Get all transactions for today
+            $allTransactions = \App\Models\Penjualan::whereDate('tanggal_transaksi', $today)
+                ->with(['user', 'detailPenjualans.barang'])
+                ->get();
+
+            // Get transactions that should be in daily report (selesai + current user)
+            $reportTransactions = \App\Models\Penjualan::whereDate('tanggal_transaksi', $today)
+                ->where('user_id', $user->id)
+                ->where('status', 'selesai')
+                ->with(['user', 'detailPenjualans.barang'])
+                ->get();
+
+            // Get existing daily report
+            $dailyReport = \App\Models\DailyReport::where('report_date', $today)
+                ->where('type', 'transaction')
+                ->where('user_id', $user->id)
+                ->first();
+
+            return response()->json([
+                'debug_info' => [
+                    'current_user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'role' => $user->role,
+                    ],
+                    'date_checked' => $today,
+                ],
+                'all_transactions_today' => $allTransactions->map(function($t) {
+                    return [
+                        'id' => $t->id,
+                        'nomor_transaksi' => $t->nomor_transaksi,
+                        'user_id' => $t->user_id,
+                        'user_name' => $t->user->name ?? 'Unknown',
+                        'status' => $t->status,
+                        'jenis_transaksi' => $t->jenis_transaksi,
+                        'total' => $t->total,
+                        'tanggal_transaksi' => $t->tanggal_transaksi,
+                        'items_count' => $t->detailPenjualans->sum('jumlah'),
+                    ];
+                }),
+                'report_eligible_transactions' => $reportTransactions->map(function($t) {
+                    return [
+                        'id' => $t->id,
+                        'nomor_transaksi' => $t->nomor_transaksi,
+                        'status' => $t->status,
+                        'total' => $t->total,
+                        'items_count' => $t->detailPenjualans->sum('jumlah'),
+                    ];
+                }),
+                'existing_daily_report' => $dailyReport ? [
+                    'id' => $dailyReport->id,
+                    'report_date' => $dailyReport->report_date,
+                    'total_amount' => $dailyReport->total_amount,
+                    'total_transactions' => $dailyReport->total_transactions,
+                    'total_items_sold' => $dailyReport->total_items_sold,
+                    'status' => $dailyReport->status,
+                    'data' => $dailyReport->data,
+                ] : null,
+                'summary' => [
+                    'total_transactions_today' => $allTransactions->count(),
+                    'completed_transactions_today' => $allTransactions->where('status', 'selesai')->count(),
+                    'current_user_transactions' => $allTransactions->where('user_id', $user->id)->count(),
+                    'current_user_completed' => $reportTransactions->count(),
+                    'total_amount_eligible' => $reportTransactions->sum('total'),
+                    'total_items_eligible' => $reportTransactions->sum(function($t) {
+                        return $t->detailPenjualans->sum('jumlah');
+                    }),
+                ],
+            ]);
+        })->name('debug-daily-report-data');
+
+        // Route untuk regenerate laporan harian
+        Route::get('regenerate-daily-report/{date?}', function($date = null) {
+            $user = auth()->user();
+            $targetDate = $date ? \Carbon\Carbon::parse($date) : now();
+
+            if (!$user->hasRole('kasir')) {
+                return response()->json(['error' => 'Only kasir can regenerate daily reports'], 403);
+            }
+
+            try {
+                // Delete existing report for the date
+                \App\Models\DailyReport::where('report_date', $targetDate->format('Y-m-d'))
+                    ->where('type', 'transaction')
+                    ->where('user_id', $user->id)
+                    ->delete();
+
+                // Generate new report
+                $report = \App\Models\DailyReport::generateTransactionReport($targetDate, $user->id);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Daily report regenerated successfully',
+                    'report' => [
+                        'date' => $report->report_date,
+                        'total_amount' => $report->total_amount,
+                        'total_transactions' => $report->total_transactions,
+                        'total_items_sold' => $report->total_items_sold,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('regenerate-daily-report');
+
+        // Route untuk hapus semua laporan harian yang bermasalah
+        Route::get('clear-daily-reports/{date?}', function($date = null) {
+            $user = auth()->user();
+            $targetDate = $date ? \Carbon\Carbon::parse($date) : now();
+
+            if (!$user->hasRole('kasir') && !$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only kasir or owner can clear daily reports'], 403);
+            }
+
+            try {
+                // Delete daily reports for the date
+                $deletedCount = \App\Models\DailyReport::where('report_date', $targetDate->format('Y-m-d'))
+                    ->where('type', 'transaction')
+                    ->when($user->hasRole('kasir'), function($query) use ($user) {
+                        return $query->where('user_id', $user->id);
+                    })
+                    ->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Deleted {$deletedCount} daily reports for " . $targetDate->format('Y-m-d'),
+                    'deleted_count' => $deletedCount,
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-daily-reports');
+
+        // Route untuk hapus SEMUA laporan harian (untuk reset total)
+        Route::get('clear-all-daily-reports', function() {
+            $user = auth()->user();
+
+            if (!$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only owner can clear all daily reports'], 403);
+            }
+
+            try {
+                // Delete ALL daily reports
+                $deletedCount = \App\Models\DailyReport::where('type', 'transaction')->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Deleted ALL {$deletedCount} daily transaction reports",
+                    'deleted_count' => $deletedCount,
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-all-daily-reports');
+
+        // Route untuk hapus laporan PDF yang bermasalah
+        Route::get('clear-pdf-reports/{month?}', function($month = null) {
+            $user = auth()->user();
+
+            if (!$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only owner can clear PDF reports'], 403);
+            }
+
+            try {
+                $query = \App\Models\PdfReport::query();
+
+                if ($month) {
+                    $targetMonth = \Carbon\Carbon::parse($month);
+                    $query->whereYear('created_at', $targetMonth->year)
+                          ->whereMonth('created_at', $targetMonth->month);
+                }
+
+                // Get reports to delete files
+                $reports = $query->get();
+                $deletedFiles = 0;
+
+                foreach ($reports as $report) {
+                    if ($report->file_path && \Storage::exists($report->file_path)) {
+                        \Storage::delete($report->file_path);
+                        $deletedFiles++;
+                    }
+                }
+
+                // Delete database records
+                $deletedCount = $query->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Deleted {$deletedCount} PDF reports and {$deletedFiles} files" . ($month ? " for month {$month}" : ""),
+                    'deleted_reports' => $deletedCount,
+                    'deleted_files' => $deletedFiles,
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-pdf-reports');
+
+        // Route untuk hapus transaksi online yang bermasalah
+        Route::get('clear-online-transactions/{date?}', function($date = null) {
+            $user = auth()->user();
+
+            if (!$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only owner can clear transactions'], 403);
+            }
+
+            try {
+                $query = \App\Models\Penjualan::where('jenis_transaksi', 'online');
+
+                if ($date) {
+                    $targetDate = \Carbon\Carbon::parse($date);
+                    $query->whereDate('tanggal_transaksi', $targetDate);
+                }
+
+                // Get transactions to delete
+                $transactions = $query->with('detailPenjualans')->get();
+                $deletedTransactions = 0;
+                $deletedDetails = 0;
+
+                foreach ($transactions as $transaction) {
+                    // Delete detail penjualans first
+                    $detailCount = $transaction->detailPenjualans()->count();
+                    $transaction->detailPenjualans()->delete();
+                    $deletedDetails += $detailCount;
+
+                    // Delete transaction
+                    $transaction->delete();
+                    $deletedTransactions++;
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Deleted {$deletedTransactions} online transactions and {$deletedDetails} detail records" . ($date ? " for date {$date}" : ""),
+                    'deleted_transactions' => $deletedTransactions,
+                    'deleted_details' => $deletedDetails,
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-online-transactions');
+
+        // Route untuk hapus SEMUA transaksi (HATI-HATI!)
+        Route::get('clear-all-transactions', function() {
+            $user = auth()->user();
+
+            if (!$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only owner can clear all transactions'], 403);
+            }
+
+            try {
+                // Delete all detail penjualans first
+                $deletedDetails = \App\Models\DetailPenjualan::count();
+                \App\Models\DetailPenjualan::truncate();
+
+                // Delete all transactions
+                $deletedTransactions = \App\Models\Penjualan::count();
+                \App\Models\Penjualan::truncate();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "DELETED ALL {$deletedTransactions} transactions and {$deletedDetails} detail records",
+                    'deleted_transactions' => $deletedTransactions,
+                    'deleted_details' => $deletedDetails,
+                    'warning' => 'ALL TRANSACTION DATA HAS BEEN PERMANENTLY DELETED!',
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-all-transactions');
+
+        // Route untuk hapus stock movements
+        Route::get('clear-stock-movements/{date?}', function($date = null) {
+            $user = auth()->user();
+
+            if (!$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only owner can clear stock movements'], 403);
+            }
+
+            try {
+                $query = \App\Models\StockMovement::query();
+
+                if ($date) {
+                    $targetDate = \Carbon\Carbon::parse($date);
+                    $query->whereDate('created_at', $targetDate);
+                } else {
+                    // Default to today if no date specified
+                    $query->whereDate('created_at', now());
+                }
+
+                $deletedCount = $query->count();
+                $query->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Deleted {$deletedCount} stock movements" . ($date ? " for date {$date}" : " for today"),
+                    'deleted_count' => $deletedCount,
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-stock-movements');
+
+        // Route untuk hapus SEMUA stock movements
+        Route::get('clear-all-stock-movements', function() {
+            $user = auth()->user();
+
+            if (!$user->hasRole('owner')) {
+                return response()->json(['error' => 'Only owner can clear all stock movements'], 403);
+            }
+
+            try {
+                $deletedCount = \App\Models\StockMovement::count();
+                \App\Models\StockMovement::truncate();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "DELETED ALL {$deletedCount} stock movements",
+                    'deleted_count' => $deletedCount,
+                    'warning' => 'ALL STOCK MOVEMENT DATA HAS BEEN PERMANENTLY DELETED!',
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        })->name('clear-all-stock-movements');
         
         // Laporan analytics routes
         Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
@@ -427,12 +868,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('payroll/{payroll}/payment', [App\Http\Controllers\FinancialController::class, 'processPayrollPayment'])->name('payroll.payment');
             Route::post('payroll/{payroll}/cancel', [App\Http\Controllers\FinancialController::class, 'cancelPayroll'])->name('payroll.cancel');
 
-            // Payroll Configuration
-            Route::get('payroll-configuration', [App\Http\Controllers\PayrollConfigurationController::class, 'index'])->name('payroll-configuration');
-            Route::post('payroll-configuration', [App\Http\Controllers\PayrollConfigurationController::class, 'store'])->name('payroll-configuration.store');
-            Route::put('payroll-configuration/{configuration}', [App\Http\Controllers\PayrollConfigurationController::class, 'update'])->name('payroll-configuration.update');
-            Route::delete('payroll-configuration/{configuration}', [App\Http\Controllers\PayrollConfigurationController::class, 'destroy'])->name('payroll-configuration.destroy');
-            Route::patch('payroll-configuration/{configuration}/toggle-active', [App\Http\Controllers\PayrollConfigurationController::class, 'toggleActive'])->name('payroll-configuration.toggle-active');
+
 
             // Stock Valuation
             Route::get('stock-valuation', [App\Http\Controllers\FinancialController::class, 'stockValuation'])->name('stock-valuation');
@@ -444,6 +880,20 @@ Route::middleware(['auth'])->group(function () {
 
             // Financial Reports
             Route::get('reports', [App\Http\Controllers\FinancialController::class, 'reports'])->name('reports');
+
+            // Pengeluaran Management
+            Route::resource('pengeluaran', PengeluaranController::class)->names([
+                'index' => 'pengeluaran.index',
+                'create' => 'pengeluaran.create',
+                'store' => 'pengeluaran.store',
+                'show' => 'pengeluaran.show',
+                'edit' => 'pengeluaran.edit',
+                'update' => 'pengeluaran.update',
+                'destroy' => 'pengeluaran.destroy',
+            ]);
+            Route::post('pengeluaran/{pengeluaran}/approve', [PengeluaranController::class, 'approve'])->name('pengeluaran.approve');
+            Route::post('pengeluaran/{pengeluaran}/pay', [PengeluaranController::class, 'pay'])->name('pengeluaran.pay');
+            Route::post('pengeluaran/{pengeluaran}/cancel', [PengeluaranController::class, 'cancel'])->name('pengeluaran.cancel');
 
             // Export PDF Routes
             Route::get('cash-flow/export-pdf', [App\Http\Controllers\FinancialController::class, 'exportCashFlowPdf'])->name('cash-flow.export-pdf');
@@ -570,11 +1020,11 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('penjualan/{penjualan}', [PenjualanController::class, 'destroy'])->name('penjualan.destroy');
 
         // Online order management - KASIR only
-        Route::get('penjualan/online', [PenjualanController::class, 'online'])->name('penjualan.online');
-        Route::post('penjualan/{penjualan}/confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
-        Route::post('penjualan/{penjualan}/reject-payment', [PenjualanController::class, 'rejectPayment'])->name('penjualan.reject-payment');
-        Route::post('penjualan/{penjualan}/ready-pickup', [PenjualanController::class, 'readyPickup'])->name('penjualan.ready-pickup');
-        Route::post('penjualan/{penjualan}/complete', [PenjualanController::class, 'complete'])->name('penjualan.complete');
+        Route::get('penjualan/online', [PenjualanController::class, 'onlineOrders'])->name('penjualan.online.kasir');
+        Route::patch('penjualan/{penjualan}/confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
+        Route::patch('penjualan/{penjualan}/reject-payment', [PenjualanController::class, 'rejectPayment'])->name('penjualan.reject-payment');
+        Route::patch('penjualan/{penjualan}/ready-pickup', [PenjualanController::class, 'readyPickup'])->name('penjualan.ready-pickup');
+        Route::patch('penjualan/{penjualan}/complete', [PenjualanController::class, 'complete'])->name('penjualan.complete');
     });
 
     // OWNER & KASIR ONLY - View Access Only (Admin tidak ada akses transaksi)
@@ -595,18 +1045,6 @@ Route::middleware(['auth'])->group(function () {
          */
         // Daftar pesanan online yang perlu diproses kasir
         Route::get('penjualan-online', [PenjualanController::class, 'onlineOrders'])->name('penjualan.online');
-
-        // Konfirmasi pembayaran pesanan online
-        Route::patch('penjualan/{penjualan}/confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
-
-        // Reject bukti pembayaran
-        Route::patch('penjualan/{penjualan}/reject-payment', [PenjualanController::class, 'rejectPayment'])->name('penjualan.reject-payment');
-
-        // Tandai pesanan siap untuk pickup
-        Route::patch('penjualan/{penjualan}/ready-pickup', [PenjualanController::class, 'readyPickup'])->name('penjualan.ready-pickup');
-
-        // Complete transaksi setelah pickup
-        Route::patch('penjualan/{penjualan}/complete', [PenjualanController::class, 'complete'])->name('penjualan.complete');
 
         /**
          * RECEIPT MANAGEMENT ROUTES

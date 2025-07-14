@@ -191,11 +191,31 @@ class DashboardController extends Controller
         // Today's summary
         $todaysSummary = $this->getTodaysSummary();
 
+        // Recent transactions (last 10)
+        $recentTransactions = Penjualan::with(['user', 'detailPenjualans.barang'])
+            ->orderBy('tanggal_transaksi', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'nomor_transaksi' => $transaction->nomor_transaksi,
+                    'nama_pelanggan' => $transaction->nama_pelanggan,
+                    'kasir' => $transaction->user->name,
+                    'total' => $transaction->total,
+                    'metode_pembayaran' => $transaction->metode_pembayaran,
+                    'tanggal_transaksi' => $transaction->tanggal_transaksi,
+                    'item_count' => $transaction->detailPenjualans->count(),
+                    'status' => $transaction->status,
+                ];
+            });
+
         return Inertia::render('kasir/dashboard', [
             'todaysSalesTrend' => $todaysSalesTrend,
             'todaysTransactionTypes' => $todaysTransactionTypes,
             'pendingOrders' => $pendingOrders,
             'todaysSummary' => $todaysSummary,
+            'recentTransactions' => $recentTransactions,
         ]);
     }
 

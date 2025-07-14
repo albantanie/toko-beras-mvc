@@ -419,6 +419,9 @@ class HomeController extends Controller
     private function getCartCount(): int
     {
         $cart = session()->get('cart', []);
-        return array_sum(array_column($cart, 'quantity'));
+        $quantities = array_column($cart, 'quantity');
+        // Ensure all quantities are integers
+        $quantities = array_map('intval', $quantities);
+        return array_sum($quantities);
     }
 }

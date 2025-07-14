@@ -214,18 +214,18 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                     onChange={(e) => setData('metode_pembayaran', e.target.value)}
                                                     className="text-green-600 focus:ring-green-500"
                                                 />
-                                                <span className="ml-3">Tunai (Bayar di Toko)</span>
+                                                <span className="ml-3">Cash (Bayar di Toko)</span>
                                             </label>
                                                     <label className="flex items-center">
                                                         <input
                                                             type="radio"
                                                             name="metode_pembayaran"
-                                                            value="transfer"
-                                                            checked={data.metode_pembayaran === 'transfer'}
+                                                            value="transfer_bca"
+                                                            checked={data.metode_pembayaran === 'transfer_bca'}
                                                             onChange={(e) => setData('metode_pembayaran', e.target.value)}
                                                             className="text-green-600 focus:ring-green-500"
                                                         />
-                                                        <span className="ml-3">Transfer Bank</span>
+                                                        <span className="ml-3">Transfer Bank BCA</span>
                                                     </label>
                                                 </div>
                                                 {errors.metode_pembayaran && (
@@ -233,7 +233,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                 )}
                                             </div>
 
-                                    {data.metode_pembayaran === 'transfer' && (
+                                    {data.metode_pembayaran === 'transfer_bca' && (
                                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                             <h4 className="font-medium text-blue-900 mb-3">Informasi Transfer Bank</h4>
                                             <div className="space-y-2 text-sm mb-4">
@@ -303,11 +303,11 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                             accept="image/*,.pdf"
                                                             onChange={handleFileUpload}
                                                             className="hidden"
-                                                            required={data.metode_pembayaran === 'transfer'}
+                                                            required={data.metode_pembayaran === 'transfer_bca'}
                                                         />
                                                     </label>
                                                 </div>
-                                                {data.metode_pembayaran === 'transfer' && !data.payment_proof && (
+                                                {data.metode_pembayaran === 'transfer_bca' && !data.payment_proof && (
                                                     <p className="mt-1 text-sm text-red-600">
                                                         Bukti transfer wajib diupload untuk pembayaran transfer
                                                     </p>

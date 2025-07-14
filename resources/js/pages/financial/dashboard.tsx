@@ -43,25 +43,19 @@ interface DashboardData {
     };
     profit_summary: {
         gross_revenue: number;
-        cogs: number;
-        gross_profit: number;
         operating_expenses: number;
         net_profit: number;
-        gross_margin: number;
         net_margin: number;
     };
     cash_flow_summary: {
         operating: { inflow: number; outflow: number; net: number };
-        investing: { inflow: number; outflow: number; net: number };
-        financing: { inflow: number; outflow: number; net: number };
         total_net_flow: number;
     };
     stock_valuation_summary: {
-        total_cost_value: number;
-        total_market_value: number;
-        total_potential_profit: number;
-        average_margin: number;
+        total_quantity_kg: number;
         items_count: number;
+        low_stock_items: number;
+        out_of_stock_items: number;
     };
     payroll_summary: {
         total_gross_salary: number;
@@ -213,21 +207,22 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                         </CardContent>
                     </Card>
 
-                    {/* Stock Value */}
+                    {/* Stock Quantity */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">📦 Nilai Stok Barang</CardTitle>
+                            <CardTitle className="text-sm font-medium">📦 Persediaan Barang</CardTitle>
                             <Package className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-purple-600">
-                                {formatCurrency(dashboardData.stock_valuation_summary.total_market_value)}
+                                {formatNumber(dashboardData.stock_valuation_summary.total_quantity_kg)} kg
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Potensi untung: {formatCurrency(dashboardData.stock_valuation_summary.total_potential_profit)}
+                                {formatNumber(dashboardData.stock_valuation_summary.items_count)} jenis barang |
+                                Stok rendah: {formatNumber(dashboardData.stock_valuation_summary.low_stock_items)}
                             </p>
                             <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                                <strong>Penjelasan:</strong> Total nilai barang yang ada di gudang berdasarkan harga jual saat ini.
+                                <strong>Penjelasan:</strong> Total kuantitas barang (kg) yang tersedia di gudang.
                             </div>
                         </CardContent>
                     </Card>
@@ -297,29 +292,26 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm">Operasional</span>
-                                <span className={`font-medium ${dashboardData.cash_flow_summary.operating.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(dashboardData.cash_flow_summary.operating.net)}
+                                <span className="text-sm">Kas Masuk</span>
+                                <span className="font-medium text-green-600">
+                                    {formatCurrency(dashboardData.cash_flow_summary.operating.inflow)}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-sm">Investasi</span>
-                                <span className={`font-medium ${dashboardData.cash_flow_summary.investing.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(dashboardData.cash_flow_summary.investing.net)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm">Pendanaan</span>
-                                <span className={`font-medium ${dashboardData.cash_flow_summary.financing.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(dashboardData.cash_flow_summary.financing.net)}
+                                <span className="text-sm">Kas Keluar</span>
+                                <span className="font-medium text-red-600">
+                                    {formatCurrency(dashboardData.cash_flow_summary.operating.outflow)}
                                 </span>
                             </div>
                             <hr />
                             <div className="flex justify-between items-center font-bold">
-                                <span>Total Arus Kas</span>
-                                <span className={dashboardData.cash_flow_summary.total_net_flow >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                    {formatCurrency(dashboardData.cash_flow_summary.total_net_flow)}
+                                <span>Arus Kas Bersih</span>
+                                <span className={dashboardData.cash_flow_summary.operating.net >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                    {formatCurrency(dashboardData.cash_flow_summary.operating.net)}
                                 </span>
+                            </div>
+                            <div className="mt-3 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                                <strong>Penjelasan:</strong> Arus kas dari operasional toko (penjualan, pembelian, gaji, dll)
                             </div>
                         </CardContent>
                     </Card>
@@ -419,6 +411,12 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                 <a href="/owner/keuangan/cash-flow">
                                     <TrendingUp className="h-6 w-6" />
                                     <span>Arus Kas</span>
+                                </a>
+                            </Button>
+                            <Button variant="outline" className="h-20 flex flex-col space-y-2" asChild>
+                                <a href="/owner/keuangan/pengeluaran">
+                                    <DollarSign className="h-6 w-6" />
+                                    <span>Pengeluaran</span>
                                 </a>
                             </Button>
                             <Button variant="outline" className="h-20 flex flex-col space-y-2" asChild>

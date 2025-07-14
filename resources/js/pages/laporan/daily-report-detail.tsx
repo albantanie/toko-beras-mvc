@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, Calendar, User, TrendingUp, Package, BarChart3, Clock, CreditCard, DollarSign, ShoppingCart, Truck } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, User, TrendingUp, Package, BarChart3, Clock, CreditCard, DollarSign, ShoppingCart, Truck, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -164,6 +164,65 @@ const StockDetailSection = ({ report, formatCurrency }: { report: DailyReport; f
 
     return (
         <div className="space-y-6">
+            {/* Consistency Check Section */}
+            {data?.consistency_check && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            {data.consistency_check.is_consistent ? (
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                            ) : (
+                                <AlertTriangle className="w-5 h-5 text-red-600" />
+                            )}
+                            Validasi Konsistensi Data
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`p-4 rounded-lg ${data.consistency_check.is_consistent ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                            <div className="flex items-center gap-2 mb-2">
+                                {data.consistency_check.is_consistent ? (
+                                    <CheckCircle className="w-5 h-5 text-green-600" />
+                                ) : (
+                                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                                )}
+                                <span className={`font-medium ${data.consistency_check.is_consistent ? 'text-green-800' : 'text-red-800'}`}>
+                                    {data.consistency_check.message}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm mt-3">
+                                <div>
+                                    <span className="text-gray-600">Total Transaksi:</span>
+                                    <span className="font-medium ml-2">{data.consistency_check.total_transactions}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-600">Inkonsistensi:</span>
+                                    <span className={`font-medium ml-2 ${data.consistency_check.total_inconsistencies > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {data.consistency_check.total_inconsistencies}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Show inconsistencies if any */}
+                        {data.inconsistencies && data.inconsistencies.length > 0 && (
+                            <div className="mt-4">
+                                <h4 className="font-medium text-red-800 mb-2">Detail Inkonsistensi:</h4>
+                                <div className="space-y-2">
+                                    {data.inconsistencies.map((inconsistency: any, index: number) => (
+                                        <div key={index} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                            <p className="text-sm text-red-800">{inconsistency.message}</p>
+                                            <div className="text-xs text-red-600 mt-1">
+                                                Barang: {inconsistency.barang_nama} | Qty: {inconsistency.quantity_sold} karung
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Summary Section */}
             {data?.summary && (
                 <Card>
@@ -199,35 +258,41 @@ const StockDetailSection = ({ report, formatCurrency }: { report: DailyReport; f
             )}
 
             {/* Stock Movements List */}
-            {data?.stock_movements && data.stock_movements.length > 0 && (
+            {data?.movements && data.movements.length > 0 && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Package className="w-5 h-5" />
-                            Pergerakan Stok ({data.stock_movements.length})
+                            Pergerakan Stok ({data.movements.length})
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4 max-h-96 overflow-y-auto">
-                            {data.stock_movements.map((movement: any, index: number) => (
+                            {data.movements.map((movement: any, index: number) => (
                                 <div key={index} className="border rounded-lg p-4 bg-gray-50">
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <p className="font-semibold text-lg">{movement.barang_nama}</p>
                                             <p className="text-sm text-gray-600 flex items-center gap-1">
                                                 <Clock className="w-4 h-4" />
-                                                {new Date(movement.tanggal).toLocaleString('id-ID')}
+                                                {new Date(movement.created_at).toLocaleString('id-ID')}
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <Badge
-                                                variant={movement.jenis === 'masuk' ? 'default' : 'destructive'}
+                                                variant={movement.quantity > 0 ? 'default' : 'destructive'}
                                                 className="mb-2"
                                             >
-                                                {movement.jenis === 'masuk' ? 'Stok Masuk' : 'Stok Keluar'}
+                                                {movement.type === 'in' ? 'Stock Masuk' :
+                                                 movement.type === 'out' ? 'Stock Keluar' :
+                                                 movement.type === 'return' ? 'Retur' :
+                                                 movement.type === 'damage' ? 'Kerusakan' :
+                                                 movement.type === 'adjustment' ? 'Penyesuaian' :
+                                                 movement.type === 'correction' ? 'Koreksi' :
+                                                 movement.type}
                                             </Badge>
                                             <p className="text-lg font-bold">
-                                                {movement.jenis === 'masuk' ? '+' : '-'}{movement.jumlah} {movement.satuan}
+                                                {movement.quantity > 0 ? '+' : ''}{movement.quantity} karung
                                             </p>
                                         </div>
                                     </div>
@@ -235,11 +300,11 @@ const StockDetailSection = ({ report, formatCurrency }: { report: DailyReport; f
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <span className="text-gray-600">Stok Sebelum:</span>
-                                            <p className="font-medium">{movement.stok_sebelum || 0} {movement.satuan}</p>
+                                            <p className="font-medium">{movement.stock_before || 0} karung</p>
                                         </div>
                                         <div>
                                             <span className="text-gray-600">Stok Sesudah:</span>
-                                            <p className="font-medium">{movement.stok_sesudah || 0} {movement.satuan}</p>
+                                            <p className="font-medium">{movement.stock_after || 0} karung</p>
                                         </div>
                                     </div>
 
@@ -300,7 +365,7 @@ export default function DailyReportDetail({ report }: Props) {
     const ReportIcon = isTransactionReport ? TrendingUp : Package;
 
     return (
-        <AppLayout title={reportTitle}>
+        <AppLayout>
             <Head title={reportTitle} />
             <div className="max-w-6xl mx-auto py-8">
                 {/* Header */}
