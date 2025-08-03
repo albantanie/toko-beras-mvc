@@ -147,8 +147,8 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Seed barangs first
-        $this->call(BarangSeeder::class);
+        // Seed barangs first (clean rice products only)
+        $this->call(CleanBarangSeeder::class);
 
         // Seed comprehensive realistic data for demo
         $this->call(ComprehensiveRealisticDataSeeder::class);

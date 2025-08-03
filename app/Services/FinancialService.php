@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 class FinancialService
 {
     /**
-     * Get comprehensive financial dashboard data
+     * Get comprehensive financial dashboard data with detailed breakdowns
      */
     public function getDashboardData($period = 'current_month')
     {
@@ -24,14 +24,21 @@ class FinancialService
 
         $revenueSummary = $this->getRevenueSummary($dateRange);
         $expenseSummary = $this->getExpenseSummary($dateRange);
+        $cashSummary = $this->getCashSummary();
+        $profitSummary = $this->getProfitSummary($dateRange);
 
         return [
-            'cash_summary' => $this->getCashSummary(),
+            'cash_summary' => $cashSummary,
+            'cash_details' => $this->getCashDetails(),
             'revenue_summary' => $revenueSummary,
+            'revenue_details' => $this->getRevenueDetails($dateRange),
             'expense_summary' => $expenseSummary,
-            'profit_summary' => $this->getProfitSummary($dateRange),
+            'expense_details' => $this->getExpenseDetails($dateRange),
+            'profit_summary' => $profitSummary,
+            'profit_details' => $this->getProfitDetails($dateRange),
             'cash_flow_summary' => $this->getCashFlowSummary($dateRange),
             'stock_valuation_summary' => $this->getStockValuationSummary(),
+            'rice_inventory_details' => $this->getRiceInventoryDetails(),
             'payroll_summary' => $this->getPayrollSummary($dateRange),
             'budget_performance' => $this->getBudgetPerformance($dateRange),
             'recent_transactions' => $this->getRecentTransactions(10),
@@ -39,7 +46,13 @@ class FinancialService
             // Add flat keys for easier access
             'total_revenue' => $revenueSummary['total'] ?? 0,
             'total_expenses' => $expenseSummary['total'] ?? 0,
-            'net_profit' => ($revenueSummary['total'] ?? 0) - ($expenseSummary['total'] ?? 0),
+            'net_profit' => $profitSummary['net_profit'] ?? 0,
+            'period_info' => [
+                'period' => $period,
+                'start_date' => $dateRange['start'],
+                'end_date' => $dateRange['end'],
+                'formatted_period' => $this->formatPeriod($period, $dateRange),
+            ],
         ];
     }
 
@@ -86,6 +99,65 @@ class FinancialService
         $summary['formatted_bca_balance'] = 'Rp ' . number_format($summary['bca_balance'], 0, ',', '.');
 
         return $summary;
+    }
+
+    /**
+     * Get detailed cash breakdown with transaction sources
+     */
+    public function getCashDetails()
+    {
+        $accounts = FinancialAccount::active()->get();
+
+        $details = [
+            'accounts' => [],
+            'recent_cash_movements' => [],
+            'cash_sources' => [
+                'sales_cash' => 0,
+                'bank_transfers' => 0,
+                'other_income' => 0,
+            ],
+        ];
+
+        foreach ($accounts as $account) {
+            // Get recent transactions for this account
+            $recentTransactions = FinancialTransaction::where(function($query) use ($account) {
+                $query->where('from_account_id', $account->id)
+                      ->orWhere('to_account_id', $account->id);
+            })
+            ->where('status', 'completed')
+            ->orderBy('transaction_date', 'desc')
+            ->limit(5)
+            ->get();
+
+            $details['accounts'][] = [
+                'id' => $account->id,
+                'name' => $account->account_name,
+                'type' => $account->account_type,
+                'bank_name' => $account->bank_name,
+                'balance' => $account->current_balance,
+                'formatted_balance' => $account->formatted_balance,
+                'last_updated' => $account->updated_at,
+                'recent_transactions' => $recentTransactions->map(function($transaction) {
+                    return [
+                        'date' => $transaction->transaction_date,
+                        'description' => $transaction->description,
+                        'amount' => $transaction->amount,
+                        'type' => $transaction->transaction_type,
+                        'formatted_amount' => 'Rp ' . number_format($transaction->amount, 0, ',', '.'),
+                    ];
+                }),
+            ];
+        }
+
+        // Get cash from sales (last 30 days for context)
+        $salesCash = Penjualan::where('status', 'selesai')
+            ->where('metode_pembayaran', 'tunai')
+            ->where('tanggal_transaksi', '>=', Carbon::now()->subDays(30))
+            ->sum('total');
+
+        $details['cash_sources']['sales_cash'] = $salesCash;
+
+        return $details;
     }
 
     /**
@@ -136,6 +208,92 @@ class FinancialService
         }
 
         return $revenue;
+    }
+
+    /**
+     * Get detailed revenue breakdown with transaction details
+     */
+    public function getRevenueDetails($dateRange)
+    {
+        $sales = Penjualan::with(['detailPenjualans.barang', 'user'])
+            ->where('status', 'selesai')
+            ->whereBetween('tanggal_transaksi', [$dateRange['start'], $dateRange['end']])
+            ->orderBy('tanggal_transaksi', 'desc')
+            ->get();
+
+        $details = [
+            'transactions' => [],
+            'by_payment_method' => [],
+            'by_product' => [],
+            'by_customer_type' => [],
+            'daily_breakdown' => [],
+        ];
+
+        // Transaction details
+        foreach ($sales as $sale) {
+            $details['transactions'][] = [
+                'id' => $sale->id,
+                'kode_transaksi' => $sale->kode_transaksi,
+                'tanggal' => $sale->tanggal_transaksi,
+                'total' => $sale->total,
+                'formatted_total' => 'Rp ' . number_format($sale->total, 0, ',', '.'),
+                'metode_pembayaran' => $sale->metode_pembayaran,
+                'customer' => $sale->user ? $sale->user->name : 'Walk-in Customer',
+                'items_count' => $sale->detailPenjualans->count(),
+                'items' => $sale->detailPenjualans->map(function($detail) {
+                    return [
+                        'nama_barang' => $detail->barang->nama,
+                        'quantity' => $detail->quantity,
+                        'harga' => $detail->harga,
+                        'subtotal' => $detail->subtotal,
+                    ];
+                }),
+            ];
+        }
+
+        // By payment method
+        $byPaymentMethod = $sales->groupBy('metode_pembayaran');
+        foreach ($byPaymentMethod as $method => $methodSales) {
+            $details['by_payment_method'][] = [
+                'method' => $method,
+                'count' => $methodSales->count(),
+                'total' => $methodSales->sum('total'),
+                'formatted_total' => 'Rp ' . number_format($methodSales->sum('total'), 0, ',', '.'),
+                'percentage' => $sales->count() > 0 ? ($methodSales->count() / $sales->count()) * 100 : 0,
+            ];
+        }
+
+        // By product (top selling)
+        $productSales = [];
+        foreach ($sales as $sale) {
+            foreach ($sale->detailPenjualans as $detail) {
+                $productName = $detail->barang->nama;
+                if (!isset($productSales[$productName])) {
+                    $productSales[$productName] = [
+                        'nama' => $productName,
+                        'quantity' => 0,
+                        'total_revenue' => 0,
+                        'transactions_count' => 0,
+                    ];
+                }
+                $productSales[$productName]['quantity'] += $detail->quantity;
+                $productSales[$productName]['total_revenue'] += $detail->subtotal;
+                $productSales[$productName]['transactions_count']++;
+            }
+        }
+
+        $details['by_product'] = collect($productSales)
+            ->sortByDesc('total_revenue')
+            ->take(10)
+            ->values()
+            ->map(function($product) {
+                $product['formatted_revenue'] = 'Rp ' . number_format($product['total_revenue'], 0, ',', '.');
+                $product['formatted_quantity'] = number_format($product['quantity'], 0, ',', '.') . ' kg';
+                return $product;
+            })
+            ->toArray();
+
+        return $details;
     }
 
     /**
@@ -191,7 +349,147 @@ class FinancialService
         ];
     }
 
+    /**
+     * Get detailed expense breakdown
+     */
+    public function getExpenseDetails($dateRange)
+    {
+        $expenses = FinancialTransaction::where('transaction_type', 'expense')
+            ->where('status', 'completed')
+            ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
+            ->orderBy('transaction_date', 'desc')
+            ->get();
 
+        // Get payroll expenses for the period
+        $period = Carbon::parse($dateRange['start'])->format('Y-m');
+        $payrollExpenses = Payroll::where('period_month', $period)
+            ->where('status', 'paid')
+            ->get();
+
+        $details = [
+            'operational_expenses' => [],
+            'payroll_expenses' => [],
+            'by_category' => [],
+            'total_operational' => $expenses->sum('amount'),
+            'total_payroll' => $payrollExpenses->sum('net_salary'),
+        ];
+
+        // Operational expenses
+        foreach ($expenses as $expense) {
+            $details['operational_expenses'][] = [
+                'id' => $expense->id,
+                'date' => $expense->transaction_date,
+                'description' => $expense->description,
+                'category' => $expense->category,
+                'amount' => $expense->amount,
+                'formatted_amount' => 'Rp ' . number_format($expense->amount, 0, ',', '.'),
+                'account' => $expense->account ? $expense->account->account_name : 'Unknown',
+            ];
+        }
+
+        // Payroll expenses
+        foreach ($payrollExpenses as $payroll) {
+            $details['payroll_expenses'][] = [
+                'id' => $payroll->id,
+                'employee' => $payroll->user->name,
+                'position' => $payroll->user->roles->first()->name ?? 'Unknown',
+                'gross_salary' => $payroll->gross_salary,
+                'net_salary' => $payroll->net_salary,
+                'formatted_net_salary' => 'Rp ' . number_format($payroll->net_salary, 0, ',', '.'),
+                'period' => $payroll->period_month,
+            ];
+        }
+
+        // By category
+        $byCategory = $expenses->groupBy('category');
+        foreach ($byCategory as $category => $categoryExpenses) {
+            $details['by_category'][] = [
+                'category' => $category ?: 'Uncategorized',
+                'count' => $categoryExpenses->count(),
+                'total' => $categoryExpenses->sum('amount'),
+                'formatted_total' => 'Rp ' . number_format($categoryExpenses->sum('amount'), 0, ',', '.'),
+            ];
+        }
+
+        // Add payroll as a category
+        if ($payrollExpenses->count() > 0) {
+            $details['by_category'][] = [
+                'category' => 'Gaji Karyawan',
+                'count' => $payrollExpenses->count(),
+                'total' => $payrollExpenses->sum('net_salary'),
+                'formatted_total' => 'Rp ' . number_format($payrollExpenses->sum('net_salary'), 0, ',', '.'),
+            ];
+        }
+
+        return $details;
+    }
+
+    /**
+     * Get detailed profit breakdown and calculation
+     */
+    public function getProfitDetails($dateRange)
+    {
+        $revenue = $this->getRevenueSummary($dateRange);
+        $expenses = $this->getExpenseSummary($dateRange);
+        $expenseDetails = $this->getExpenseDetails($dateRange);
+
+        $details = [
+            'calculation' => [
+                'gross_revenue' => $revenue['total_sales'],
+                'total_expenses' => $expenses['total_expenses'],
+                'net_profit' => $revenue['total_sales'] - $expenses['total_expenses'],
+                'profit_margin' => $revenue['total_sales'] > 0 ? (($revenue['total_sales'] - $expenses['total_expenses']) / $revenue['total_sales']) * 100 : 0,
+            ],
+            'revenue_breakdown' => [
+                'cash_sales' => $revenue['cash_sales'] ?? 0,
+                'transfer_sales' => $revenue['transfer_sales'] ?? 0,
+                'total_transactions' => $revenue['total_transactions'],
+            ],
+            'expense_breakdown' => [
+                'operational' => $expenseDetails['total_operational'],
+                'payroll' => $expenseDetails['total_payroll'],
+                'total' => $expenseDetails['total_operational'] + $expenseDetails['total_payroll'],
+            ],
+            'formatted' => [
+                'gross_revenue' => 'Rp ' . number_format($revenue['total_sales'], 0, ',', '.'),
+                'total_expenses' => 'Rp ' . number_format($expenses['total_expenses'], 0, ',', '.'),
+                'net_profit' => 'Rp ' . number_format($revenue['total_sales'] - $expenses['total_expenses'], 0, ',', '.'),
+                'profit_margin' => number_format($revenue['total_sales'] > 0 ? (($revenue['total_sales'] - $expenses['total_expenses']) / $revenue['total_sales']) * 100 : 0, 1) . '%',
+            ],
+        ];
+
+        return $details;
+    }
+
+    /**
+     * Format period for display
+     */
+    public function formatPeriod($period, $dateRange)
+    {
+        switch ($period) {
+            case 'today':
+                return 'Hari Ini (' . Carbon::parse($dateRange['start'])->format('d M Y') . ')';
+            case 'yesterday':
+                return 'Kemarin (' . Carbon::parse($dateRange['start'])->format('d M Y') . ')';
+            case 'this_week':
+            case 'current_week':
+                return 'Minggu Ini (' . Carbon::parse($dateRange['start'])->format('d M') . ' - ' . Carbon::parse($dateRange['end'])->format('d M Y') . ')';
+            case 'last_week':
+                return 'Minggu Lalu (' . Carbon::parse($dateRange['start'])->format('d M') . ' - ' . Carbon::parse($dateRange['end'])->format('d M Y') . ')';
+            case 'this_month':
+            case 'current_month':
+                return 'Bulan Ini (' . Carbon::parse($dateRange['start'])->format('M Y') . ')';
+            case 'last_month':
+                return 'Bulan Lalu (' . Carbon::parse($dateRange['start'])->format('M Y') . ')';
+            case 'this_year':
+            case 'current_year':
+                return 'Tahun Ini (' . Carbon::parse($dateRange['start'])->format('Y') . ')';
+            case 'last_year':
+                return 'Tahun Lalu (' . Carbon::parse($dateRange['start'])->format('Y') . ')';
+            default:
+                return Carbon::parse($dateRange['start'])->format('d M Y') . ' - ' . Carbon::parse($dateRange['end'])->format('d M Y');
+        }
+    }
 
     /**
      * Get cash flow summary
@@ -233,6 +531,54 @@ class FinancialService
         ];
 
         return $summary;
+    }
+
+    /**
+     * Get detailed rice inventory breakdown
+     * Show individual rice products with their stock details
+     */
+    public function getRiceInventoryDetails()
+    {
+        // Get all rice products with stock > 0, ordered by stock level (highest first)
+        $riceProducts = Barang::where('stok', '>', 0)
+            ->orderBy('stok', 'desc')
+            ->get()
+            ->map(function ($barang) {
+                return [
+                    'id' => $barang->id,
+                    'nama' => $barang->nama,
+                    'kategori' => $barang->kategori,
+                    'kode_barang' => $barang->kode_barang,
+                    'stok' => $barang->stok,
+                    'stok_minimum' => $barang->stok_minimum,
+                    'is_low_stock' => $barang->stok <= $barang->stok_minimum,
+                    'stock_status' => $this->getStockStatus($barang->stok, $barang->stok_minimum),
+                    'formatted_stok' => number_format($barang->stok, 0, ',', '.') . ' kg',
+                ];
+            });
+
+        return [
+            'products' => $riceProducts,
+            'total_products' => $riceProducts->count(),
+            'total_stock_kg' => $riceProducts->sum('stok'),
+            'low_stock_count' => $riceProducts->where('is_low_stock', true)->count(),
+        ];
+    }
+
+    /**
+     * Get stock status for display
+     */
+    private function getStockStatus($currentStock, $minimumStock)
+    {
+        if ($currentStock <= 0) {
+            return ['label' => 'Habis', 'color' => 'red'];
+        } elseif ($currentStock <= $minimumStock) {
+            return ['label' => 'Rendah', 'color' => 'yellow'];
+        } elseif ($currentStock <= $minimumStock * 2) {
+            return ['label' => 'Sedang', 'color' => 'blue'];
+        } else {
+            return ['label' => 'Aman', 'color' => 'green'];
+        }
     }
 
     /**
@@ -369,11 +715,15 @@ class FinancialService
                 'start' => $now->copy()->subDay()->startOfDay(),
                 'end' => $now->copy()->subDay()->endOfDay(),
             ],
-            'current_week' => [
+            'this_week', 'current_week' => [
                 'start' => $now->copy()->startOfWeek(),
                 'end' => $now->copy()->endOfWeek(),
             ],
-            'current_month' => [
+            'last_week' => [
+                'start' => $now->copy()->subWeek()->startOfWeek(),
+                'end' => $now->copy()->subWeek()->endOfWeek(),
+            ],
+            'this_month', 'current_month' => [
                 'start' => $now->copy()->startOfMonth(),
                 'end' => $now->copy()->endOfMonth(),
             ],
@@ -381,9 +731,13 @@ class FinancialService
                 'start' => $now->copy()->subMonth()->startOfMonth(),
                 'end' => $now->copy()->subMonth()->endOfMonth(),
             ],
-            'current_year' => [
+            'this_year', 'current_year' => [
                 'start' => $now->copy()->startOfYear(),
                 'end' => $now->copy()->endOfYear(),
+            ],
+            'last_year' => [
+                'start' => $now->copy()->subYear()->startOfYear(),
+                'end' => $now->copy()->subYear()->endOfYear(),
             ],
             default => [
                 'start' => $now->copy()->startOfMonth(),

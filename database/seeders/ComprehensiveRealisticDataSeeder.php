@@ -451,7 +451,7 @@ class ComprehensiveRealisticDataSeeder extends Seeder
                     'Pembelian stock beras',
                     'Biaya operasional',
                     'Biaya transport',
-                    'Biaya kemasan',
+                    'Biaya maintenance',
                     'Biaya listrik',
                 ];
 

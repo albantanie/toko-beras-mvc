@@ -296,4 +296,36 @@ class Pengeluaran extends Model
             'catatan' => $notes,
         ]);
     }
-} 
+
+    /**
+     * Membuat financial transaction untuk pengeluaran yang sudah dibayar
+     */
+    public function createFinancialTransaction(): ?FinancialTransaction
+    {
+        // Only create transaction for paid expenses
+        if (!$this->isPaid() || !$this->financial_account_id) {
+            return null;
+        }
+
+        // Check if transaction already exists
+        if ($this->financialTransaction) {
+            return $this->financialTransaction;
+        }
+
+        return FinancialTransaction::create([
+            'transaction_code' => 'OUT-' . now()->format('YmdHis') . '-' . $this->id,
+            'transaction_type' => 'expense',
+            'category' => 'expense',
+            'subcategory' => $this->kategori,
+            'amount' => $this->jumlah,
+            'from_account_id' => $this->financial_account_id,
+            'to_account_id' => null,
+            'reference_type' => 'pengeluaran',
+            'reference_id' => $this->id,
+            'description' => $this->keterangan,
+            'transaction_date' => $this->tanggal,
+            'status' => 'completed',
+            'created_by' => $this->created_by,
+        ]);
+    }
+}

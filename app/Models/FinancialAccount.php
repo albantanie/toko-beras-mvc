@@ -39,6 +39,14 @@ class FinancialAccount extends Model
         return $this->hasMany(FinancialTransaction::class, 'to_account_id');
     }
 
+    // Get all transactions for this account (query builder method)
+    public function getAllTransactions()
+    {
+        // Return transactions where this account is either from or to account
+        return FinancialTransaction::where('from_account_id', $this->id)
+            ->orWhere('to_account_id', $this->id);
+    }
+
     public function cashFlows(): HasMany
     {
         return $this->hasMany(CashFlow::class, 'account_id');

@@ -13,7 +13,7 @@ class SimplifiedBarangSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->command->info('🌾 Seeding simplified product categories (Beras & Plastik only)...');
+        $this->command->info('🌾 Seeding simplified product categories (Beras only)...');
 
         // Get admin user
         $admin = User::whereHas('roles', function($query) {
@@ -121,64 +121,6 @@ class SimplifiedBarangSeeder extends Seeder
                 'created_by' => $admin->id,
                 'updated_by' => $admin->id,
             ],
-
-            // PLASTIK (semua jenis kemasan plastik dengan satuan pcs)
-            [
-                'nama' => 'Karung Plastik 25kg',
-                'deskripsi' => 'Karung plastik transparan untuk kemasan beras 25kg',
-                'kategori' => 'Plastik',
-                'harga_beli' => 2500,
-                'harga_jual' => 4000,
-                'stok' => 150,
-                'stok_minimum' => 30,
-                'kode_barang' => 'PLK001',
-                'is_active' => true,
-                'gambar' => 'beras-beras/plastik-kemasan-beras.jpg',
-                'created_by' => $admin->id,
-                'updated_by' => $admin->id,
-            ],
-            [
-                'nama' => 'Plastik Kemasan 5kg',
-                'deskripsi' => 'Plastik kemasan untuk beras eceran 5kg',
-                'kategori' => 'Plastik',
-                'harga_beli' => 800,
-                'harga_jual' => 1200,
-                'stok' => 300,
-                'stok_minimum' => 50,
-                'kode_barang' => 'PLK002',
-                'is_active' => true,
-                'gambar' => 'beras-beras/plastik-kemasan-beras.jpg',
-                'created_by' => $admin->id,
-                'updated_by' => $admin->id,
-            ],
-            [
-                'nama' => 'Plastik Kemasan 10kg',
-                'deskripsi' => 'Plastik kemasan untuk beras eceran 10kg',
-                'kategori' => 'Plastik',
-                'harga_beli' => 1200,
-                'harga_jual' => 1800,
-                'stok' => 200,
-                'stok_minimum' => 40,
-                'kode_barang' => 'PLK003',
-                'is_active' => true,
-                'gambar' => 'beras-beras/plastik-kemasan-beras.jpg',
-                'created_by' => $admin->id,
-                'updated_by' => $admin->id,
-            ],
-            [
-                'nama' => 'Plastik Kemasan 1kg',
-                'deskripsi' => 'Plastik kemasan untuk beras eceran 1kg',
-                'kategori' => 'Plastik',
-                'harga_beli' => 300,
-                'harga_jual' => 500,
-                'stok' => 500,
-                'stok_minimum' => 100,
-                'kode_barang' => 'PLK004',
-                'is_active' => true,
-                'gambar' => 'beras-beras/plastik-kemasan-beras.jpg',
-                'created_by' => $admin->id,
-                'updated_by' => $admin->id,
-            ],
         ];
 
         foreach ($barangs as $barang) {
@@ -189,6 +131,5 @@ class SimplifiedBarangSeeder extends Seeder
         $this->command->info('🎉 Simplified product seeding completed!');
         $this->command->info("📊 Total products created: " . count($barangs));
         $this->command->info("🌾 Beras products: " . collect($barangs)->where('kategori', 'Beras')->count());
-        $this->command->info("📦 Plastik products: " . collect($barangs)->where('kategori', 'Plastik')->count());
     }
 }
