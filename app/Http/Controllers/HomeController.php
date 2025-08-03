@@ -220,23 +220,42 @@ class HomeController extends Controller
 
         /**
          * STATISTIK ORDER PELANGGAN
-         * Data statistik untuk dashboard cards
+         * Data statistik untuk dashboard cards dengan logika yang konsisten
+         *
+         * Logika:
+         * - Total Pesanan = semua pesanan kecuali yang dibatalkan
+         * - Menunggu Pembayaran = status 'pending'
+         * - Pesanan Selesai = status 'selesai'
+         * - Total Belanja = total dari pesanan yang sudah dibayar/selesai
          */
+
+        $userId = $user->id;
+
+        // Total pesanan (tidak termasuk yang dibatalkan)
+        $totalOrders = Penjualan::where('pelanggan_id', $userId)
+            ->where('status', '!=', 'dibatalkan')
+            ->count();
+
+        // Pesanan yang menunggu pembayaran (status pending)
+        $pendingOrders = Penjualan::where('pelanggan_id', $userId)
+            ->where('status', 'pending')
+            ->count();
+
+        // Pesanan yang sudah selesai (status selesai)
+        $completedOrders = Penjualan::where('pelanggan_id', $userId)
+            ->where('status', 'selesai')
+            ->count();
+
+        // Total belanja dari pesanan yang sudah dibayar/selesai (bukan pending/dibatalkan)
+        $totalSpent = Penjualan::where('pelanggan_id', $userId)
+            ->whereIn('status', ['selesai', 'dibayar', 'siap_pickup'])
+            ->sum('total');
+
         $orderStats = [
-            // Total semua order pelanggan
-            'total_orders' => Penjualan::where('pelanggan_id', $user->id)->count(),
-
-            // Order yang masih pending/belum selesai
-            'pending_orders' => Penjualan::where('pelanggan_id', $user->id)
-                ->where('status', 'pending')->count(),
-
-            // Order yang sudah completed
-            'completed_orders' => Penjualan::where('pelanggan_id', $user->id)
-                ->where('status', 'selesai')->count(),
-
-            // Total uang yang sudah dibelanjakan
-            'total_spent' => Penjualan::where('pelanggan_id', $user->id)
-                ->where('status', 'selesai')->sum('total'),
+            'total_orders' => $totalOrders,
+            'pending_orders' => $pendingOrders,
+            'completed_orders' => $completedOrders,
+            'total_spent' => (float) $totalSpent,
         ];
 
         /**

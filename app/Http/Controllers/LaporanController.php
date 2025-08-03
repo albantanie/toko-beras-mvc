@@ -364,16 +364,8 @@ class LaporanController extends Controller
 
         $query = Barang::with(['creator', 'updater']);
 
-        // Only include profit and purchase price calculations for admin/owner
-        if ($isAdminOrOwner) {
-            $query->select('*')
-                ->selectRaw('(harga_jual - harga_beli) as profit_per_unit')
-                ->selectRaw('(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as nilai_stok_beli')
-                ->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
-        } else {
-            $query->select('*')
-                ->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
-        }
+        // Simplified query - no monetary calculations for stock report
+        $query->select('*');
 
         // Search functionality
         if ($search) {
@@ -415,45 +407,15 @@ class LaporanController extends Controller
         // Get paginated data
         $barangs = $query->paginate(5)->withQueryString();
 
-        // Filter barang data based on role
-        $barangs->getCollection()->transform(function ($barang) use ($isKaryawan, $isAdminOrOwner) {
-            $data = $barang->toArray();
-            
-            // For karyawan, remove purchase price and profit data
-            if ($isKaryawan) {
-                unset($data['harga_beli']);
-                unset($data['profit_per_unit']);
-                unset($data['nilai_stok_beli']);
-            }
-            
-            return $data;
-        });
+        // No need to filter data since we're not sending monetary information
 
-        // Summary calculations (for all items, not just paginated)
-        $summaryQuery = Barang::select('*');
-        
-        if ($isAdminOrOwner) {
-            $summaryQuery->selectRaw('(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as nilai_stok_beli')
-                ->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
-        } else {
-            $summaryQuery->selectRaw('(CASE WHEN stok >= 0 AND harga_jual >= 0 THEN stok * harga_jual ELSE 0 END) as nilai_stok_jual');
-        }
-        
-        $allBarangs = $summaryQuery->get();
-
+        // Summary calculations - focus on stock quantities only
         $summary = [
-            'total_items' => $allBarangs->count(),
+            'total_items' => Barang::count(),
             'low_stock_items' => Barang::whereRaw('stok <= stok_minimum')->count(),
             'out_of_stock_items' => Barang::where('stok', '<=', 0)->count(),
             'in_stock_items' => Barang::where('stok', '>', 0)->count(),
-            'total_stock_value_sell' => max(0, $allBarangs->sum('nilai_stok_jual')), // Pastikan tidak minus
         ];
-
-        // Only include purchase price and profit data for admin/owner
-        if ($isAdminOrOwner) {
-            $summary['total_stock_value_buy'] = max(0, $allBarangs->sum('nilai_stok_beli')); // Pastikan tidak minus
-            $summary['potential_profit'] = max(0, $allBarangs->sum('nilai_stok_jual') - $allBarangs->sum('nilai_stok_beli')); // Pastikan tidak minus
-        }
 
         return Inertia::render('laporan/stok', [
             'barangs' => $barangs,

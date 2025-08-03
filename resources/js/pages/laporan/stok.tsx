@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Barang } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
-import { formatCurrency, StatusBadge, ProductImage, Icons } from '@/utils/formatters';
+import { StatusBadge, ProductImage, Icons } from '@/utils/formatters';
 import { useState } from 'react';
 
 interface LaporanStokProps extends PageProps {
@@ -12,9 +12,6 @@ interface LaporanStokProps extends PageProps {
         low_stock_items: number;
         out_of_stock_items: number;
         in_stock_items: number;
-        total_stock_value_sell: number;
-        total_stock_value_buy?: number;
-        potential_profit?: number;
     };
     filters?: {
         search?: string;
@@ -107,56 +104,6 @@ export default function LaporanStok({ auth, barangs, summary, filters = {}, user
                     </div>
                 );
             },
-        },
-        // Only show purchase price for admin/owner
-        ...(user_role?.is_admin_or_owner ? [{
-            key: 'harga_beli',
-            label: 'Buy Price',
-            sortable: true,
-            render: (value) => (
-                <div className="text-sm text-gray-900">
-                    {formatCurrency(value)}
-                </div>
-            ),
-        }] : []),
-        {
-            key: 'harga_jual',
-            label: 'Sell Price',
-            sortable: true,
-            render: (value) => (
-                <div className="text-sm text-gray-900">
-                    {formatCurrency(value)}
-                </div>
-            ),
-        },
-        // Only show profit per unit for admin/owner
-        ...(user_role?.is_admin_or_owner ? [{
-            key: 'profit_per_unit',
-            label: 'Profit/Unit',
-            render: (value) => (
-                <div className="text-sm font-medium text-green-600">
-                    {formatCurrency(value)}
-                </div>
-            ),
-        }] : []),
-        // Only show stock value buy for admin/owner
-        ...(user_role?.is_admin_or_owner ? [{
-            key: 'nilai_stok_beli',
-            label: 'Stock Value (Buy)',
-            render: (value) => (
-                <div className="text-sm text-gray-900">
-                    {formatCurrency(value)}
-                </div>
-            ),
-        }] : []),
-        {
-            key: 'nilai_stok_jual',
-            label: 'Stock Value (Sell)',
-            render: (value) => (
-                <div className="text-sm font-medium text-blue-600">
-                    {formatCurrency(value)}
-                </div>
-            ),
         },
     ];
 
@@ -269,74 +216,7 @@ export default function LaporanStok({ auth, barangs, summary, filters = {}, user
                         </div>
                     </div>
 
-                    {/* Value Summary Cards */}
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-6">
-                        {/* Only show stock value buy for admin/owner */}
-                        {user_role?.is_admin_or_owner && summary.total_stock_value_buy !== undefined && (
-                            <div className="bg-white overflow-hidden shadow rounded-lg">
-                                <div className="p-5">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0">
-                                            <Icons.money className="h-6 w-6 text-blue-400" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                                    Stock Value (Buy)
-                                                </dt>
-                                                <dd className="text-lg font-medium text-blue-600">
-                                                    {formatCurrency(summary.total_stock_value_buy)}
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="p-5">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <Icons.money className="h-6 w-6 text-purple-400" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Stock Value (Sell)
-                                            </dt>
-                                            <dd className="text-lg font-medium text-purple-600">
-                                                {formatCurrency(summary.total_stock_value_sell)}
-                                            </dd>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Only show potential profit for admin/owner */}
-                        {user_role?.is_admin_or_owner && summary.potential_profit !== undefined && (
-                            <div className="bg-white overflow-hidden shadow rounded-lg">
-                                <div className="p-5">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0">
-                                            <Icons.profit className="h-6 w-6 text-green-400" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                                    Potential Profit
-                                                </dt>
-                                                <dd className="text-lg font-medium text-green-600">
-                                                    {formatCurrency(summary.potential_profit)}
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
                     {/* Date Filter */}
                     <div className="bg-white overflow-hidden shadow rounded-lg mb-6">

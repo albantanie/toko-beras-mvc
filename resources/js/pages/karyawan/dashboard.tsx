@@ -25,7 +25,6 @@ interface KaryawanDashboardProps {
         category: string;
         total_products: number;
         total_stock: number;
-        avg_stock: number;
     }>;
     lowStockItems: Array<{
         id: number;
@@ -75,24 +74,59 @@ interface KaryawanDashboardProps {
         out: number;
         adjustments: number;
     };
+    filters: {
+        date_from: string;
+        date_to: string;
+    };
+    periodInventorySummary: {
+        total_products: number;
+        stock_in: number;
+        stock_out: number;
+        adjustments: number;
+    };
+
 }
 
 export default function KaryawanDashboard({
     stockLevels,
     lowStockItems,
     inventorySummary,
+    periodInventorySummary,
     stockMovementTrend,
     recentMovements,
-    todayMovements
+    todayMovements,
+    filters
 }: KaryawanDashboardProps) {
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
+    const [dateFrom, setDateFrom] = useState(filters.date_from || '');
+    const [dateTo, setDateTo] = useState(filters.date_to || '');
 
     const handleDateFilter = () => {
-        router.get(route('karyawan.dashboard'), {
+        // Validasi input tanggal
+        if (!dateFrom || !dateTo) {
+            alert('Silakan pilih tanggal dari dan sampai terlebih dahulu');
+            return;
+        }
+
+        if (dateFrom > dateTo) {
+            alert('Tanggal dari tidak boleh lebih besar dari tanggal sampai');
+            return;
+        }
+
+
+
+        router.get('/karyawan/dashboard', {
             date_from: dateFrom,
             date_to: dateTo,
         }, {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const handleResetFilter = () => {
+        setDateFrom('');
+        setDateTo('');
+        router.get('/karyawan/dashboard', {}, {
             preserveState: true,
             replace: true,
         });
@@ -160,7 +194,7 @@ export default function KaryawanDashboard({
         ],
     };
 
-    const inStockCount = inventorySummary?.total_products - inventorySummary?.low_stock_items - inventorySummary?.out_of_stock_items;
+
 
     // Add error handling for empty data
     const hasChartData = stockLevels && stockLevels.length > 0;
@@ -179,6 +213,14 @@ export default function KaryawanDashboard({
                             {/* Date Filter */}
                             <div className="bg-white overflow-hidden shadow rounded-lg mb-6">
                                 <div className="px-4 py-5 sm:p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-medium text-gray-900">Filter Periode</h3>
+                                        {(dateFrom || dateTo) && (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                Filter Aktif
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex flex-wrap items-end gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">
@@ -202,17 +244,27 @@ export default function KaryawanDashboard({
                                                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             />
                                         </div>
-                                        <button
-                                            onClick={handleDateFilter}
-                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                        >
-                                            Filter
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleDateFilter}
+                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            >
+                                                Filter
+                                            </button>
+                                            <button
+                                                onClick={handleResetFilter}
+                                                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            >
+                                                Reset
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* Inventory Summary Cards */}
+
+
+
+                            {/* Period Movement Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                                 <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                                     <div className="flex items-center">
@@ -223,8 +275,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-blue-600">Total Items</p>
-                                            <p className="text-xl font-bold text-blue-900 truncate" title={(inventorySummary?.total_products || 0).toString()}>
-                                                {formatCompactNumber(inventorySummary?.total_products || 0)}
+                                            <p className="text-xl font-bold text-blue-900 truncate" title={(periodInventorySummary?.total_products || 0).toString()}>
+                                                {formatCompactNumber(periodInventorySummary?.total_products || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -239,8 +291,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-green-600">In Stock</p>
-                                            <p className="text-xl font-bold text-green-900 truncate" title={(inStockCount || 0).toString()}>
-                                                {formatCompactNumber(inStockCount || 0)}
+                                            <p className="text-xl font-bold text-green-900 truncate" title={(periodInventorySummary?.stock_in || 0).toString()}>
+                                                {formatCompactNumber(periodInventorySummary?.stock_in || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -255,8 +307,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-yellow-600">Low Stock</p>
-                                            <p className="text-xl font-bold text-yellow-900 truncate" title={(inventorySummary?.low_stock_items || 0).toString()}>
-                                                {formatCompactNumber(inventorySummary?.low_stock_items || 0)}
+                                            <p className="text-xl font-bold text-yellow-900 truncate" title={(periodInventorySummary?.stock_out || 0).toString()}>
+                                                {formatCompactNumber(periodInventorySummary?.stock_out || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -271,8 +323,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-red-600">Out of Stock</p>
-                                            <p className="text-xl font-bold text-red-900 truncate" title={(inventorySummary?.out_of_stock_items || 0).toString()}>
-                                                {formatCompactNumber(inventorySummary?.out_of_stock_items || 0)}
+                                            <p className="text-xl font-bold text-red-900 truncate" title={(periodInventorySummary?.adjustments || 0).toString()}>
+                                                {formatCompactNumber(Math.abs(periodInventorySummary?.adjustments || 0))}
                                             </p>
                                         </div>
                                     </div>
@@ -321,12 +373,7 @@ export default function KaryawanDashboard({
                                                     {stockLevels.length}
                                                 </p>
                                             </div>
-                                            <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                                                <p className="text-xs text-orange-600 font-medium">RATA-RATA STOK</p>
-                                                <p className="text-lg font-bold text-orange-700">
-                                                    {formatCompactNumber(stockLevels.reduce((sum, item) => sum + item.avg_stock, 0) / stockLevels.length)}
-                                                </p>
-                                            </div>
+
                                         </div>
                                     )}
                                 </div>

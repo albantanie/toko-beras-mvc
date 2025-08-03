@@ -222,47 +222,91 @@ class DashboardController extends Controller
     /**
      * Karyawan Dashboard with inventory focus
      */
-    public function karyawanDashboard(): Response
+    public function karyawanDashboard(Request $request): Response
     {
-        // Stock levels
+        // Get filter parameters
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+
+
+        // Set default date range if not provided
+        if (!$dateFrom || !$dateTo) {
+            $dateFrom = now()->startOfMonth()->format('Y-m-d');
+            $dateTo = now()->format('Y-m-d');
+        }
+
+        // Validate date format
+        try {
+            $dateFromCarbon = \Carbon\Carbon::parse($dateFrom);
+            $dateToCarbon = \Carbon\Carbon::parse($dateTo);
+        } catch (\Exception $e) {
+            // If date parsing fails, use default
+            $dateFrom = now()->startOfMonth()->format('Y-m-d');
+            $dateTo = now()->format('Y-m-d');
+            $dateFromCarbon = \Carbon\Carbon::parse($dateFrom);
+            $dateToCarbon = \Carbon\Carbon::parse($dateTo);
+        }
+
+        // Stock levels (not affected by date filter)
         $stockLevels = $this->getStockLevels();
 
-        // Low stock alerts
+        // Low stock alerts (not affected by date filter)
         $lowStockItems = $this->getLowStockItems();
 
-        // Product categories distribution
+        // Product categories distribution (not affected by date filter)
         $categoriesDistribution = $this->getCategoriesDistribution();
 
-        // Inventory summary
+        // Inventory summary (not affected by date filter)
         $inventorySummary = $this->getInventorySummary();
 
-        // Stock movement trend
-        $stockMovementTrend = $this->getStockMovementTrend();
+        // Stock movement trend with date filter
+        $stockMovementTrend = $this->getStockMovementTrend($dateFrom, $dateTo);
 
-        // Get recent stock movements
+        // Get recent stock movements with date filter
         $recentMovements = \App\Models\StockMovement::with(['barang', 'user'])
+            ->whereBetween('created_at', [$dateFromCarbon->startOfDay(), $dateToCarbon->endOfDay()])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
-        // Get stock movement summary for today
-        $todayMovements = \App\Models\StockMovement::whereDate('created_at', today());
-        $todayIn = $todayMovements->clone()->ofType('in')->sum('quantity');
-        $todayOut = $todayMovements->clone()->ofType('out')->sum('quantity');
-        $todayAdjustments = $todayMovements->clone()->ofType('adjustment')->sum('quantity');
+        // Get stock movement summary for the filtered period
+        $periodMovements = \App\Models\StockMovement::whereBetween('created_at', [$dateFromCarbon->copy()->startOfDay(), $dateToCarbon->copy()->endOfDay()]);
+        $periodIn = $periodMovements->clone()->ofType('in')->sum('quantity');
+        $periodOut = $periodMovements->clone()->ofType('out')->sum('quantity');
+        $periodAdjustments = $periodMovements->clone()->ofType('adjustment')->sum('quantity');
+
+        // Get unique products that had movements in the period
+        $productsWithMovements = \App\Models\StockMovement::whereBetween('created_at', [$dateFromCarbon->copy()->startOfDay(), $dateToCarbon->copy()->endOfDay()])
+            ->distinct('barang_id')
+            ->count('barang_id');
+
+        // Get products with stock movements in period (for filtered inventory summary)
+        $periodInventorySummary = [
+            'total_products' => $productsWithMovements,
+            'stock_in' => $periodIn,
+            'stock_out' => abs($periodOut), // Make positive for display
+            'adjustments' => $periodAdjustments,
+        ];
 
         return Inertia::render('karyawan/dashboard', [
             'stockLevels' => $stockLevels,
             'lowStockItems' => $lowStockItems,
             'categoriesDistribution' => $categoriesDistribution,
             'inventorySummary' => $inventorySummary,
+            'periodInventorySummary' => $periodInventorySummary,
             'stockMovementTrend' => $stockMovementTrend,
             'recentMovements' => $recentMovements,
-            'todayMovements' => [
-                'in' => $todayIn,
-                'out' => $todayOut,
-                'adjustments' => $todayAdjustments,
+            'periodMovements' => [
+                'in' => $periodIn,
+                'out' => $periodOut,
+                'adjustments' => $periodAdjustments,
             ],
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+
         ]);
     }
 
@@ -659,40 +703,58 @@ class DashboardController extends Controller
                     'category' => $item->kategori,
                     'total_products' => $item->total_products,
                     'total_stock' => $item->total_stock,
-                    'avg_stock' => round($item->total_stock / $item->total_products, 1),
                 ];
             })
             ->toArray();
     }
 
     /**
-     * Get stock movement trend (last 7 days)
+     * Get stock movement trend for date range
      */
-    private function getStockMovementTrend(): array
+    private function getStockMovementTrend($dateFrom = null, $dateTo = null): array
     {
         $trendData = [];
 
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
+        // If no date range provided, use last 7 days
+        if (!$dateFrom || !$dateTo) {
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::now()->subDays($i);
 
-            // Get sales for this date (stock out)
-            $salesData = DB::table('rekap')
-                ->join('transaksi', 'rekap.penjualan_id', '=', 'transaksi.id')
-                ->whereDate('transaksi.tanggal_transaksi', $date)
-                ->where('transaksi.status', '!=', 'dibatalkan')
-                ->sum('rekap.jumlah');
+                // Get actual stock movements for this date
+                $movements = \App\Models\StockMovement::whereDate('created_at', $date)->get();
+                $stockIn = $movements->where('type', 'in')->sum('quantity');
+                $stockOut = $movements->where('type', 'out')->sum('quantity');
 
-            // For demo purposes, simulate stock in (purchases/restocks)
-            // In real scenario, you would have a purchases/stock_movements table
-            $stockIn = $salesData > 0 ? rand(0, (int)($salesData * 1.2)) : 0;
+                $trendData[] = [
+                    'date' => $date->format('Y-m-d'),
+                    'day' => $date->format('D'),
+                    'stock_in' => (int) $stockIn,
+                    'stock_out' => (int) $stockOut,
+                    'net_movement' => $stockIn - $stockOut,
+                ];
+            }
+        } else {
+            // Use provided date range
+            $startDate = Carbon::parse($dateFrom);
+            $endDate = Carbon::parse($dateTo);
+            $currentDate = $startDate->copy();
 
-            $trendData[] = [
-                'date' => $date->format('Y-m-d'),
-                'day' => $date->format('D'),
-                'stock_in' => $stockIn,
-                'stock_out' => (int) $salesData,
-                'net_movement' => $stockIn - (int) $salesData,
-            ];
+            while ($currentDate <= $endDate) {
+                // Get actual stock movements for this date
+                $movements = \App\Models\StockMovement::whereDate('created_at', $currentDate)->get();
+                $stockIn = $movements->where('type', 'in')->sum('quantity');
+                $stockOut = $movements->where('type', 'out')->sum('quantity');
+
+                $trendData[] = [
+                    'date' => $currentDate->format('Y-m-d'),
+                    'day' => $currentDate->format('D'),
+                    'stock_in' => (int) $stockIn,
+                    'stock_out' => (int) $stockOut,
+                    'net_movement' => $stockIn - $stockOut,
+                ];
+
+                $currentDate->addDay();
+            }
         }
 
         return $trendData;

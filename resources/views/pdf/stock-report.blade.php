@@ -201,10 +201,7 @@
                 <h3>Stok Habis</h3>
                 <div class="value danger">{{ number_format($reportData['out_of_stock_items']) }}</div>
             </div>
-            <div class="summary-card">
-                <h3>Nilai Stok (Jual)</h3>
-                <div class="value">Rp {{ number_format($reportData['total_stock_value_sell'], 0, ',', '.') }}</div>
-            </div>
+
             <div class="summary-card">
                 <h3>Potensi Keuntungan</h3>
                 <div class="value success">Rp {{ number_format($reportData['potential_profit'], 0, ',', '.') }}</div>
@@ -222,8 +219,6 @@
                 <th class="text-right">Stok Saat Ini</th>
                 <th class="text-right">Stok Minimum</th>
                 <th class="text-center">Status</th>
-                <th class="text-right">Harga Jual</th>
-                <th class="text-right">Nilai Stok</th>
             </tr>
         </thead>
         <tbody>
@@ -251,8 +246,6 @@
                         <span class="stock-status normal">Normal</span>
                     @endif
                 </td>
-                <td class="text-right">Rp {{ number_format($barang->harga_jual, 0, ',', '.') }}</td>
-                <td class="text-right">Rp {{ number_format($barang->stok * $barang->harga_jual, 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>

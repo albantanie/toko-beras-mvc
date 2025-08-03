@@ -573,13 +573,39 @@ class FinancialController extends Controller
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
 
-        $reportData = match($type) {
-            'profit_loss' => $this->generateProfitLossReport($startDate, $endDate),
-            'balance_sheet' => $this->generateBalanceSheetReport($endDate),
-            'cash_flow' => $this->cashFlowService->getCashFlowStatement($startDate, $endDate),
-            'budget_variance' => $this->generateBudgetVarianceReport($startDate, $endDate),
-            default => $this->generateProfitLossReport($startDate, $endDate),
-        };
+        // Get simple data directly from database
+        $sales = \App\Models\Penjualan::whereBetween('tanggal_transaksi', [$startDate, $endDate])->get();
+        $totalSales = $sales->sum('total');
+        $totalTransactions = $sales->count();
+
+        $expenses = \App\Models\FinancialTransaction::where('transaction_type', 'expense')
+            ->whereBetween('transaction_date', [$startDate, $endDate])
+            ->get();
+        $totalExpenses = $expenses->sum('amount');
+
+        $reportData = [
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+            'revenue' => [
+                'total' => $totalSales,
+                'total_sales' => $totalSales,
+                'total_transactions' => $totalTransactions,
+                'average_transaction' => $totalTransactions > 0 ? $totalSales / $totalTransactions : 0,
+            ],
+            'expenses' => [
+                'total' => $totalExpenses,
+                'total_expenses' => $totalExpenses,
+                'expense_categories' => [],
+            ],
+            'profit' => [
+                'gross_revenue' => $totalSales,
+                'operating_expenses' => $totalExpenses,
+                'net_profit' => $totalSales - $totalExpenses,
+                'net_margin' => $totalSales > 0 ? (($totalSales - $totalExpenses) / $totalSales) * 100 : 0,
+            ],
+        ];
 
         return Inertia::render('financial/reports', [
             'reportData' => $reportData,
@@ -599,12 +625,27 @@ class FinancialController extends Controller
     {
         $dateRange = ['start' => $startDate, 'end' => $endDate];
 
-        return [
-            'period' => $dateRange,
-            'revenue' => $this->financialService->getRevenueSummary($dateRange),
-            'expenses' => $this->financialService->getExpenseSummary($dateRange),
-            'profit' => $this->financialService->getProfitSummary($dateRange),
-        ];
+        try {
+            return [
+                'period' => $dateRange,
+                'revenue' => $this->financialService->getRevenueSummary($startDate, $endDate),
+                'expenses' => $this->financialService->getExpenseSummary($startDate, $endDate),
+                'profit' => $this->financialService->getProfitSummary($startDate, $endDate),
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Generate Profit Loss Report Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Return default data if error
+            return [
+                'period' => $dateRange,
+                'revenue' => ['total' => 0, 'total_sales' => 0, 'total_transactions' => 0, 'average_transaction' => 0],
+                'expenses' => ['total' => 0, 'total_expenses' => 0, 'expense_categories' => []],
+                'profit' => ['gross_revenue' => 0, 'operating_expenses' => 0, 'net_profit' => 0, 'net_margin' => 0],
+            ];
+        }
     }
 
     /**
@@ -690,28 +731,98 @@ class FinancialController extends Controller
      */
     public function exportFinancialReportPdf(Request $request)
     {
-        $type = $request->get('type', 'profit_loss');
-        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
-        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
+        try {
+            $type = $request->get('type', 'profit_loss');
+            $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+            $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
 
-        $reportData = match($type) {
-            'profit_loss' => $this->generateProfitLossReport($startDate, $endDate),
-            'balance_sheet' => $this->generateBalanceSheetReport($endDate),
-            'cash_flow' => $this->cashFlowService->getCashFlowStatement($startDate, $endDate),
-            'budget_variance' => $this->generateBudgetVarianceReport($startDate, $endDate),
-            default => $this->generateProfitLossReport($startDate, $endDate),
-        };
+            // Get actual data for PDF with detailed information
+            $sales = \App\Models\Penjualan::with(['detailPenjualans.barang'])
+                ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
+                ->get();
+            $totalSales = $sales->sum('total');
+            $totalTransactions = $sales->count();
+            $totalItemsSold = $sales->sum(function($sale) {
+                return $sale->detailPenjualans->sum('jumlah');
+            });
 
-        $pdf = Pdf::loadView('pdf.financial-report', [
-            'reportData' => $reportData,
-            'type' => $type,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'generatedAt' => now(),
-        ]);
+            $expenses = \App\Models\FinancialTransaction::where('transaction_type', 'expense')
+                ->whereBetween('transaction_date', [$startDate, $endDate])
+                ->get();
+            $totalExpenses = $expenses->sum('amount');
 
-        $fileName = 'laporan_keuangan_' . $type . '_' . $startDate . '_to_' . $endDate . '_' . now()->format('Y-m-d_His') . '.pdf';
+            // Group sales by date for daily breakdown
+            $dailyBreakdown = $sales->groupBy(function($sale) {
+                return $sale->tanggal_transaksi->format('Y-m-d');
+            })->map(function($dailySales, $date) {
+                $dailyTotal = $dailySales->sum('total');
+                $dailyTransactions = $dailySales->count();
+                $dailyItems = $dailySales->sum(function($sale) {
+                    return $sale->detailPenjualans->sum('jumlah');
+                });
 
-        return $pdf->download($fileName);
+                // Get payment methods for the day
+                $paymentMethods = $dailySales->groupBy('metode_pembayaran')->map(function($sales, $method) {
+                    return [
+                        'method' => $method,
+                        'count' => $sales->count(),
+                        'total' => $sales->sum('total')
+                    ];
+                })->values();
+
+                return [
+                    'date' => $date,
+                    'total_amount' => $dailyTotal,
+                    'total_transactions' => $dailyTransactions,
+                    'total_items_sold' => $dailyItems,
+                    'payment_methods' => $paymentMethods->toArray(),
+                ];
+            })->values();
+
+            $reportData = [
+                'period' => [
+                    'start' => $startDate,
+                    'end' => $endDate,
+                ],
+                'revenue' => [
+                    'total' => $totalSales,
+                    'total_sales' => $totalSales,
+                    'total_transactions' => $totalTransactions,
+                    'total_items_sold' => $totalItemsSold,
+                    'average_transaction' => $totalTransactions > 0 ? $totalSales / $totalTransactions : 0,
+                ],
+                'expenses' => [
+                    'total' => $totalExpenses,
+                    'total_expenses' => $totalExpenses,
+                    'expense_categories' => [],
+                ],
+                'profit' => [
+                    'gross_revenue' => $totalSales,
+                    'operating_expenses' => $totalExpenses,
+                    'net_profit' => $totalSales - $totalExpenses,
+                    'net_margin' => $totalSales > 0 ? (($totalSales - $totalExpenses) / $totalSales) * 100 : 0,
+                ],
+                'daily_breakdown' => $dailyBreakdown,
+            ];
+
+            $pdf = Pdf::loadView('pdf.simple-financial-report', [
+                'reportData' => $reportData,
+                'type' => $type,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'generatedAt' => now(),
+            ]);
+
+            $fileName = 'laporan_keuangan_' . $type . '_' . $startDate . '_to_' . $endDate . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+            return $pdf->download($fileName);
+        } catch (\Exception $e) {
+            \Log::error('Export Financial Report PDF Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['error' => 'Failed to generate PDF: ' . $e->getMessage()], 500);
+        }
     }
 }

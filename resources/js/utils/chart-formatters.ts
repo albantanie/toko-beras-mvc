@@ -10,6 +10,7 @@ export const formatCurrency = (amount: number): string => {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
     }).format(amount);
 };
 

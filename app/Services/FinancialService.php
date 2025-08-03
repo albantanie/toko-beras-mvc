@@ -97,10 +97,13 @@ class FinancialService
             ->whereBetween('tanggal_transaksi', [$dateRange['start'], $dateRange['end']])
             ->get();
 
+        $totalSales = $sales->sum('total');
+
         $revenue = [
-            'total_sales' => $sales->sum('total'),
+            'total' => $totalSales, // Add this key for compatibility
+            'total_sales' => $totalSales,
             'total_transactions' => $sales->count(),
-            'average_transaction' => $sales->count() > 0 ? $sales->sum('total') / $sales->count() : 0,
+            'average_transaction' => $sales->count() > 0 ? $totalSales / $sales->count() : 0,
             'daily_breakdown' => [],
         ];
 
@@ -145,8 +148,11 @@ class FinancialService
             ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
             ->get();
 
+        $totalExpenses = $expenses->sum('amount');
+
         $summary = [
-            'total_expenses' => $expenses->sum('amount'),
+            'total' => $totalExpenses, // Add this key for compatibility
+            'total_expenses' => $totalExpenses,
             'expense_categories' => [],
         ];
 
@@ -157,8 +163,8 @@ class FinancialService
                 'category' => $category,
                 'total' => $categoryTransactions->sum('amount'),
                 'count' => $categoryTransactions->count(),
-                'percentage' => $summary['total_expenses'] > 0 ? 
-                    ($categoryTransactions->sum('amount') / $summary['total_expenses']) * 100 : 0,
+                'percentage' => $totalExpenses > 0 ?
+                    ($categoryTransactions->sum('amount') / $totalExpenses) * 100 : 0,
             ];
         }
 

@@ -31,11 +31,8 @@ interface ProfitLossReport {
     };
     profit: {
         gross_revenue: number;
-        cogs: number;
-        gross_profit: number;
         operating_expenses: number;
         net_profit: number;
-        gross_margin: number;
         net_margin: number;
     };
 }
@@ -97,6 +94,7 @@ export default function FinancialReportsPage({ reportData, reportType, filters }
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(amount);
     };
 
@@ -147,24 +145,7 @@ export default function FinancialReportsPage({ reportData, reportType, filters }
                         </div>
                     </div>
 
-                    {/* COGS Section */}
-                    <div>
-                        <h3 className="text-lg font-semibold mb-4 text-blue-600">HARGA POKOK PENJUALAN</h3>
-                        <div className="space-y-2">
-                            <div className="flex justify-between">
-                                <span>Harga Pokok Penjualan</span>
-                                <span className="font-medium">{formatCurrency(data.profit.cogs)}</span>
-                            </div>
-                            <div className="flex justify-between font-bold border-t pt-2">
-                                <span>Laba Kotor</span>
-                                <span className="text-blue-600">{formatCurrency(data.profit.gross_profit)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm text-gray-600">
-                                <span>Margin Kotor</span>
-                                <span>{data.profit.gross_margin.toFixed(1)}%</span>
-                            </div>
-                        </div>
-                    </div>
+
 
                     {/* Expenses Section */}
                     <div>

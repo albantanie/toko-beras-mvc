@@ -249,9 +249,8 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                 >
                                     <option value="nama-asc">Nama A-Z</option>
                                     <option value="nama-desc">Nama Z-A</option>
-                                    <option value="harga_jual-asc">Harga Terendah</option>
-                                    <option value="harga_jual-desc">Harga Tertinggi</option>
                                     <option value="created_at-desc">Terbaru</option>
+                                    <option value="stok-desc">Stok Terbanyak</option>
                                 </select>
                             </div>
 
@@ -348,11 +347,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                     {barang.kategori}
                                                 </p>
 
-                                                <div className="mb-2">
-                                                    <span className="text-lg font-bold text-green-600">
-                                                        {formatCurrency(barang.harga_jual)}
-                                                    </span>
-                                                </div>
+                                                {/* Harga disembunyikan di catalog - hanya tampil di keranjang */}
 
                                                 <div className="mb-3">
                                                     <span className="text-xs text-gray-600">
@@ -369,7 +364,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                             onClick={() => openQuantityModal(barang)}
                                                             className="w-full px-3 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors duration-200"
                                                         >
-                                                            🛒 + Keranjang
+                                                            🛒 Pilih & Lihat Harga
                                                         </button>
                                                     ) : (
                                                         <button
@@ -498,11 +493,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                             </h3>
                                         </Link>
 
-                                        <div className="mb-2">
-                                            <span className="text-lg font-bold text-green-600">
-                                                {formatCurrency(barang.harga_jual)}
-                                            </span>
-                                        </div>
+                                        {/* Harga disembunyikan di catalog - hanya tampil di keranjang */}
 
                                         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                                             <span>⭐ 4.8</span>
@@ -514,7 +505,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                 onClick={() => openQuantityModal(barang)}
                                                 className="w-full px-3 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors duration-200"
                                             >
-                                                🛒 + Keranjang
+                                                🛒 Pilih & Lihat Harga
                                             </button>
                                         ) : (
                                             <button

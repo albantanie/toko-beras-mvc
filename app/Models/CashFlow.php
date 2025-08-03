@@ -62,8 +62,7 @@ class CashFlow extends Model
     // Methods
     public function getFormattedAmountAttribute()
     {
-        $prefix = $this->direction === 'inflow' ? '+' : '-';
-        return $prefix . 'Rp ' . number_format($this->amount, 0, ',', '.');
+        return currency_with_direction($this->amount, $this->direction);
     }
 
     public function getDirectionColorAttribute()

@@ -20,12 +20,11 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWi
 
     const userRole = auth.user?.roles?.[0]?.name;
     const isPelanggan = userRole === 'pelanggan';
-    const isSettingsPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/settings');
 
     return (
         <AppShell variant="sidebar">
-            {/* Sembunyikan sidebar jika pelanggan di halaman settings */}
-            {!(isPelanggan && isSettingsPage) && <AppSidebar />}
+            {/* Sembunyikan sidebar untuk semua halaman jika user adalah pelanggan */}
+            {!isPelanggan && <AppSidebar />}
             <AppContent variant="sidebar" className="overflow-x-hidden">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}

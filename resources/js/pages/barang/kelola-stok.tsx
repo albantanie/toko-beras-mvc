@@ -65,6 +65,7 @@ export default function KelolaStokPage({ barang, movements }: Props) {
             style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(amount);
     };
 

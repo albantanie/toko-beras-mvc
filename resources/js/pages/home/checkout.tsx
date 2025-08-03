@@ -1,13 +1,16 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { PageProps } from '@/types';
-import { formatCurrency } from '@/utils/formatters';
-import ProductImage from '@/components/ui/product-image';
-import AppLayout from '@/layouts/app-layout';
-import { AppHeader } from '@/components/app-header';
-import { AppContent } from '@/components/app-content';
-import { BreadcrumbItem } from '@/types';
+import { formatCurrency, ProductImage } from '@/utils/formatters';
+import Header from '@/components/Header';
 
-interface CheckoutProps extends PageProps {
+interface CheckoutProps {
+    auth: {
+        user: {
+            id: number;
+            name: string;
+            email: string;
+            roles: Array<{ name: string }>;
+        };
+    };
     cartItems: Array<{
         id: number;
         quantity: number;
@@ -27,21 +30,6 @@ interface CheckoutProps extends PageProps {
     };
     cartCount: number;
 }
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Home',
-        href: '/',
-    },
-    {
-        title: 'Cart',
-        href: '/cart',
-    },
-    {
-        title: 'Checkout',
-        href: '/checkout',
-    },
-];
 
 export default function Checkout({ auth, cartItems, total, user, cartCount }: CheckoutProps) {
     const { data, setData, post, processing, errors } = useForm({
@@ -90,8 +78,8 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
         formData.append('pickup_notes', data.pickup_notes);
         formData.append('catatan', data.catatan);
         
-        // Inertia post dengan FormData dan forceFormData agar file terkirim
-        post(route('cart.process-checkout'), formData, {
+        // Inertia post dengan FormData
+        post(route('cart.process-checkout'), {
             preserveScroll: true,
             forceFormData: true,
         });
@@ -105,33 +93,51 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
     };
 
     return (
-        <AppLayout>
-            <Head title="Checkout" />
-            <AppHeader user={auth.user} cartCount={cartCount} />
-            <AppContent>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="mb-6">
+        <>
+            <Head title="Checkout - Toko Beras" />
+
+            <div className="min-h-screen bg-gray-50">
+                <Header
+                    auth={auth}
+                    cartCount={cartCount}
+                    showSearch={false}
+                    currentPage="other"
+                />
+
+                {/* Breadcrumb */}
+                <div className="bg-white border-b border-gray-200">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                         <nav className="flex" aria-label="Navigasi Breadcrumb">
-                            <ol className="inline-flex items-center space-x-1 md:space-x-3">
-                                {breadcrumbs.map((item, index) => (
-                                    <li key={index} className="inline-flex items-center">
-                                        {index > 0 && (
-                                            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-                                            </svg>
-                                        )}
-                                        {index === breadcrumbs.length - 1 ? (
-                                            <span className="text-sm font-medium text-gray-500 md:ml-2">{item.title}</span>
-                                        ) : (
-                                            <Link href={item.href} className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
-                                                {item.title}
+                            <ol className="flex items-center space-x-4">
+                                <li>
+                                    <Link href="/" className="text-gray-500 hover:text-gray-700">
+                                        Beranda
                                     </Link>
-                                        )}
                                 </li>
-                                ))}
+                                <li>
+                                    <span className="text-gray-400">/</span>
+                                </li>
+                                <li>
+                                    <Link href="/cart" className="text-gray-500 hover:text-gray-700">
+                                        Keranjang
+                                    </Link>
+                                </li>
+                                <li>
+                                    <span className="text-gray-400">/</span>
+                                </li>
+                                <li>
+                                    <span className="text-gray-900 font-medium">
+                                        Checkout
+                                    </span>
+                                </li>
                             </ol>
                         </nav>
+                    </div>
                 </div>
+
+                {/* Checkout Content */}
+                <section className="py-12">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
                     <form onSubmit={submit} className="lg:grid lg:grid-cols-3 lg:gap-8" encType="multipart/form-data">
                                 <div className="lg:col-span-2">
@@ -529,7 +535,8 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                             </div>
                         </form>
                     </div>
-            </AppContent>
-        </AppLayout>
+                </section>
+            </div>
+        </>
     );
 }

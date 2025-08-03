@@ -203,8 +203,6 @@
                     <th>Nama Barang</th>
                     <th>Kategori</th>
                     <th>Stok</th>
-                    <th>Harga Jual</th>
-                    <th>Nilai Stok</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -216,8 +214,6 @@
                         <td>{{ $b->nama }}</td>
                         <td>{{ $b->kategori }}</td>
                         <td class="text-center">{{ number_format($b->stok) }}</td>
-                        <td class="text-right">Rp {{ number_format($b->harga_jual ?? 0) }}</td>
-                        <td class="text-right">Rp {{ number_format($b->stok * ($b->harga_jual ?? 0)) }}</td>
                         <td class="text-center">
                             @if($b->stok == 0)
                                 <span style="color: #dc3545; font-weight: bold;">HABIS</span>

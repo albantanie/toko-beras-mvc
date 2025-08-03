@@ -111,22 +111,12 @@ const getNavItemsForRole = (role: string | null): NavItem[] => {
             ];
 
         case 'pelanggan':
-            return [
-                ...baseItems,
-                {
-                    title: 'Katalog Produk',
-                    href: '/katalog',
-                    icon: Package,
-                },
-                {
-                    title: 'Pesanan Saya',
-                    href: '/pesanan',
-                    icon: ShoppingCart,
-                },
-            ];
+            // Pelanggan tidak memiliki akses ke sidebar navigation
+            return [];
 
         default:
-            return baseItems;
+            // Role yang tidak dikenal tidak memiliki akses ke sidebar navigation
+            return [];
     }
 };
 
@@ -138,6 +128,11 @@ export function AppSidebar() {
     const { auth } = usePage().props as any;
     const userRole = getUserRole(auth.user);
     const navItems = getNavItemsForRole(userRole);
+
+    // Jika tidak ada navigation items, jangan render sidebar
+    if (navItems.length === 0) {
+        return null;
+    }
 
     return (
         <Sidebar collapsible="icon" variant="inset">
