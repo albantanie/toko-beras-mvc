@@ -321,28 +321,24 @@ export default function DataTable<T = any>({
                         {/* Mobile pagination */}
                         <div className="flex-1 flex justify-between sm:hidden">
                             {data?.links?.[0]?.url ? (
-                                <Link
-                                    href={data.links[0].url}
-                                    preserveState
-                                    preserveScroll
+                                <button
+                                    onClick={() => router.get(data.links[0].url ?? '')}
                                     className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                 >
                                     Sebelumnya
-                                </Link>
+                                </button>
                             ) : (
                                 <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
                                     Sebelumnya
                                 </span>
                             )}
                             {data?.links?.[data.links.length - 1]?.url ? (
-                                <Link
-                                    href={data.links[data.links.length - 1].url ?? ''}
-                                    preserveState
-                                    preserveScroll
+                                <button
+                                    onClick={() => router.get(data.links[data.links.length - 1].url ?? '')}
                                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                 >
                                     Selanjutnya
-                                </Link>
+                                </button>
                             ) : (
                                 <span className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
                                     Selanjutnya
@@ -386,11 +382,9 @@ export default function DataTable<T = any>({
                                         }
 
                                         return (
-                                            <Link
+                                            <button
                                                 key={index}
-                                                href={link.url ?? ''}
-                                                preserveState
-                                                preserveScroll
+                                                onClick={() => router.get(link.url ?? '')}
                                                 className={`relative inline-flex items-center px-3 py-2 border text-sm font-medium transition-colors duration-200 ${
                                                     link.active
                                                         ? 'z-10 bg-blue-600 border-blue-600 text-white'
