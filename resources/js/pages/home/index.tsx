@@ -353,7 +353,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                     <span className="text-xs text-gray-600">
                                                         Stok: {barang.stok} {getProductUnit(barang.kategori)}
                                                         {barang.berat_per_unit && (
-                                                            <span className="text-gray-500"> ({barang.berat_per_unit}kg/{getProductUnit(barang.kategori)})</span>
+                                                            <span className="text-gray-500"> ({barang.berat_per_unit}kg per {getProductUnit(barang.kategori)})</span>
                                                         )}
                                                     </span>
                                                 </div>
@@ -597,10 +597,10 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                         {selectedProduct.nama}
                                     </h4>
                                     <p className="text-sm text-gray-500">
-                                        Stok tersedia: {selectedProduct.stok} kg
+                                        Stok tersedia: {selectedProduct.stok} {getProductUnit(selectedProduct.kategori)}
                                     </p>
                                     <p className="text-lg font-bold text-green-600">
-                                        {formatCurrency(selectedProduct.harga_jual)}/kg
+                                        {formatCurrency(selectedProduct.harga_jual)}/{getProductUnit(selectedProduct.kategori)}
                                     </p>
                                 </div>
                             </div>

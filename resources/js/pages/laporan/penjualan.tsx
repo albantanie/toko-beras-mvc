@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Penjualan } from '@/types';
 import DataTable, { Column, PaginatedData } from '@/components/data-table';
 import { formatCurrency, formatDateTime, StatusBadge, Icons } from '@/utils/formatters';
@@ -54,25 +54,39 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
     const [dateTo, setDateTo] = useState(filters.date_to || '');
 
     const handleDateFilter = () => {
-        const params = new URLSearchParams();
-
-        // Always include date parameters to prevent reset
-        if (dateFrom) {
-            params.set('date_from', dateFrom);
-        }
-        if (dateTo) {
-            params.set('date_to', dateTo);
+        // Validasi input tanggal
+        if (!dateFrom || !dateTo) {
+            alert('Silakan pilih tanggal dari dan sampai terlebih dahulu');
+            return;
         }
 
-        // Preserve other existing parameters
-        const currentParams = new URLSearchParams(window.location.search);
-        for (const [key, value] of currentParams.entries()) {
-            if (key !== 'date_from' && key !== 'date_to') {
-                params.set(key, value);
-            }
+        if (dateFrom > dateTo) {
+            alert('Tanggal dari tidak boleh lebih besar dari tanggal sampai');
+            return;
         }
 
-        window.location.href = `${window.location.pathname}?${params.toString()}`;
+        // Gunakan Inertia router untuk mempertahankan state
+        router.get(route('owner.laporan.penjualan'), {
+            date_from: dateFrom,
+            date_to: dateTo,
+            // Preserve existing filters
+            search: filters?.search || '',
+            sort: filters?.sort || 'tanggal_transaksi',
+            direction: filters?.direction || 'desc',
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleResetFilter = () => {
+        setDateFrom('');
+        setDateTo('');
+
+        router.get(route('owner.laporan.penjualan'), {}, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
     const columns: Column[] = [
@@ -251,6 +265,12 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                     Filter
+                                </button>
+                                <button
+                                    onClick={handleResetFilter}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Reset
                                 </button>
                             </div>
                         </div>

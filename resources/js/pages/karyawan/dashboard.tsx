@@ -264,7 +264,7 @@ export default function KaryawanDashboard({
 
 
 
-                            {/* Period Movement Summary Cards */}
+                            {/* Inventory Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                                 <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
                                     <div className="flex items-center">
@@ -275,13 +275,13 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-blue-600">Total Items</p>
-                                            <p className="text-xl font-bold text-blue-900 truncate" title={(periodInventorySummary?.total_products || 0).toString()}>
-                                                {formatCompactNumber(periodInventorySummary?.total_products || 0)}
+                                            <p className="text-xl font-bold text-blue-900 truncate" title={(inventorySummary?.total_products || 0).toString()}>
+                                                {formatCompactNumber(inventorySummary?.total_products || 0)}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="bg-green-50 p-6 rounded-lg border border-green-200">
                                     <div className="flex items-center">
                                         <div className="p-2 bg-green-100 rounded-lg">
@@ -291,8 +291,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-green-600">In Stock</p>
-                                            <p className="text-xl font-bold text-green-900 truncate" title={(periodInventorySummary?.stock_in || 0).toString()}>
-                                                {formatCompactNumber(periodInventorySummary?.stock_in || 0)}
+                                            <p className="text-xl font-bold text-green-900 truncate" title={(inventorySummary?.total_products - inventorySummary?.out_of_stock_items || 0).toString()}>
+                                                {formatCompactNumber((inventorySummary?.total_products || 0) - (inventorySummary?.out_of_stock_items || 0))}
                                             </p>
                                         </div>
                                     </div>
@@ -307,8 +307,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-yellow-600">Low Stock</p>
-                                            <p className="text-xl font-bold text-yellow-900 truncate" title={(periodInventorySummary?.stock_out || 0).toString()}>
-                                                {formatCompactNumber(periodInventorySummary?.stock_out || 0)}
+                                            <p className="text-xl font-bold text-yellow-900 truncate" title={(inventorySummary?.low_stock_items || 0).toString()}>
+                                                {formatCompactNumber(inventorySummary?.low_stock_items || 0)}
                                             </p>
                                         </div>
                                     </div>
@@ -323,8 +323,8 @@ export default function KaryawanDashboard({
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <p className="text-sm font-medium text-red-600">Out of Stock</p>
-                                            <p className="text-xl font-bold text-red-900 truncate" title={(periodInventorySummary?.adjustments || 0).toString()}>
-                                                {formatCompactNumber(Math.abs(periodInventorySummary?.adjustments || 0))}
+                                            <p className="text-xl font-bold text-red-900 truncate" title={(inventorySummary?.out_of_stock_items || 0).toString()}>
+                                                {formatCompactNumber(inventorySummary?.out_of_stock_items || 0)}
                                             </p>
                                         </div>
                                     </div>

@@ -829,6 +829,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('laporan/stok', [LaporanController::class, 'stok'])->name('laporan.stok');
         Route::get('laporan/history-transaction', [LaporanController::class, 'historyTransaction'])->name('laporan.history-transaction');
 
+        // API endpoint for stock movements calendar
+        Route::get('api/stock-movements/monthly', [LaporanController::class, 'getMonthlyStockMovements'])->name('api.stock-movements.monthly');
+
         // Generate financial report (PDF)
         Route::post('generate-financial-report', [LaporanController::class, 'generateFinancialReport'])->name('laporan.generate-financial');
 

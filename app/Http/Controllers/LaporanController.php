@@ -272,8 +272,10 @@ class LaporanController extends Controller
         $isKaryawan = $user->hasRole('karyawan');
         $isAdminOrOwner = $user->hasRole('admin') || $user->hasRole('owner');
 
+        $totalTransactions = $summaryQuery->count();
+
         $summary = [
-            'total_transactions' => $summaryQuery->count(),
+            'total_transactions' => $totalTransactions,
             'total_sales' => $summaryQuery->sum('total'),
             'average_transaction' => $summaryQuery->avg('total') ?: 0,
             'total_items_sold' => DetailPenjualan::whereHas('penjualan', function ($q) use ($dateFrom, $dateTo) {
@@ -417,9 +419,40 @@ class LaporanController extends Controller
             'in_stock_items' => Barang::where('stok', '>', 0)->count(),
         ];
 
+        // Get stock movement activity for current month
+        $currentMonth = Carbon::now()->startOfMonth();
+        $nextMonth = Carbon::now()->addMonth()->startOfMonth();
+
+        $stockMovementDays = \App\Models\StockMovement::whereBetween('created_at', [$currentMonth, $nextMonth])
+            ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
+            ->groupBy('date', 'type')
+            ->get()
+            ->groupBy('date')
+            ->map(function ($movements) {
+                $types = $movements->pluck('type')->unique();
+                $totalCount = $movements->sum('count');
+
+                // Determine primary activity type
+                $activityType = 'mixed';
+                if ($types->count() === 1) {
+                    $activityType = $types->first();
+                } elseif ($types->contains('in') && !$types->contains('out')) {
+                    $activityType = 'in';
+                } elseif ($types->contains('out') && !$types->contains('in')) {
+                    $activityType = 'out';
+                }
+
+                return [
+                    'count' => $totalCount,
+                    'type' => $activityType,
+                    'types' => $types->toArray(),
+                ];
+            });
+
         return Inertia::render('laporan/stok', [
             'barangs' => $barangs,
             'summary' => $summary,
+            'stock_movement_days' => $stockMovementDays,
             'filters' => [
                 'search' => $search,
                 'filter' => $filter,
@@ -431,6 +464,53 @@ class LaporanController extends Controller
                 'is_admin_or_owner' => $isAdminOrOwner,
             ],
         ]);
+    }
+
+    /**
+     * Get stock movement activity for specific month (API endpoint)
+     */
+    public function getMonthlyStockMovements(Request $request)
+    {
+        $month = $request->get('month'); // Format: YYYY-MM
+
+        if (!$month) {
+            return response()->json([]);
+        }
+
+        try {
+            $startDate = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+            $endDate = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
+
+            $stockMovementDays = \App\Models\StockMovement::whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
+                ->groupBy('date', 'type')
+                ->get()
+                ->groupBy('date')
+                ->map(function ($movements) {
+                    $types = $movements->pluck('type')->unique();
+                    $totalCount = $movements->sum('count');
+
+                    // Determine primary activity type
+                    $activityType = 'mixed';
+                    if ($types->count() === 1) {
+                        $activityType = $types->first();
+                    } elseif ($types->contains('in') && !$types->contains('out')) {
+                        $activityType = 'in';
+                    } elseif ($types->contains('out') && !$types->contains('in')) {
+                        $activityType = 'out';
+                    }
+
+                    return [
+                        'count' => $totalCount,
+                        'type' => $activityType,
+                        'types' => $types->toArray(),
+                    ];
+                });
+
+            return response()->json($stockMovementDays);
+        } catch (\Exception $e) {
+            return response()->json([]);
+        }
     }
 
     /**

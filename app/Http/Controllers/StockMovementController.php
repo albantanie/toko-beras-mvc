@@ -51,13 +51,40 @@ class StockMovementController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
+        // Transform data untuk frontend
+        $movements->getCollection()->transform(function ($movement) {
+            return [
+                'id' => $movement->id,
+                'type' => $movement->type,
+                'type_label' => $movement->getTypeLabelAttribute(),
+                'quantity' => $movement->quantity,
+                'stock_before' => $movement->stock_before,
+                'stock_after' => $movement->stock_after,
+                'unit_price' => $movement->unit_price,
+                'total_value' => $movement->total_value,
+                'description' => $movement->description,
+                'created_at' => $movement->created_at->toISOString(),
+                'user' => [
+                    'id' => $movement->user->id,
+                    'name' => $movement->user->name,
+                    'email' => $movement->user->email,
+                ],
+                'barang' => [
+                    'id' => $movement->barang->id,
+                    'nama' => $movement->barang->nama,
+                    'kategori' => $movement->barang->kategori,
+                    'kode_barang' => $movement->barang->kode_barang,
+                ],
+            ];
+        });
+
         // Data untuk dropdown
         $barangs = Barang::select('id', 'nama', 'kode_barang')
             ->where('is_active', true)
             ->orderBy('nama')
             ->get();
 
-        return Inertia::render('barang/stock-movements', [
+        return Inertia::render('stock-movements/index', [
             'movements' => $movements,
             'barangs' => $barangs,
             'filters' => $request->only(['search', 'type', 'barang_id', 'date_from', 'date_to']),

@@ -13,10 +13,10 @@ export const formatCurrency = (amount: number): string => {
 // Get unit based on category
 export const getProductUnit = (kategori: string): string => {
     const kategoriLower = kategori.toLowerCase();
-    if (kategoriLower.includes('plastik') || kategoriLower.includes('kemasan') || kategoriLower.includes('karung')) {
+    if (kategoriLower.includes('plastik') || kategoriLower.includes('kemasan')) {
         return 'pcs';
     }
-    return 'kg'; // Default untuk beras
+    return 'karung'; // Default untuk beras (1 karung = 25kg)
 };
 
 // Date formatter
