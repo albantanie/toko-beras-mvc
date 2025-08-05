@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { formatCurrency, formatDateTime, formatStockValue } from '@/utils/formatters';
 import { BreadcrumbItem, PageProps } from '@/types';
 import { Plus, Filter, Eye, Calendar, Download, Search, Package, RefreshCw, BarChart3 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -313,8 +313,11 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
                                                     <div>
                                                         <span className="font-medium">Pergerakan Stok:</span> {report.total_stock_movements}
                                                     </div>
-                                                    <div>
-                                                        <span className="font-medium">Nilai Stok:</span> {formatCurrency(report.total_stock_value)}
+                                                    <div title={formatStockValue(report.total_stock_value || 0).explanation}>
+                                                        <span className="font-medium">Nilai Stok:</span>
+                                                        <span className={formatStockValue(report.total_stock_value || 0).isNegative ? 'text-red-600' : 'text-green-600'}>
+                                                            {formatStockValue(report.total_stock_value || 0).formatted}
+                                                        </span>
                                                     </div>
                                                     <div>
                                                         <span className="font-medium">Status:</span> {statusLabels[report.status]}

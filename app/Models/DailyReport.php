@@ -241,9 +241,9 @@ class DailyReport extends Model
 
         // Calculate totals
         $totalMovements = $stockMovements->count();
-        $totalStockValue = $stockMovements->sum(function ($movement) {
-            return abs($movement->quantity) * ($movement->unit_price ?? $movement->barang->harga_jual);
-        });
+        // Gunakan stock_value_change untuk perhitungan yang benar
+        // Nilai negatif menunjukkan stock keluar, positif menunjukkan stock masuk
+        $totalStockValue = $stockMovements->sum('stock_value_change');
 
         // Prepare detailed data
         $data = [

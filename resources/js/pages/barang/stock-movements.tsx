@@ -419,14 +419,38 @@ export default function StockMovements({
                                     </div>
                                     <div className="flex space-x-2">
                                         {movements.current_page > 1 && (
-                                            <Link href={`${window.location.pathname}?page=${movements.current_page - 1}`}>
-                                                <Button variant="outline" size="sm">Previous</Button>
-                                            </Link>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    router.get(window.location.pathname, {
+                                                        ...Object.fromEntries(new URLSearchParams(window.location.search)),
+                                                        page: movements.current_page - 1
+                                                    }, {
+                                                        preserveState: true,
+                                                        preserveScroll: true,
+                                                    });
+                                                }}
+                                            >
+                                                Previous
+                                            </Button>
                                         )}
                                         {movements.current_page < movements.last_page && (
-                                            <Link href={`${window.location.pathname}?page=${movements.current_page + 1}`}>
-                                                <Button variant="outline" size="sm">Next</Button>
-                                            </Link>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    router.get(window.location.pathname, {
+                                                        ...Object.fromEntries(new URLSearchParams(window.location.search)),
+                                                        page: movements.current_page + 1
+                                                    }, {
+                                                        preserveState: true,
+                                                        preserveScroll: true,
+                                                    });
+                                                }}
+                                            >
+                                                Next
+                                            </Button>
                                         )}
                                     </div>
                                 </div>

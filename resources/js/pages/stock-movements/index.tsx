@@ -481,7 +481,15 @@ export default function StockMovementsIndex({
                                                 variant={link.active ? "default" : "outline"}
                                                 size="sm"
                                                 disabled={!link.url}
-                                                onClick={() => link.url && router.get(link.url)}
+                                                onClick={() => {
+                                                    if (link.url) {
+                                                        // Use Inertia's visit method to preserve state
+                                                        router.visit(link.url, {
+                                                            preserveState: true,
+                                                            preserveScroll: true,
+                                                        });
+                                                    }
+                                                }}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
                                         ))}

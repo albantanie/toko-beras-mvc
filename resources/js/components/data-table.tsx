@@ -271,11 +271,11 @@ export default function DataTable<T = any>({
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {data.data.length > 0 ? (
+                            {data?.data && data.data.length > 0 ? (
                                 data.data.map((row: any, index) => (
-                                    <tr key={index} className="hover:bg-gray-50">
+                                    <tr key={row.id || `row-${index}`} className="hover:bg-gray-50">
                                         {columns.map((column) => (
-                                            <td key={column.key} className={`px-6 py-4 ${column.className || ''}`}>
+                                            <td key={`${row.id || index}-${column.key}`} className={`px-6 py-4 ${column.className || ''}`}>
                                                 {column.render
                                                     ? column.render(row[column.key], row)
                                                     : row[column.key]
@@ -366,11 +366,12 @@ export default function DataTable<T = any>({
                                         const isDisabled = !link.url;
                                         const isFirst = index === 0;
                                         const isLast = index === data.links.length - 1;
+                                        const linkKey = `pagination-${link.label}-${index}`;
 
                                         if (isDisabled) {
                                             return (
                                                 <span
-                                                    key={index}
+                                                    key={linkKey}
                                                     className={`relative inline-flex items-center px-3 py-2 border bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed text-sm font-medium ${
                                                         isFirst ? 'rounded-l-md' : ''
                                                     } ${
@@ -383,8 +384,16 @@ export default function DataTable<T = any>({
 
                                         return (
                                             <button
-                                                key={index}
-                                                onClick={() => router.get(link.url ?? '')}
+                                                key={linkKey}
+                                                onClick={() => {
+                                                    if (link.url) {
+                                                        // Use Inertia's visit method to preserve state
+                                                        router.visit(link.url, {
+                                                            preserveState: true,
+                                                            preserveScroll: true,
+                                                        });
+                                                    }
+                                                }}
                                                 className={`relative inline-flex items-center px-3 py-2 border text-sm font-medium transition-colors duration-200 ${
                                                     link.active
                                                         ? 'z-10 bg-blue-600 border-blue-600 text-white'

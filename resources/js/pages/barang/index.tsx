@@ -217,7 +217,21 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
     ] : [];
 
     // Card warning untuk admin jika ada produk tanpa harga
-    const showPriceWarning = isAdminOrOwner && barangs.data.some((b: any) => !b.harga_beli || !b.harga_jual);
+    const showPriceWarning = isAdminOrOwner && barangs?.data?.some((b: any) => !b.harga_beli || !b.harga_jual);
+
+    // Guard clause - jika data belum ada, tampilkan loading atau return early
+    if (!barangs) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Barang" />
+                <div className="py-12">
+                    <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                        <div className="text-center">Loading...</div>
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
 
     return (
         <>

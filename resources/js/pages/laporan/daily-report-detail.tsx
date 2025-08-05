@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, Calendar, User, TrendingUp, Package, BarChart3, Clock, CreditCard, DollarSign, ShoppingCart, Truck, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { formatStockValue } from '@/utils/formatters';
 
 interface DailyReport {
     id: number;
@@ -248,8 +249,8 @@ const StockDetailSection = ({ report, formatCurrency }: { report: DailyReport; f
                                     <DollarSign className="w-5 h-5 text-green-600" />
                                     <span className="font-medium text-green-800">Nilai Stok</span>
                                 </div>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {formatCurrency(data.summary.total_value || 0)}
+                                <p className="text-2xl font-bold text-green-600" title={formatStockValue(data.summary.total_stock_value || 0).explanation}>
+                                    {formatStockValue(data.summary.total_stock_value || 0).formatted}
                                 </p>
                             </div>
                         </div>
@@ -496,8 +497,9 @@ export default function DailyReportDetail({ report }: Props) {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-sm text-gray-600">Nilai Stok</p>
-                                        <p className="text-2xl font-bold text-green-600">
-                                            {formatCurrency(report.total_stock_value || 0)}
+                                        <p className={`text-2xl font-bold ${formatStockValue(report.total_stock_value || 0).isNegative ? 'text-red-600' : 'text-green-600'}`}
+                                           title={formatStockValue(report.total_stock_value || 0).explanation}>
+                                            {formatStockValue(report.total_stock_value || 0).formatted}
                                         </p>
                                     </div>
                                     <TrendingUp className="w-8 h-8 text-green-600" />

@@ -10,6 +10,23 @@ export const formatCurrency = (amount: number): string => {
     }).format(amount);
 };
 
+// Currency formatter with explanation for stock values
+export const formatStockValue = (amount: number): { formatted: string; explanation: string; isNegative: boolean } => {
+    const formatted = formatCurrency(amount);
+    const isNegative = amount < 0;
+
+    let explanation = '';
+    if (isNegative) {
+        explanation = 'Nilai negatif menunjukkan lebih banyak stok keluar daripada masuk pada periode ini';
+    } else if (amount > 0) {
+        explanation = 'Nilai positif menunjukkan lebih banyak stok masuk daripada keluar pada periode ini';
+    } else {
+        explanation = 'Tidak ada perubahan nilai stok pada periode ini';
+    }
+
+    return { formatted, explanation, isNegative };
+};
+
 // Get unit based on category
 export const getProductUnit = (kategori: string): string => {
     const kategoriLower = kategori.toLowerCase();
@@ -83,8 +100,9 @@ export const RoleBadge = ({ role }: { role: string }) => {
         pelanggan: 'bg-gray-100 text-gray-800',
     };
 
+    const roleKey = role.toLowerCase() as keyof typeof roleColors;
     return (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleColors[role.toLowerCase()] || roleColors.pelanggan}`}>
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleColors[roleKey] || roleColors.pelanggan}`}>
             {role}
         </span>
     );
