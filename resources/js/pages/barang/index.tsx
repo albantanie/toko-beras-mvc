@@ -156,6 +156,20 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
             },
         },
         {
+            key: 'created_at',
+            label: 'Tanggal Dibuat',
+            sortable: true,
+            render: (value) => (
+                <div className="text-sm text-gray-900">
+                    {new Date(value).toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    })}
+                </div>
+            ),
+        },
+        {
             key: 'actions',
             label: 'Aksi',
             render: (_, row) => (
@@ -261,8 +275,8 @@ export default function BarangIndex({ auth, barangs, filters = {}, uiPermissions
                             routeName="barang.index"
                             currentSearch={filters?.search || ''}
                             currentFilters={{ filter: filters?.filter || 'all' }}
-                            currentSort={filters?.sort || 'nama'}
-                            currentDirection={filters?.direction as 'asc' | 'desc' || 'asc'}
+                            currentSort={filters?.sort || 'created_at'}
+                            currentDirection={filters?.direction as 'asc' | 'desc' || 'desc'}
                             emptyState={{
                                 title: 'Belum ada produk',
                                 description: isAdmin

@@ -191,7 +191,7 @@ export default function PenjualanHistory({ auth, penjualans, filters = {} }: Pen
             options: [
                 { value: '', label: 'All Methods' },
                 { value: 'tunai', label: 'Cash' },
-                { value: 'transfer', label: 'Transfer' },
+                { value: 'transfer_bca', label: 'Transfer Bank BCA' },
             ],
         },
     ];

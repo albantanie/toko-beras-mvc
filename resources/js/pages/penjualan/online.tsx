@@ -232,12 +232,13 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
             label: 'Pickup',
             render: (value, row) => {
                 const getPickupLabel = (method: string) => {
+                    if (!method) return 'Ambil Sendiri'; // Default if null/undefined
                     switch (method) {
                         case 'self': return 'Ambil Sendiri';
                         case 'grab': return 'Grab Driver';
                         case 'gojek': return 'Gojek Driver';
                         case 'other': return 'Orang Lain';
-                        default: return method;
+                        default: return method || 'Ambil Sendiri';
                     }
                 };
 
@@ -246,7 +247,7 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                         <div className="text-sm font-medium text-gray-900">
                             {getPickupLabel(value)}
                         </div>
-                        {value !== 'self' && row.pickup_person_name && (
+                        {value && value !== 'self' && row.pickup_person_name && (
                             <div className="text-xs text-gray-500">
                                 {row.pickup_person_name}
                             </div>
@@ -307,11 +308,21 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                             </button>
                         )}
 
-                        {row.status === 'siap_pickup' && row.pickup_method !== 'self' && (
+                        {row.status === 'pending' && row.payment_proof && (
+                            <button
+                                onClick={() => handleReject(row)}
+                                className="inline-flex items-center px-2 py-1 border border-red-300 shadow-sm text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                                <X className="w-3 h-3 mr-1" />
+                                Tolak
+                            </button>
+                        )}
+
+                        {row.status === 'siap_pickup' && (
                             <Link
                                 href={route('penjualan.receipt', row.id)}
                                 target="_blank"
-                                className="inline-flex items-center px-2 py-1 border border-orange-300 shadow-sm text-xs font-medium rounded text-orange-700 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                                className="inline-flex items-center px-2 py-1 border border-yellow-300 shadow-sm text-xs font-medium rounded text-yellow-700 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                             >
                                 <Icons.view className="w-3 h-3 mr-1" />
                                 Receipt

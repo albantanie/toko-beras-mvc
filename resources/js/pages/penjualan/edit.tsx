@@ -520,7 +520,7 @@ export default function PenjualanEdit({ auth, penjualan, barangs, pelanggans }: 
                                                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                                         >
                                                             <option value="tunai">Cash</option>
-                                                            <option value="transfer">Bank Transfer</option>
+                                                            <option value="transfer_bca">Transfer Bank BCA</option>
                                                         </select>
                                                     </div>
 

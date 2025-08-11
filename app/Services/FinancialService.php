@@ -233,18 +233,18 @@ class FinancialService
         foreach ($sales as $sale) {
             $details['transactions'][] = [
                 'id' => $sale->id,
-                'kode_transaksi' => $sale->kode_transaksi,
+                'kode_transaksi' => $sale->nomor_transaksi,
                 'tanggal' => $sale->tanggal_transaksi,
                 'total' => $sale->total,
                 'formatted_total' => 'Rp ' . number_format($sale->total, 0, ',', '.'),
                 'metode_pembayaran' => $sale->metode_pembayaran,
-                'customer' => $sale->user ? $sale->user->name : 'Walk-in Customer',
+                'customer' => $sale->nama_pelanggan ?: ($sale->user ? $sale->user->name : 'Walk-in Customer'),
                 'items_count' => $sale->detailPenjualans->count(),
                 'items' => $sale->detailPenjualans->map(function($detail) {
                     return [
                         'nama_barang' => $detail->barang->nama,
-                        'quantity' => $detail->quantity,
-                        'harga' => $detail->harga,
+                        'quantity' => $detail->jumlah,
+                        'harga' => $detail->harga_satuan,
                         'subtotal' => $detail->subtotal,
                     ];
                 }),

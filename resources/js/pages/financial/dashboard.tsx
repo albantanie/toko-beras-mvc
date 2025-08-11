@@ -301,7 +301,7 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                     {/* Total Liquid Cash */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">💰 Total Uang Tunai</CardTitle>
+                            <CardTitle className="text-sm font-medium">💰 Uang Cash yang Diterima Kasir</CardTitle>
                             <div className="flex items-center space-x-2">
                                 <Button
                                     variant="ghost"
@@ -323,7 +323,7 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                 Bank BCA: {formatCurrency(dashboardData.cash_summary.bca_balance || dashboardData.cash_summary.total_bank)}
                             </p>
                             <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                                <strong>Penjelasan:</strong> Total uang yang tersedia di kas toko dan rekening Bank BCA untuk operasional sehari-hari.
+                                <strong>Penjelasan:</strong> Total uang cash yang diterima kasir dari penjualan tunai dan transfer Bank BCA.
                             </div>
                         </CardContent>
                     </Card>
@@ -426,7 +426,7 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                             <CardDescription>Grafik penjualan per hari dalam periode terpilih</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
+                            <ResponsiveContainer width="100%" height={200}>
                                 <LineChart data={dashboardData.revenue_summary.daily_breakdown}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="date" />
@@ -438,6 +438,32 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                     <Line type="monotone" dataKey="total" stroke="#3B82F6" strokeWidth={2} />
                                 </LineChart>
                             </ResponsiveContainer>
+
+                            {/* Recent Sales List */}
+                            <div className="mt-4 border-t pt-4">
+                                <h4 className="font-medium text-sm mb-3">Daftar Pembeli Terbaru</h4>
+                                <div className="max-h-40 overflow-y-auto space-y-2">
+                                    {dashboardData.revenue_details?.transactions.slice(0, 5).map((transaction, index) => (
+                                        <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-xs">
+                                            <div className="flex-1">
+                                                <div className="font-medium">{transaction.customer}</div>
+                                                <div className="text-gray-500">
+                                                    {transaction.kode_transaksi} • {new Date(transaction.tanggal).toLocaleDateString('id-ID')}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-bold text-blue-600">{transaction.formatted_total}</div>
+                                                <div className="text-gray-500 capitalize">{transaction.metode_pembayaran}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!dashboardData.revenue_details?.transactions || dashboardData.revenue_details.transactions.length === 0) && (
+                                        <div className="text-center text-gray-500 py-4">
+                                            Belum ada transaksi dalam periode ini
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 

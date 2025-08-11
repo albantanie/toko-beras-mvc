@@ -65,8 +65,8 @@ class BarangController extends Controller
         // Ambil parameter dari request
         $search = $request->get('search');              // Kata kunci pencarian
         $filter = $request->get('filter', 'all');       // Filter status (all, low_stock, out_of_stock, inactive)
-        $sort = $request->get('sort', 'nama');          // Field untuk sorting
-        $direction = $request->get('direction', 'asc'); // Arah sorting (asc/desc)
+        $sort = $request->get('sort', 'created_at');    // Field untuk sorting - default berdasarkan tanggal dibuat
+        $direction = $request->get('direction', 'desc'); // Arah sorting (desc untuk menampilkan yang terbaru dulu)
 
         /**
          * QUERY BUILDER DENGAN RELASI
@@ -129,8 +129,8 @@ class BarangController extends Controller
         if (in_array($sort, $allowedSorts)) {
             $query->orderBy($sort, $direction);
         } else {
-            // Default sorting berdasarkan nama
-            $query->orderBy('nama', 'asc');
+            // Default sorting berdasarkan tanggal dibuat (terbaru dulu)
+            $query->orderBy('created_at', 'desc');
         }
 
         /**

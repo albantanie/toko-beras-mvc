@@ -217,9 +217,8 @@ class DailyReportController extends Controller
     private function getTodayTransactionStats($userId): array
     {
         $today = now()->format('Y-m-d');
-        
+
         $transactions = Penjualan::whereDate('tanggal_transaksi', $today)
-            ->where('user_id', $userId)
             ->where('status', 'selesai')
             ->get();
 

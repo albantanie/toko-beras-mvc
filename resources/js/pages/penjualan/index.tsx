@@ -239,7 +239,7 @@ export default function PenjualanIndex({ auth, penjualans, filters = {}, uiPermi
             options: [
                 { value: '', label: 'Semua Metode Pembayaran' },
                 { value: 'tunai', label: 'Tunai' },
-                { value: 'transfer', label: 'Transfer' },
+                { value: 'transfer_bca', label: 'Transfer Bank BCA' },
             ],
         },
     ];

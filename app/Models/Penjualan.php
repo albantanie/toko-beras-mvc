@@ -309,4 +309,63 @@ class Penjualan extends Model
     {
         return $this->belongsTo(FinancialAccount::class, 'financial_account_id');
     }
+
+    /**
+     * Check if this transaction requires a pickup receipt
+     * Online transactions require receipt for pickup verification
+     */
+    public function requiresReceipt(): bool
+    {
+        return $this->jenis_transaksi === 'online';
+    }
+
+    /**
+     * Generate unique receipt code for pickup verification
+     */
+    public function generateReceiptCode(): string
+    {
+        if ($this->receipt_code) {
+            return $this->receipt_code;
+        }
+
+        do {
+            $code = 'RC' . strtoupper(uniqid());
+        } while (self::where('receipt_code', $code)->exists());
+
+        $this->update(['receipt_code' => $code]);
+
+        return $code;
+    }
+
+    /**
+     * Check if order is ready for pickup
+     */
+    public function isReadyForPickup(): bool
+    {
+        return $this->status === 'siap_pickup';
+    }
+
+    /**
+     * Mark order as picked up (completed)
+     */
+    public function markAsPickedUp(): void
+    {
+        $this->update([
+            'status' => 'selesai',
+        ]);
+    }
+
+    /**
+     * Get pickup method label in Indonesian
+     */
+    public function getPickupMethodLabel(): string
+    {
+        return match($this->pickup_method) {
+            'self' => 'Ambil Sendiri',
+            'grab' => 'Grab Driver',
+            'gojek' => 'Gojek Driver',
+            'other' => 'Orang Lain',
+            default => ucfirst($this->pickup_method),
+        };
+    }
 }
