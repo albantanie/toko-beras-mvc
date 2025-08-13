@@ -120,6 +120,7 @@ interface DashboardData {
     };
     profit_summary: {
         gross_revenue: number;
+        total_gross_profit: number;
         operating_expenses: number;
         net_profit: number;
         net_margin: number;
@@ -127,6 +128,7 @@ interface DashboardData {
     profit_details: {
         calculation: {
             gross_revenue: number;
+            total_gross_profit: number;
             total_expenses: number;
             net_profit: number;
             profit_margin: number;
@@ -143,6 +145,7 @@ interface DashboardData {
         };
         formatted: {
             gross_revenue: string;
+            total_gross_profit: string;
             total_expenses: string;
             net_profit: string;
             profit_margin: string;
@@ -872,16 +875,44 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                         </div>
 
                         <div className="space-y-6">
+                            {/* Explanation */}
+                            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="font-semibold mb-2 text-blue-800">📊 Penjelasan Perhitungan Keuntungan Bersih</h3>
+                                <p className="text-sm text-blue-700 mb-2">
+                                    <strong>Formula:</strong> Keuntungan Bersih = Total Penjualan - Total Keuntungan Kotor - Total Pengeluaran
+                                </p>
+                                <div className="text-xs text-blue-600 space-y-1">
+                                    <p>• <strong>Total Penjualan:</strong> Semua transaksi yang diperoleh dari harga jual</p>
+                                    <p>• <strong>Total Keuntungan Kotor:</strong> Keuntungan diambil dari (harga jual - harga beli)</p>
+                                    <p>• <strong>Total Pengeluaran:</strong> Gaji + Biaya Operasional + Pengeluaran Lainnya</p>
+                                </div>
+
+                                {/* Example */}
+                                <div className="mt-3 p-3 bg-white rounded border">
+                                    <p className="text-xs font-semibold text-blue-800 mb-1">Contoh Perhitungan:</p>
+                                    <div className="text-xs text-blue-700 space-y-1">
+                                        <p>Total Penjualan: Rp 20.000.000</p>
+                                        <p>Total Keuntungan Kotor: Rp 15.000.000</p>
+                                        <p>Total Pengeluaran: Rp 3.000.000</p>
+                                        <p className="font-semibold border-t pt-1">Keuntungan Bersih = 20.000.000 - 15.000.000 - 3.000.000 = <span className="text-green-600">Rp 2.000.000</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Calculation Breakdown */}
                             <div className="bg-gray-50 p-4 rounded-lg">
                                 <h3 className="font-semibold mb-3">Perhitungan Keuntungan</h3>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <span>Total Penjualan</span>
+                                        <span>Total Penjualan (Harga Jual)</span>
                                         <span className="font-bold text-blue-600">{dashboardData.profit_details?.formatted.gross_revenue}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span>Total Pengeluaran</span>
+                                        <span>Total Keuntungan Kotor (Harga Jual - Harga Beli)</span>
+                                        <span className="font-bold text-orange-600">- {dashboardData.profit_details?.formatted.total_gross_profit}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span>Total Pengeluaran (Operasional + Gaji)</span>
                                         <span className="font-bold text-red-600">- {dashboardData.profit_details?.formatted.total_expenses}</span>
                                     </div>
                                     <hr className="my-2" />

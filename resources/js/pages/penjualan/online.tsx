@@ -116,11 +116,26 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
     const getNextAction = (status: string) => {
         switch (status) {
             case 'pending':
-                return { action: 'confirm', label: 'Konfirmasi Pembayaran', color: 'bg-blue-600 hover:bg-blue-700' };
+                return {
+                    action: 'confirm',
+                    label: 'Konfirmasi Pembayaran',
+                    color: 'bg-blue-600 hover:bg-blue-700',
+                    tooltip: 'Konfirmasi bahwa pembayaran sudah diterima'
+                };
             case 'dibayar':
-                return { action: 'ready', label: 'Siap Pickup', color: 'bg-green-600 hover:bg-green-700' };
+                return {
+                    action: 'ready',
+                    label: 'Siap Pickup',
+                    color: 'bg-green-600 hover:bg-green-700',
+                    tooltip: 'Tandai pesanan siap diambil pelanggan'
+                };
             case 'siap_pickup':
-                return { action: 'complete', label: 'Selesai', color: 'bg-purple-600 hover:bg-purple-700' };
+                return {
+                    action: 'complete',
+                    label: 'Selesai',
+                    color: 'bg-purple-600 hover:bg-purple-700',
+                    tooltip: 'Selesaikan transaksi (pesanan sudah diambil)'
+                };
             default:
                 return null;
         }
@@ -275,12 +290,33 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
             key: 'status',
             label: 'Status',
             sortable: true,
-            render: (value, row) => (
-                <StatusBadge 
-                    status={getStatusLabel(value)} 
-                    variant={getStatusVariant(value)} 
-                />
-            ),
+            render: (value, row) => {
+                const getStatusTooltip = (status: string) => {
+                    switch (status) {
+                        case 'pending':
+                            return 'Pelanggan belum melakukan pembayaran atau upload bukti transfer';
+                        case 'dibayar':
+                            return 'Pembayaran sudah dikonfirmasi, pesanan dapat diproses';
+                        case 'siap_pickup':
+                            return 'Pesanan siap diambil pelanggan';
+                        case 'selesai':
+                            return 'Transaksi selesai, pesanan sudah diambil';
+                        case 'dibatalkan':
+                            return 'Pesanan dibatalkan';
+                        default:
+                            return '';
+                    }
+                };
+
+                return (
+                    <div title={getStatusTooltip(value)}>
+                        <StatusBadge
+                            status={getStatusLabel(value)}
+                            variant={getStatusVariant(value)}
+                        />
+                    </div>
+                );
+            },
         },
         {
             key: 'actions',
@@ -302,6 +338,7 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                             <button
                                 onClick={() => handleAction(row, nextAction.action as any)}
                                 className={`inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white ${nextAction.color} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                                title={nextAction.tooltip}
                             >
                                 <Icons.check className="w-3 h-3 mr-1" />
                                 {nextAction.label}
@@ -312,6 +349,7 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                             <button
                                 onClick={() => handleReject(row)}
                                 className="inline-flex items-center px-2 py-1 border border-red-300 shadow-sm text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                title="Tolak bukti pembayaran dan minta pelanggan upload ulang"
                             >
                                 <X className="w-3 h-3 mr-1" />
                                 Tolak
@@ -323,6 +361,7 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                                 href={route('penjualan.receipt', row.id)}
                                 target="_blank"
                                 className="inline-flex items-center px-2 py-1 border border-yellow-300 shadow-sm text-xs font-medium rounded text-yellow-700 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                                title="Buat receipt untuk pickup oleh driver atau orang lain"
                             >
                                 <Icons.view className="w-3 h-3 mr-1" />
                                 Receipt
@@ -367,13 +406,13 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
     const getActionDescription = () => {
         switch (actionType) {
             case 'confirm':
-                return 'Konfirmasi bahwa pembayaran telah diterima dan valid.';
+                return 'Konfirmasi bahwa pembayaran telah diterima dan valid. Setelah dikonfirmasi, pesanan akan berstatus "Sudah Dibayar" dan dapat diproses ke tahap berikutnya.';
             case 'ready':
-                return 'Tandai pesanan siap untuk diambil pelanggan.';
+                return 'Tandai pesanan siap untuk diambil pelanggan. Pesanan akan berstatus "Siap Pickup" dan pelanggan akan mendapat notifikasi untuk mengambil pesanan.';
             case 'complete':
-                return 'Tandai transaksi selesai karena pesanan telah diambil pelanggan.';
+                return 'Tandai transaksi selesai karena pesanan telah diambil pelanggan. Status akan berubah menjadi "Selesai" dan transaksi akan tercatat dalam laporan penjualan.';
             case 'reject':
-                return 'Tolak bukti pembayaran dan minta pelanggan upload ulang.';
+                return 'Tolak bukti pembayaran dan minta pelanggan upload ulang. Pesanan akan kembali ke status "Menunggu Pembayaran" dan pelanggan akan diminta upload bukti yang valid.';
             default:
                 return '';
         }
@@ -390,6 +429,33 @@ export default function PenjualanOnline({ auth, penjualans, filters = {}, succes
                         <p className="mt-1 text-sm text-gray-600">
                             Kelola transaksi online dari pelanggan yang sudah login.
                         </p>
+                    </div>
+
+                    {/* Information Panel */}
+                    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-blue-800">
+                                    Alur Konfirmasi Pesanan Online
+                                </h3>
+                                <div className="mt-2 text-sm text-blue-700">
+                                    <ul className="list-disc list-inside space-y-1">
+                                        <li><strong>Menunggu Pembayaran:</strong> Pelanggan belum melakukan pembayaran atau upload bukti transfer</li>
+                                        <li><strong>Sudah Dibayar:</strong> Pelanggan sudah upload bukti pembayaran, perlu konfirmasi kasir</li>
+                                        <li><strong>Siap Pickup:</strong> Pembayaran dikonfirmasi, pesanan siap diambil pelanggan</li>
+                                        <li><strong>Selesai:</strong> Pesanan sudah diambil pelanggan dan transaksi selesai</li>
+                                    </ul>
+                                    <p className="mt-2 font-medium">
+                                        💡 Klik tombol aksi di kolom "Aksi" untuk memproses pesanan ke tahap berikutnya.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <DataTable

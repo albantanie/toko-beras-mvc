@@ -90,9 +90,11 @@ interface Props {
         start_date: string;
         end_date: string;
     };
+    error?: string;
+    success?: string;
 }
 
-export default function CashFlowPage({ cashFlowStatement, analytics, projections, filters }: Props) {
+export default function CashFlowPage({ cashFlowStatement, analytics, projections, filters, error, success }: Props) {
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
 
@@ -131,36 +133,89 @@ export default function CashFlowPage({ cashFlowStatement, analytics, projections
                     </div>
                 </div>
 
+                {/* Error/Success Messages */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <span className="text-red-400">⚠️</span>
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">Terjadi Kesalahan</h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <p>{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {success && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <span className="text-green-400">✅</span>
+                            </div>
+                            <div className="ml-3">
+                                <div className="text-sm text-green-700">
+                                    <p>{success}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Filter */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Filter Periode</CardTitle>
+                        <CardDescription>
+                            Pilih rentang tanggal untuk melihat laporan arus kas. Data akan menampilkan semua transaksi masuk dan keluar dalam periode yang dipilih.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleFilterSubmit} className="flex items-end space-x-4">
-                            <div className="flex-1">
-                                <Label htmlFor="start_date">Tanggal Mulai</Label>
-                                <Input
-                                    id="start_date"
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                />
+                        <div className="space-y-4">
+                            {/* Information */}
+                            <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+                                <div className="text-sm text-blue-700">
+                                    <p className="font-semibold mb-1">💡 Informasi Filter:</p>
+                                    <ul className="text-xs space-y-1">
+                                        <li>• Filter akan menampilkan semua arus kas masuk dan keluar dalam periode yang dipilih</li>
+                                        <li>• Saldo awal dihitung berdasarkan saldo akun kas dan bank</li>
+                                        <li>• Saldo akhir = Saldo awal + Total arus kas bersih</li>
+                                        <li>• Jika tidak ada data, pastikan sudah ada transaksi dalam periode tersebut</li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <Label htmlFor="end_date">Tanggal Akhir</Label>
-                                <Input
-                                    id="end_date"
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                />
-                            </div>
-                            <Button type="submit">
-                                <Calendar className="h-4 w-4 mr-2" />
-                                Filter
-                            </Button>
-                        </form>
+
+                            <form onSubmit={handleFilterSubmit} className="flex items-end space-x-4">
+                                <div className="flex-1">
+                                    <Label htmlFor="start_date">Tanggal Mulai</Label>
+                                    <Input
+                                        id="start_date"
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <Label htmlFor="end_date">Tanggal Akhir</Label>
+                                    <Input
+                                        id="end_date"
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        min={startDate}
+                                        required
+                                    />
+                                </div>
+                                <Button type="submit">
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    Filter
+                                </Button>
+                            </form>
+                        </div>
                     </CardContent>
                 </Card>
 

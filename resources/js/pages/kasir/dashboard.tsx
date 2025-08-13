@@ -217,11 +217,27 @@ export default function KasirDashboard({
 
                             {/* Online Orders Overview */}
                             <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
-                                <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center justify-between mb-4">
                                     <h4 className="text-xl font-semibold text-gray-800">📦 Ringkasan Pesanan Online</h4>
                                     <div className="flex items-center space-x-2">
                                         <span className="text-sm text-gray-500">Terakhir diperbarui:</span>
                                         <span className="text-sm font-medium text-gray-700">{new Date().toLocaleTimeString('id-ID')}</span>
+                                    </div>
+                                </div>
+
+                                {/* Information Section */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                                    <div className="text-sm text-blue-700">
+                                        <p className="font-semibold mb-1">💡 Alur Konfirmasi Pesanan Online:</p>
+                                        <ul className="text-xs space-y-1">
+                                            <li>• <strong>Menunggu Pembayaran:</strong> Pelanggan belum upload bukti transfer atau bayar tunai</li>
+                                            <li>• <strong>Perlu Konfirmasi:</strong> Pelanggan sudah upload bukti, kasir perlu konfirmasi pembayaran</li>
+                                            <li>• <strong>Siap Pickup:</strong> Pembayaran dikonfirmasi, pesanan siap diambil pelanggan</li>
+                                            <li>• <strong>Selesai:</strong> Pesanan sudah diambil dan transaksi selesai</li>
+                                        </ul>
+                                        <p className="mt-2 font-medium text-blue-800">
+                                            🔄 Klik "Kelola Pesanan" untuk memproses pesanan ke tahap berikutnya
+                                        </p>
                                     </div>
                                 </div>
 
@@ -292,6 +308,9 @@ export default function KasirDashboard({
                                                 <p className="text-sm font-medium text-gray-600">Total Pesanan</p>
                                                 <p className="text-2xl font-bold text-purple-700">
                                                     {todaysSummary?.online_orders?.total || 0}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Pending + Dibayar + Siap Pickup
                                                 </p>
                                             </div>
                                             <div className="p-2 rounded-full bg-purple-100">

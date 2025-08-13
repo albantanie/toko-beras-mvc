@@ -137,7 +137,7 @@ class DailyReport extends Model
     /**
      * Generate daily transaction report for kasir
      */
-    public static function generateTransactionReport(Carbon $date, $userId): self
+    public static function generateTransactionReport(Carbon $date, $userId, bool $forceRegenerate = false): self
     {
         // Get all transactions for the date
         $transactions = Penjualan::whereDate('tanggal_transaksi', $date)
@@ -201,12 +201,14 @@ class DailyReport extends Model
     /**
      * Generate daily stock report for karyawan
      */
-    public static function generateStockReport(Carbon $date, $userId): self
+    public static function generateStockReport(Carbon $date, $userId, bool $forceRegenerate = false): self
     {
         // Get all stock movements for the date
+        // For daily stock reports, include ALL stock movements that happened on the date
+        // The report is associated with the user but shows all inventory activity
         $stockMovements = StockMovement::whereDate('created_at', $date)
-            ->where('user_id', $userId)
             ->with('barang')
+            ->orderBy('created_at', 'asc')
             ->get();
 
         // Get all transactions for the date to check consistency
@@ -398,11 +400,25 @@ class DailyReport extends Model
 
     /**
      * Compile monthly stock data from daily stock reports
+     * Enhanced to include verification against actual stock movements
      */
     private static function compileMonthlyStockData($dailyReports, Carbon $startDate, Carbon $endDate): array
     {
+        // Get data from daily reports
         $totalMovements = $dailyReports->sum('total_stock_movements');
         $totalStockValue = $dailyReports->sum('total_stock_value');
+
+        // Verify against actual stock movements for the period
+        $actualMovements = StockMovement::whereBetween('created_at', [$startDate, $endDate])
+            ->with('barang')
+            ->get();
+
+        $actualTotalMovements = $actualMovements->count();
+        $actualTotalValue = $actualMovements->sum('total_value');
+
+        // If there's a significant discrepancy, use actual data and flag it
+        $hasDiscrepancy = abs($totalMovements - $actualTotalMovements) > 0 ||
+                         abs($totalStockValue - $actualTotalValue) > 1000;
 
         $dailySummary = $dailyReports->map(function ($report) {
             return [
@@ -412,6 +428,39 @@ class DailyReport extends Model
                 'movement_types' => $report->data['summary']['movement_types'] ?? [],
             ];
         });
+
+        // Add missing dates with actual movement data if discrepancy exists
+        if ($hasDiscrepancy) {
+            $currentDate = $startDate->copy();
+            $existingDates = $dailyReports->pluck('report_date')->toArray();
+
+            while ($currentDate <= $endDate) {
+                $dateStr = $currentDate->format('Y-m-d');
+
+                if (!in_array($dateStr, $existingDates)) {
+                    // Get actual movements for this missing date
+                    $dayMovements = $actualMovements->filter(function($movement) use ($currentDate) {
+                        return Carbon::parse($movement->created_at)->format('Y-m-d') === $currentDate->format('Y-m-d');
+                    });
+
+                    if ($dayMovements->count() > 0) {
+                        $dailySummary->push([
+                            'date' => $dateStr,
+                            'total_movements' => $dayMovements->count(),
+                            'total_stock_value' => $dayMovements->sum('total_value'),
+                            'movement_types' => $dayMovements->groupBy('type')->map->count()->toArray(),
+                            'source' => 'actual_movements' // Flag as reconstructed
+                        ]);
+                    }
+                }
+
+                $currentDate->addDay();
+            }
+
+            // Recalculate totals with actual data
+            $totalMovements = $actualTotalMovements;
+            $totalStockValue = $actualTotalValue;
+        }
 
         return [
             'type' => 'monthly_stock',
@@ -424,7 +473,9 @@ class DailyReport extends Model
                 'total_movements' => $totalMovements,
                 'total_stock_value' => $totalStockValue,
                 'average_daily_movements' => $dailyReports->count() > 0 ? $totalMovements / $dailyReports->count() : 0,
-                'days_with_movements' => $dailyReports->where('total_stock_movements', '>', 0)->count(),
+                'days_with_movements' => $dailySummary->where('total_movements', '>', 0)->count(),
+                'data_source' => $hasDiscrepancy ? 'mixed_with_actual' : 'daily_reports',
+                'discrepancy_detected' => $hasDiscrepancy,
             ],
             'daily_breakdown' => $dailySummary,
             'reports_included' => $dailyReports->count(),

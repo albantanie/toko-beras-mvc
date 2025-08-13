@@ -187,25 +187,28 @@ class DailyReportController extends Controller
         $request->validate([
             'date' => 'required|date|before_or_equal:today',
             'type' => 'required|in:transaction,stock',
+            'force_regenerate' => 'boolean',
         ]);
 
         $user = auth()->user();
         $date = Carbon::parse($request->date);
+        $forceRegenerate = $request->boolean('force_regenerate', false);
 
         try {
             if ($request->type === 'transaction') {
                 if (!$user->hasRole('kasir')) {
                     abort(403, 'Only kasir can generate transaction reports.');
                 }
-                $report = DailyReport::generateTransactionReport($date, $user->id);
+                $report = DailyReport::generateTransactionReport($date, $user->id, $forceRegenerate);
             } else {
                 if (!$user->hasRole('karyawan')) {
                     abort(403, 'Only karyawan can generate stock reports.');
                 }
-                $report = DailyReport::generateStockReport($date, $user->id);
+                $report = DailyReport::generateStockReport($date, $user->id, $forceRegenerate);
             }
 
-            return redirect()->back()->with('success', 'Laporan berhasil di-generate untuk tanggal ' . $date->format('d/m/Y'));
+            $action = $forceRegenerate ? 'di-regenerate' : 'di-generate';
+            return redirect()->back()->with('success', "Laporan berhasil {$action} untuk tanggal " . $date->format('d/m/Y'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal generate laporan: ' . $e->getMessage());
         }
@@ -458,47 +461,14 @@ class DailyReportController extends Controller
                 ->first();
 
             if (!$existingReport) {
-                // Get stock movements for this date (from transactions)
-                $stockMovements = DetailPenjualan::whereHas('penjualan', function ($query) use ($currentDate) {
-                    $query->where('status', 'selesai')
-                        ->whereDate('tanggal_transaksi', $currentDate);
-                })->with('barang')->get();
-
-                if ($stockMovements->count() > 0) {
-                    // Calculate summary data
-                    $totalMovements = $stockMovements->sum('jumlah');
-                    $totalStockValue = $stockMovements->sum(function ($detail) {
-                        return $detail->jumlah * ($detail->barang->harga_pokok ?? 0);
-                    });
-
-                    // Group by product
-                    $productMovements = $stockMovements->groupBy('barang_id')->map(function ($group) {
-                        $barang = $group->first()->barang;
-                        $totalQty = $group->sum('jumlah');
-                        return [
-                            'barang_id' => $barang->id,
-                            'nama_barang' => $barang->nama,
-                            'quantity_moved' => $totalQty,
-                            'value' => $totalQty * ($barang->harga_pokok ?? 0),
-                        ];
-                    });
-
-                    // Create daily report
-                    DailyReport::create([
-                        'user_id' => $user->id,
-                        'type' => 'stock',
-                        'report_date' => $currentDate->format('Y-m-d'),
-                        'total_stock_movements' => $totalMovements,
-                        'total_stock_value' => $totalStockValue,
-                        'status' => DailyReport::STATUS_COMPLETED,
-                        'data' => [
-                            'summary' => [
-                                'total_movements' => $totalMovements,
-                                'total_stock_value' => $totalStockValue,
-                                'products_affected' => $productMovements->count(),
-                            ],
-                            'movements' => $productMovements->values(),
-                        ],
+                try {
+                    // Use the standardized generateStockReport method
+                    DailyReport::generateStockReport($currentDate, $user->id);
+                } catch (\Exception $e) {
+                    // Log error but continue with next date
+                    \Log::error('Failed to auto-generate stock report for date: ' . $currentDate->format('Y-m-d'), [
+                        'error' => $e->getMessage(),
+                        'user_id' => $user->id
                     ]);
                 }
             }

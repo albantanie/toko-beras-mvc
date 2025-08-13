@@ -39,6 +39,11 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
     const [sortBy, setSortBy] = useState(filters.sort || 'nama');
     const [sortDirection, setSortDirection] = useState(filters.direction || 'asc');
 
+
+
+
+
+
     const { data, setData, post, processing } = useForm({
         barang_id: '',
         quantity: 1,
@@ -50,20 +55,19 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
     const [addingToCart, setAddingToCart] = useState(false);
     const [currentCartCount, setCurrentCartCount] = useState(cartCount);
 
-    // Debounced search - auto search when user stops typing
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            handleSearch();
-        }, 500); // Wait 500ms after user stops typing
+    // Remove automatic search - make it manual only to prevent page reset issues
 
-        return () => clearTimeout(timer);
-    }, [searchTerm, sortBy, sortDirection]);
-
-    const handleSearch = () => {
+    const handleSearch = (resetPage: boolean = true) => {
         const params: any = {};
         if (searchTerm) params.search = searchTerm;
         if (sortBy) params.sort = sortBy;
         if (sortDirection) params.direction = sortDirection;
+
+        // Only reset to page 1 if explicitly requested (new search)
+        // Otherwise preserve current page for sorting changes
+        if (!resetPage && barangs.current_page > 1) {
+            params.page = barangs.current_page;
+        }
 
         router.get('/', params, {
             preserveState: true,
@@ -241,9 +245,22 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                     value={`${sortBy}-${sortDirection}`}
                                     onChange={(e) => {
                                         const [sort, direction] = e.target.value.split('-');
-                                        setSortBy(sort);
-                                        setSortDirection(direction);
-                                        handleSearch();
+
+                                        // Build params directly to preserve current page
+                                        const params: any = {};
+                                        if (searchTerm) params.search = searchTerm;
+                                        params.sort = sort;
+                                        params.direction = direction;
+
+                                        // Preserve current page
+                                        if (barangs.current_page > 1) {
+                                            params.page = barangs.current_page;
+                                        }
+
+                                        router.get('/', params, {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        });
                                     }}
                                     className="border border-gray-300 rounded-lg px-4 py-3 focus:ring-green-500 focus:border-green-500 text-sm"
                                 >
@@ -256,7 +273,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
 
                             {/* Search Button */}
                             <button
-                                onClick={handleSearch}
+                                onClick={() => handleSearch(true)}
                                 className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center text-sm font-medium"
                             >
                                 <Icons.search className="w-4 h-4 mr-2" />
@@ -388,7 +405,7 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                 </div>
 
                                 {/* Slider Pagination */}
-                                {barangs.links && barangs.links.length > 3 && (
+                                {barangs.last_page > 1 && (
                                     <div className="mt-8">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="text-sm text-gray-600">
@@ -416,17 +433,31 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
 
                                             {/* Page Indicator */}
                                             <div className="flex items-center space-x-2">
-                                                {Array.from({ length: barangs.last_page }, (_, i) => i + 1).map((page) => (
-                                                    <Link
-                                                        key={page}
-                                                        href={`/?page=${page}`}
-                                                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                                                            page === barangs.current_page
-                                                                ? 'bg-green-600 scale-125'
-                                                                : 'bg-gray-300 hover:bg-green-300'
-                                                        }`}
-                                                    />
-                                                ))}
+                                                {Array.from({ length: Math.min(barangs.last_page, 10) }, (_, i) => i + 1).map((page) => {
+                                                    // Build URL with current filters preserved
+                                                    const params = new URLSearchParams();
+                                                    params.set('page', page.toString());
+
+                                                    // Preserve current filters
+                                                    if (filters.search) params.set('search', filters.search);
+                                                    if (filters.kategori && filters.kategori !== 'all') params.set('kategori', filters.kategori);
+                                                    if (filters.sort && filters.sort !== 'nama') params.set('sort', filters.sort);
+                                                    if (filters.direction && filters.direction !== 'asc') params.set('direction', filters.direction);
+
+                                                    const href = `/?${params.toString()}`;
+
+                                                    return (
+                                                        <Link
+                                                            key={page}
+                                                            href={href}
+                                                            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                                                                page === barangs.current_page
+                                                                    ? 'bg-green-600 scale-125'
+                                                                    : 'bg-gray-300 hover:bg-green-300'
+                                                            }`}
+                                                        />
+                                                    );
+                                                })}
                                             </div>
 
                                             {/* Next Button */}
@@ -437,6 +468,11 @@ export default function Home({ auth, barangs, categories, stats, filters, cartCo
                                                         ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
                                                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                                 }`}
+                                                onClick={(e) => {
+                                                    if (!barangs.next_page_url) {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
                                             >
                                                 Selanjutnya
                                                 <Icons.chevronRight className="w-4 h-4 ml-1" />

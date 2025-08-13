@@ -10,6 +10,7 @@ interface UserDashboardProps extends PageProps {
         pending_orders: number;
         completed_orders: number;
         total_spent: number;
+        status_breakdown?: Record<string, number>;
     };
     cartCount: number;
 }
@@ -74,6 +75,36 @@ export default function UserDashboard({ auth, recentOrders, orderStats, cartCoun
                             </p>
                         </div>
 
+                        {/* Information Section */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                    <span className="text-blue-500 text-lg">ℹ️</span>
+                                </div>
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-blue-800">Penjelasan Statistik Pesanan</h3>
+                                    <div className="mt-2 text-sm text-blue-700">
+                                        <ul className="space-y-1">
+                                            <li>• <strong>Total Pesanan:</strong> Semua pesanan yang pernah dibuat (tidak termasuk yang dibatalkan)</li>
+                                            <li>• <strong>Menunggu Pembayaran:</strong> Pesanan dengan status "pending" yang belum dibayar</li>
+                                            <li>• <strong>Pesanan Selesai:</strong> Pesanan yang sudah dibayar, siap pickup, atau selesai</li>
+                                            <li>• <strong>Total Belanja:</strong> Jumlah uang yang sudah dikeluarkan untuk pesanan yang berhasil</li>
+                                        </ul>
+                                        {orderStats.status_breakdown && Object.keys(orderStats.status_breakdown).length > 0 && (
+                                            <div className="mt-3 p-2 bg-blue-100 rounded text-xs">
+                                                <strong>Detail Status:</strong> {Object.entries(orderStats.status_breakdown).map(([status, count]) => `${status}: ${count}`).join(', ')}
+                                                <div className="mt-1 text-blue-600">
+                                                    <strong>Verifikasi:</strong> Total = {orderStats.total_orders}, Pending = {orderStats.pending_orders}, Selesai = {orderStats.completed_orders}
+                                                    {orderStats.total_orders === (orderStats.pending_orders + orderStats.completed_orders) ?
+                                                        ' ✅ Sinkron' : ' ⚠️ Tidak sinkron - ada status lain'}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Stats Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                             <div className="bg-white rounded-lg shadow-md p-6">
@@ -108,6 +139,7 @@ export default function UserDashboard({ auth, recentOrders, orderStats, cartCoun
                                     <div className="ml-4">
                                         <p className="text-sm font-medium text-gray-600">Pesanan Selesai</p>
                                         <p className="text-2xl font-bold text-gray-900">{orderStats.completed_orders}</p>
+                                        <p className="text-xs text-gray-500 mt-1">Dibayar + Siap Pickup + Selesai</p>
                                     </div>
                                 </div>
                             </div>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { formatCurrency, formatDateTime, getTodayString } from '@/utils/formatters';
 import { BreadcrumbItem, PageProps } from '@/types';
 import { Plus, Filter, Eye, Calendar, Download, Search, FileText, RefreshCw, BarChart3 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -77,7 +77,7 @@ export default function KasirDailyReports({ reports, filters = {}, todayStats }:
     const [dateTo, setDateTo] = useState(filters.date_to || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [showGenerateModal, setShowGenerateModal] = useState(false);
-    const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
+    const [generateDate, setGenerateDate] = useState(getTodayString());
     const [showMonthlyModal, setShowMonthlyModal] = useState(false);
     const [monthlyReportMonth, setMonthlyReportMonth] = useState(new Date().toISOString().slice(0, 7));
 
@@ -216,7 +216,7 @@ export default function KasirDailyReports({ reports, filters = {}, todayStats }:
                     </div>
                     <div className="flex gap-2">
                         <Button
-                            onClick={() => handleGenerateReport(new Date().toISOString().split('T')[0])}
+                            onClick={() => handleGenerateReport(getTodayString())}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
                             <Plus className="w-4 h-4 mr-2" />
@@ -420,7 +420,7 @@ export default function KasirDailyReports({ reports, filters = {}, todayStats }:
                                 id="generate_date"
                                 type="date"
                                 value={generateDate}
-                                max={new Date().toISOString().split('T')[0]}
+                                max={getTodayString()}
                                 onChange={(e) => setGenerateDate(e.target.value)}
                             />
                         </div>

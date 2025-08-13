@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Download, Filter, Search, Info, Plus, Minus, Calendar } from 'lucide-react';
-import { Icons, formatCurrency, formatDateTime } from '@/utils/formatters';
+import { Icons, formatCurrency, formatDateTime, formatDateToString, getTodayString } from '@/utils/formatters';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -251,7 +251,7 @@ export default function StockMovementsIndex({
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                            const today = new Date().toISOString().split('T')[0];
+                                            const today = getTodayString();
                                             router.get('/stock-movements', { date_from: today, date_to: today });
                                         }}
                                     >
@@ -263,7 +263,7 @@ export default function StockMovementsIndex({
                                         onClick={() => {
                                             const yesterday = new Date();
                                             yesterday.setDate(yesterday.getDate() - 1);
-                                            const dateStr = yesterday.toISOString().split('T')[0];
+                                            const dateStr = formatDateToString(yesterday);
                                             router.get('/stock-movements', { date_from: dateStr, date_to: dateStr });
                                         }}
                                     >
@@ -277,8 +277,8 @@ export default function StockMovementsIndex({
                                             const weekAgo = new Date();
                                             weekAgo.setDate(today.getDate() - 7);
                                             router.get('/stock-movements', {
-                                                date_from: weekAgo.toISOString().split('T')[0],
-                                                date_to: today.toISOString().split('T')[0]
+                                                date_from: formatDateToString(weekAgo),
+                                                date_to: formatDateToString(today)
                                             });
                                         }}
                                     >
@@ -292,8 +292,8 @@ export default function StockMovementsIndex({
                                             const monthAgo = new Date();
                                             monthAgo.setMonth(today.getMonth() - 1);
                                             router.get('/stock-movements', {
-                                                date_from: monthAgo.toISOString().split('T')[0],
-                                                date_to: today.toISOString().split('T')[0]
+                                                date_from: formatDateToString(monthAgo),
+                                                date_to: formatDateToString(today)
                                             });
                                         }}
                                     >

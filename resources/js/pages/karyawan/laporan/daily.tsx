@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { formatCurrency, formatDateTime, formatStockValue } from '@/utils/formatters';
+import { formatCurrency, formatDateTime, formatStockValue, getTodayString } from '@/utils/formatters';
 import { BreadcrumbItem, PageProps } from '@/types';
 import { Plus, Filter, Eye, Calendar, Download, Search, Package, RefreshCw, BarChart3 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -68,7 +68,8 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
     const [dateTo, setDateTo] = useState(filters.date_to || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [showGenerateModal, setShowGenerateModal] = useState(false);
-    const [generateDate, setGenerateDate] = useState(new Date().toISOString().split('T')[0]);
+    const [generateDate, setGenerateDate] = useState(getTodayString());
+    const [forceRegenerate, setForceRegenerate] = useState(false);
     const [showMonthlyModal, setShowMonthlyModal] = useState(false);
     const [monthlyReportMonth, setMonthlyReportMonth] = useState(new Date().toISOString().slice(0, 7));
 
@@ -81,33 +82,38 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
         router.get(`/karyawan/laporan/daily?${params.toString()}`);
     };
 
-    const handleGenerateReport = async (date: string) => {
+    const handleGenerateReport = async (date: string, forceRegenerate: boolean = false) => {
         const formattedDate = new Date(date).toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'long',
             year: 'numeric'
         });
 
+        const action = forceRegenerate ? 'regenerate' : 'generate';
+        const actionText = forceRegenerate ? 'regenerate' : 'generate';
+        const actionTextId = forceRegenerate ? 'di-regenerate' : 'di-generate';
+
         const result = await Swal.fire({
-            title: 'Generate Laporan Stok',
-            text: `Apakah Anda yakin ingin generate laporan stok untuk tanggal ${formattedDate}?`,
+            title: forceRegenerate ? 'Regenerate Laporan Stok' : 'Generate Laporan Stok',
+            text: `Apakah Anda yakin ingin ${actionText} laporan stok untuk tanggal ${formattedDate}?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#3b82f6',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Ya, Generate!',
+            confirmButtonText: forceRegenerate ? 'Ya, Regenerate!' : 'Ya, Generate!',
             cancelButtonText: 'Batal'
         });
 
         if (result.isConfirmed) {
             router.post('/karyawan/laporan/generate', {
                 date: date,
-                type: 'stock'
+                type: 'stock',
+                force_regenerate: forceRegenerate
             }, {
                 onSuccess: () => {
                     Swal.fire({
                         title: 'Berhasil!',
-                        text: `Laporan stok untuk tanggal ${formattedDate} berhasil di-generate.`,
+                        text: `Laporan stok untuk tanggal ${formattedDate} berhasil ${actionTextId}.`,
                         icon: 'success',
                         confirmButtonColor: '#3b82f6'
                     });
@@ -207,11 +213,18 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
                     </div>
                     <div className="flex gap-2">
                         <Button
-                            onClick={() => handleGenerateReport(new Date().toISOString().split('T')[0])}
+                            onClick={() => handleGenerateReport(getTodayString())}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Generate Hari Ini
+                        </Button>
+                        <Button
+                            onClick={() => handleGenerateReport(getTodayString(), true)}
+                            className="bg-orange-600 hover:bg-orange-700"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Regenerate Hari Ini
                         </Button>
                         <Button
                             onClick={() => setShowGenerateModal(true)}
@@ -336,15 +349,14 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
                                                     <Eye className="w-4 h-4 mr-1" />
                                                     Detail
                                                 </Button>
-                                                {report.status === 'draft' || report.status === 'rejected' ? (
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => handleGenerateReport(report.report_date)}
-                                                    >
-                                                        <RefreshCw className="w-4 h-4 mr-1" />
-                                                        Generate Ulang
-                                                    </Button>
-                                                ) : null}
+                                                <Button
+                                                    size="sm"
+                                                    variant={report.status === 'completed' ? 'outline' : 'default'}
+                                                    onClick={() => handleGenerateReport(report.report_date, report.status === 'completed')}
+                                                >
+                                                    <RefreshCw className="w-4 h-4 mr-1" />
+                                                    {report.status === 'completed' ? 'Regenerate' : 'Generate Ulang'}
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -371,9 +383,21 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
                                 id="generate_date"
                                 type="date"
                                 value={generateDate}
-                                max={new Date().toISOString().split('T')[0]}
+                                max={getTodayString()}
                                 onChange={(e) => setGenerateDate(e.target.value)}
                             />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="force_regenerate"
+                                checked={forceRegenerate}
+                                onChange={(e) => setForceRegenerate(e.target.checked)}
+                                className="rounded border-gray-300"
+                            />
+                            <Label htmlFor="force_regenerate" className="text-sm">
+                                Force regenerate (akan menimpa laporan yang sudah ada)
+                            </Label>
                         </div>
                     </div>
                     <DialogFooter>
@@ -382,13 +406,14 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
                         </Button>
                         <Button
                             onClick={() => {
-                                handleGenerateReport(generateDate);
+                                handleGenerateReport(generateDate, forceRegenerate);
                                 setShowGenerateModal(false);
+                                setForceRegenerate(false); // Reset checkbox
                             }}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className={forceRegenerate ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"}
                         >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Generate Laporan
+                            {forceRegenerate ? <RefreshCw className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                            {forceRegenerate ? 'Regenerate Laporan' : 'Generate Laporan'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

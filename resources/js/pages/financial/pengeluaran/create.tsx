@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/utils';
+import { getTodayString } from '@/utils/formatters';
 
 interface Props {
   kategoriOptions: Record<string, string>;
@@ -21,7 +22,7 @@ interface Props {
 
 export default function PengeluaranCreate({ kategoriOptions, statusOptions, metodePembayaranOptions, financialAccounts }: Props) {
   const { data, setData, post, processing, errors } = useForm({
-    tanggal: new Date().toISOString().split('T')[0],
+    tanggal: getTodayString(),
     keterangan: '',
     jumlah: '',
     kategori: '',

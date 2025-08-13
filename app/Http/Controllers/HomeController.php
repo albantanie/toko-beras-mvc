@@ -136,11 +136,37 @@ class HomeController extends Controller
         ];
 
         /**
+         * KONVERSI PAGINATION UNTUK FRONTEND
+         * Pastikan semua properti pagination tersedia untuk frontend
+         */
+        $paginationData = [
+            'data' => $barangs->items(),
+            'links' => $barangs->linkCollection()->toArray(),
+            'meta' => [
+                'current_page' => $barangs->currentPage(),
+                'from' => $barangs->firstItem(),
+                'last_page' => $barangs->lastPage(),
+                'per_page' => $barangs->perPage(),
+                'to' => $barangs->lastItem(),
+                'total' => $barangs->total(),
+            ],
+            'current_page' => $barangs->currentPage(),
+            'last_page' => $barangs->lastPage(),
+            'total' => $barangs->total(),
+            'from' => $barangs->firstItem() ?? 0,
+            'to' => $barangs->lastItem() ?? 0,
+            'prev_page_url' => $barangs->previousPageUrl(),
+            'next_page_url' => $barangs->nextPageUrl(),
+        ];
+
+
+
+        /**
          * RENDER HALAMAN CATALOG
          * Kirim data ke frontend menggunakan Inertia.js
          */
         return Inertia::render('home/index', [
-            'barangs' => $barangs,          // Data produk dengan pagination
+            'barangs' => $paginationData,   // Data produk dengan pagination yang terstruktur
             'categories' => $categories,     // Daftar kategori untuk filter
             'stats' => $stats,              // Statistik untuk hero section
             'filters' => [                  // Current filter state untuk maintain UI
@@ -222,10 +248,10 @@ class HomeController extends Controller
          * STATISTIK ORDER PELANGGAN
          * Data statistik untuk dashboard cards dengan logika yang konsisten
          *
-         * Logika:
+         * Logika yang diperbaiki:
          * - Total Pesanan = semua pesanan kecuali yang dibatalkan
          * - Menunggu Pembayaran = status 'pending'
-         * - Pesanan Selesai = status 'selesai'
+         * - Pesanan Selesai = status 'selesai', 'dibayar', 'siap_pickup' (semua yang sudah diproses)
          * - Total Belanja = total dari pesanan yang sudah dibayar/selesai
          */
 
@@ -241,9 +267,9 @@ class HomeController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        // Pesanan yang sudah selesai (status selesai)
+        // Pesanan yang sudah selesai/diproses (termasuk dibayar, siap pickup, dan selesai)
         $completedOrders = Penjualan::where('pelanggan_id', $userId)
-            ->where('status', 'selesai')
+            ->whereIn('status', ['selesai', 'dibayar', 'siap_pickup'])
             ->count();
 
         // Total belanja dari pesanan yang sudah dibayar/selesai (bukan pending/dibatalkan)
@@ -251,11 +277,19 @@ class HomeController extends Controller
             ->whereIn('status', ['selesai', 'dibayar', 'siap_pickup'])
             ->sum('total');
 
+        // Breakdown detail untuk debugging dan transparansi
+        $statusBreakdown = Penjualan::where('pelanggan_id', $userId)
+            ->select('status', \DB::raw('COUNT(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
         $orderStats = [
             'total_orders' => $totalOrders,
             'pending_orders' => $pendingOrders,
             'completed_orders' => $completedOrders,
             'total_spent' => (float) $totalSpent,
+            'status_breakdown' => $statusBreakdown, // Untuk debugging
         ];
 
         /**

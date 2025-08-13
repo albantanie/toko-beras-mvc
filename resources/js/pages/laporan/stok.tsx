@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
 import { PageProps, BreadcrumbItem, Barang } from '@/types';
 import DataTable, { Column, Filter, PaginatedData } from '@/components/data-table';
-import { StatusBadge, ProductImage, Icons } from '@/utils/formatters';
+import { StatusBadge, ProductImage, Icons, formatDateToString } from '@/utils/formatters';
 import { useState } from 'react';
 
 interface LaporanStokProps extends PageProps {
@@ -65,7 +65,9 @@ export default function LaporanStok({ auth, barangs, summary, stock_movement_day
             const isToday = date.toDateString() === today.toDateString();
 
             // Get real activity data from backend
-            const dateStr = date.toISOString().split('T')[0];
+            // Use local date string to avoid timezone issues
+            const dateStr = formatDateToString(date);
+
             const dayActivity = monthlyMovements[dateStr];
             const hasActivity = !!dayActivity;
             const activityType = dayActivity?.type || null;
@@ -130,7 +132,9 @@ export default function LaporanStok({ auth, barangs, summary, stock_movement_day
 
     // Handle date click to show stock movements for that day
     const handleDateClick = (date: Date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        // Use local date string to avoid timezone issues
+        const dateStr = formatDateToString(date);
+
         // Navigate to stock movements page with date filter
         router.get('/stock-movements', {
             date_from: dateStr,

@@ -331,22 +331,51 @@ class FinancialService
 
     /**
      * Get profit summary
-     * Simplified for rice store - no COGS calculation
+     * Updated calculation: Net Profit = Total Sales Revenue - Total Gross Profit - Total Expenses
      */
     public function getProfitSummary($dateRange)
     {
         $revenue = $this->getRevenueSummary($dateRange);
         $expenses = $this->getExpenseSummary($dateRange);
 
-        // Simple calculation: Revenue - Operating Expenses = Net Profit
-        $netProfit = $revenue['total_sales'] - $expenses['total_expenses'];
+        // Calculate total gross profit from sales
+        $totalGrossProfit = $this->calculateTotalGrossProfit($dateRange);
+
+        // New calculation: Revenue - Gross Profit - Operating Expenses = Net Profit
+        $netProfit = $revenue['total_sales'] - $totalGrossProfit - $expenses['total_expenses'];
 
         return [
             'gross_revenue' => $revenue['total_sales'],
+            'total_gross_profit' => $totalGrossProfit,
             'operating_expenses' => $expenses['total_expenses'],
             'net_profit' => $netProfit,
             'net_margin' => $revenue['total_sales'] > 0 ? ($netProfit / $revenue['total_sales']) * 100 : 0,
         ];
+    }
+
+    /**
+     * Calculate total gross profit from sales
+     * Gross Profit = Sum of (harga_jual - harga_beli) for all items sold
+     */
+    private function calculateTotalGrossProfit($dateRange)
+    {
+        $sales = Penjualan::where('status', 'selesai')
+            ->whereBetween('tanggal_transaksi', [$dateRange['start'], $dateRange['end']])
+            ->with(['detailPenjualans.barang'])
+            ->get();
+
+        $totalGrossProfit = 0;
+
+        foreach ($sales as $sale) {
+            foreach ($sale->detailPenjualans as $detail) {
+                if ($detail->barang) {
+                    $profitPerUnit = $detail->harga_satuan - $detail->barang->harga_beli;
+                    $totalGrossProfit += $profitPerUnit * $detail->jumlah;
+                }
+            }
+        }
+
+        return $totalGrossProfit;
     }
 
     /**
@@ -433,12 +462,17 @@ class FinancialService
         $expenses = $this->getExpenseSummary($dateRange);
         $expenseDetails = $this->getExpenseDetails($dateRange);
 
+        // Calculate total gross profit
+        $totalGrossProfit = $this->calculateTotalGrossProfit($dateRange);
+        $netProfit = $revenue['total_sales'] - $totalGrossProfit - $expenses['total_expenses'];
+
         $details = [
             'calculation' => [
                 'gross_revenue' => $revenue['total_sales'],
+                'total_gross_profit' => $totalGrossProfit,
                 'total_expenses' => $expenses['total_expenses'],
-                'net_profit' => $revenue['total_sales'] - $expenses['total_expenses'],
-                'profit_margin' => $revenue['total_sales'] > 0 ? (($revenue['total_sales'] - $expenses['total_expenses']) / $revenue['total_sales']) * 100 : 0,
+                'net_profit' => $netProfit,
+                'profit_margin' => $revenue['total_sales'] > 0 ? ($netProfit / $revenue['total_sales']) * 100 : 0,
             ],
             'revenue_breakdown' => [
                 'cash_sales' => $revenue['cash_sales'] ?? 0,
@@ -452,9 +486,10 @@ class FinancialService
             ],
             'formatted' => [
                 'gross_revenue' => 'Rp ' . number_format($revenue['total_sales'], 0, ',', '.'),
+                'total_gross_profit' => 'Rp ' . number_format($totalGrossProfit, 0, ',', '.'),
                 'total_expenses' => 'Rp ' . number_format($expenses['total_expenses'], 0, ',', '.'),
-                'net_profit' => 'Rp ' . number_format($revenue['total_sales'] - $expenses['total_expenses'], 0, ',', '.'),
-                'profit_margin' => number_format($revenue['total_sales'] > 0 ? (($revenue['total_sales'] - $expenses['total_expenses']) / $revenue['total_sales']) * 100 : 0, 1) . '%',
+                'net_profit' => 'Rp ' . number_format($netProfit, 0, ',', '.'),
+                'profit_margin' => number_format($revenue['total_sales'] > 0 ? ($netProfit / $revenue['total_sales']) * 100 : 0, 1) . '%',
             ],
         ];
 

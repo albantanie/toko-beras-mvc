@@ -87,22 +87,62 @@ class FinancialController extends Controller
      */
     public function cashFlow(Request $request)
     {
-        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
-        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
+        try {
+            // Validate and sanitize date inputs
+            $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->toDateString());
+            $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->toDateString());
 
-        $cashFlowStatement = $this->cashFlowService->getCashFlowStatement($startDate, $endDate);
-        $analytics = $this->cashFlowService->getCashFlowAnalytics();
-        $projections = $this->cashFlowService->getCashFlowProjections();
+            // Validate date format and range
+            if (!$this->isValidDate($startDate) || !$this->isValidDate($endDate)) {
+                $startDate = Carbon::now()->startOfMonth()->toDateString();
+                $endDate = Carbon::now()->endOfMonth()->toDateString();
+            }
 
-        return Inertia::render('financial/cash-flow', [
-            'cashFlowStatement' => $cashFlowStatement,
-            'analytics' => $analytics,
-            'projections' => $projections,
-            'filters' => [
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-            ],
-        ]);
+            // Ensure start date is not after end date
+            if (Carbon::parse($startDate)->gt(Carbon::parse($endDate))) {
+                $temp = $startDate;
+                $startDate = $endDate;
+                $endDate = $temp;
+            }
+
+            $cashFlowStatement = $this->cashFlowService->getCashFlowStatement($startDate, $endDate);
+            $analytics = $this->cashFlowService->getCashFlowAnalytics();
+            $projections = $this->cashFlowService->getCashFlowProjections();
+
+            return Inertia::render('financial/cash-flow', [
+                'cashFlowStatement' => $cashFlowStatement,
+                'analytics' => $analytics,
+                'projections' => $projections,
+                'filters' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                ],
+                'success' => $request->session()->get('success'),
+                'error' => null,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Cash Flow Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            // Return with error message and default data
+            $defaultStartDate = Carbon::now()->startOfMonth()->toDateString();
+            $defaultEndDate = Carbon::now()->endOfMonth()->toDateString();
+
+            return Inertia::render('financial/cash-flow', [
+                'cashFlowStatement' => $this->getDefaultCashFlowStatement($defaultStartDate, $defaultEndDate),
+                'analytics' => $this->getDefaultAnalytics(),
+                'projections' => [],
+                'filters' => [
+                    'start_date' => $defaultStartDate,
+                    'end_date' => $defaultEndDate,
+                ],
+                'error' => 'Terjadi kesalahan saat memuat data arus kas. Silakan coba lagi atau hubungi administrator.',
+                'success' => null,
+            ]);
+        }
     }
 
     /**
@@ -583,6 +623,10 @@ class FinancialController extends Controller
             ->get();
         $totalExpenses = $expenses->sum('amount');
 
+        // Calculate total gross profit
+        $totalGrossProfit = $this->calculateTotalGrossProfitForController($startDate, $endDate);
+        $netProfit = $totalSales - $totalGrossProfit - $totalExpenses;
+
         $reportData = [
             'period' => [
                 'start' => $startDate,
@@ -601,9 +645,10 @@ class FinancialController extends Controller
             ],
             'profit' => [
                 'gross_revenue' => $totalSales,
+                'total_gross_profit' => $totalGrossProfit,
                 'operating_expenses' => $totalExpenses,
-                'net_profit' => $totalSales - $totalExpenses,
-                'net_margin' => $totalSales > 0 ? (($totalSales - $totalExpenses) / $totalSales) * 100 : 0,
+                'net_profit' => $netProfit,
+                'net_margin' => $totalSales > 0 ? ($netProfit / $totalSales) * 100 : 0,
             ],
         ];
 
@@ -616,6 +661,30 @@ class FinancialController extends Controller
                 'end_date' => $endDate,
             ],
         ]);
+    }
+
+    /**
+     * Calculate total gross profit for controller
+     */
+    private function calculateTotalGrossProfitForController($startDate, $endDate)
+    {
+        $sales = \App\Models\Penjualan::where('status', 'selesai')
+            ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
+            ->with(['detailPenjualans.barang'])
+            ->get();
+
+        $totalGrossProfit = 0;
+
+        foreach ($sales as $sale) {
+            foreach ($sale->detailPenjualans as $detail) {
+                if ($detail->barang) {
+                    $profitPerUnit = $detail->harga_satuan - $detail->barang->harga_beli;
+                    $totalGrossProfit += $profitPerUnit * $detail->jumlah;
+                }
+            }
+        }
+
+        return $totalGrossProfit;
     }
 
     /**
@@ -779,6 +848,10 @@ class FinancialController extends Controller
                 ];
             })->values();
 
+            // Calculate total gross profit for PDF
+            $totalGrossProfit = $this->calculateTotalGrossProfitForController($startDate, $endDate);
+            $netProfit = $totalSales - $totalGrossProfit - $totalExpenses;
+
             $reportData = [
                 'period' => [
                     'start' => $startDate,
@@ -798,9 +871,10 @@ class FinancialController extends Controller
                 ],
                 'profit' => [
                     'gross_revenue' => $totalSales,
+                    'total_gross_profit' => $totalGrossProfit,
                     'operating_expenses' => $totalExpenses,
-                    'net_profit' => $totalSales - $totalExpenses,
-                    'net_margin' => $totalSales > 0 ? (($totalSales - $totalExpenses) / $totalSales) * 100 : 0,
+                    'net_profit' => $netProfit,
+                    'net_margin' => $totalSales > 0 ? ($netProfit / $totalSales) * 100 : 0,
                 ],
                 'daily_breakdown' => $dailyBreakdown,
             ];
@@ -824,5 +898,64 @@ class FinancialController extends Controller
 
             return response()->json(['error' => 'Failed to generate PDF: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Validate date format
+     */
+    private function isValidDate($date)
+    {
+        try {
+            Carbon::parse($date);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get default cash flow statement for error cases
+     */
+    private function getDefaultCashFlowStatement($startDate, $endDate)
+    {
+        return [
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+            'operating_activities' => [
+                'inflows' => [],
+                'outflows' => [],
+                'net_operating' => 0,
+            ],
+            'investing_activities' => [
+                'inflows' => [],
+                'outflows' => [],
+                'net_investing' => 0,
+            ],
+            'financing_activities' => [
+                'inflows' => [],
+                'outflows' => [],
+                'net_financing' => 0,
+            ],
+            'net_cash_flow' => 0,
+            'opening_balance' => 0,
+            'closing_balance' => 0,
+        ];
+    }
+
+    /**
+     * Get default analytics for error cases
+     */
+    private function getDefaultAnalytics()
+    {
+        return [
+            'total_inflows' => 0,
+            'total_outflows' => 0,
+            'net_flow' => 0,
+            'monthly_trends' => [],
+            'category_breakdown' => [],
+            'flow_type_breakdown' => [],
+        ];
     }
 }

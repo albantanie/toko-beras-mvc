@@ -304,7 +304,10 @@ class BarangController extends Controller
                 );
                 $this->imageService->createThumbnail($request->file('gambar'));
             }
-            Barang::create($data);
+
+            // Create the barang (observer will handle stock movement automatically)
+            $barang = Barang::create($data);
+
             return redirect()->route('barang.index')->with('success', 'Barang berhasil ditambahkan');
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Barang store validation error', [

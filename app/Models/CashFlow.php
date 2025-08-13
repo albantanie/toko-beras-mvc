@@ -62,7 +62,7 @@ class CashFlow extends Model
     // Methods
     public function getFormattedAmountAttribute()
     {
-        return currency_with_direction($this->amount, $this->direction);
+        return \App\Helpers\CurrencyHelper::formatWithDirection($this->amount, $this->direction);
     }
 
     public function getDirectionColorAttribute()
