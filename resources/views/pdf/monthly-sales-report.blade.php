@@ -228,10 +228,7 @@
             <h3>Item Terjual</h3>
             <div class="value">{{ number_format($data['summary']['total_items_sold']) }}</div>
         </div>
-        <div class="summary-card green">
-            <h3>Rata-rata Harian</h3>
-            <div class="value">Rp {{ number_format($data['summary']['average_daily_sales'], 0, ',', '.') }}</div>
-        </div>
+
     </div>
 
     <div class="table-container">

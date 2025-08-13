@@ -165,6 +165,38 @@ const StockDetailSection = ({ report, formatCurrency }: { report: DailyReport; f
 
     return (
         <div className="space-y-6">
+            {/* Explanation Panel */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-blue-600" />
+                        💡 Penjelasan Data Laporan Stok
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                            <h4 className="font-semibold text-blue-800 mb-2">📊 Cara Membaca Angka:</h4>
+                            <ul className="text-sm text-blue-700 space-y-1">
+                                <li>• <strong>Pergerakan Stok:</strong> Jumlah kali barang masuk/keluar</li>
+                                <li>• <strong>Nilai Pergerakan:</strong> Total rupiah dari semua pergerakan</li>
+                                <li>• <strong>Positif (Hijau):</strong> Lebih banyak barang masuk</li>
+                                <li>• <strong>Negatif (Merah):</strong> Lebih banyak barang keluar (normal untuk penjualan)</li>
+                            </ul>
+                        </div>
+                        <div className="bg-yellow-50 p-4 rounded-lg">
+                            <h4 className="font-semibold text-yellow-800 mb-2">⚖️ Balance dengan Kasir:</h4>
+                            <ul className="text-sm text-yellow-700 space-y-1">
+                                <li>• Data harus sama dengan laporan kasir</li>
+                                <li>• Setiap transaksi penjualan = pergerakan stok keluar</li>
+                                <li>• Jika tidak balance = ada transaksi yang belum tercatat</li>
+                                <li>• Regenerate laporan untuk memperbarui data</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Consistency Check Section */}
             {data?.consistency_check && (
                 <Card>
@@ -244,13 +276,19 @@ const StockDetailSection = ({ report, formatCurrency }: { report: DailyReport; f
                                     {data.summary.total_movements || 0}
                                 </p>
                             </div>
-                            <div className="bg-green-50 p-4 rounded-lg">
+                            <div className={`p-4 rounded-lg ${(data.summary.total_stock_value || 0) < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <DollarSign className="w-5 h-5 text-green-600" />
-                                    <span className="font-medium text-green-800">Nilai Stok</span>
+                                    <DollarSign className={`w-5 h-5 ${(data.summary.total_stock_value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`} />
+                                    <span className={`font-medium ${(data.summary.total_stock_value || 0) < 0 ? 'text-red-800' : 'text-green-800'}`}>
+                                        Nilai Pergerakan Stok
+                                    </span>
                                 </div>
-                                <p className="text-2xl font-bold text-green-600" title={formatStockValue(data.summary.total_stock_value || 0).explanation}>
+                                <p className={`text-2xl font-bold ${(data.summary.total_stock_value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}
+                                   title={formatStockValue(data.summary.total_stock_value || 0).explanation}>
                                     {formatStockValue(data.summary.total_stock_value || 0).formatted}
+                                </p>
+                                <p className={`text-xs mt-1 ${(data.summary.total_stock_value || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {(data.summary.total_stock_value || 0) < 0 ? 'Lebih banyak keluar' : 'Lebih banyak masuk'}
                                 </p>
                             </div>
                         </div>

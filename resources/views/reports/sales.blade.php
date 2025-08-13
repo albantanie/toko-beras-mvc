@@ -130,10 +130,7 @@
             <h3>Total Transaksi</h3>
             <div class="value">{{ number_format($total_transactions) }}</div>
         </div>
-        <div class="summary-item">
-            <h3>Rata-rata per Transaksi</h3>
-            <div class="value currency">Rp {{ number_format($average_transaction, 0, ',', '.') }}</div>
-        </div>
+
     </div>
 
     <!-- Payment Methods Section -->

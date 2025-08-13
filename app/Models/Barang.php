@@ -286,7 +286,7 @@ class Barang extends Model
 
         // Calculate new stock based on type
         $newStock = match($type) {
-            'in', 'return', 'adjustment', 'correction', 'initial' => $stockBefore + $quantity,
+            'in', 'return', 'adjustment', 'correction', 'initial' => $stockBefore + abs($quantity),
             'out', 'damage' => $stockBefore - abs($quantity),
             'transfer' => $stockBefore + $quantity, // transfer bisa positif/negatif
             default => $stockBefore,
@@ -297,11 +297,18 @@ class Barang extends Model
             throw new \Exception("Stock tidak mencukupi. Stock saat ini: {$stockBefore}, diminta: " . abs($quantity) . " untuk {$this->nama}");
         }
 
-        // Create stock movement record
+        // Create stock movement record dengan quantity yang benar
+        $movementQuantity = match($type) {
+            'in', 'return', 'adjustment', 'correction', 'initial' => abs($quantity),
+            'out', 'damage' => -abs($quantity),
+            'transfer' => $quantity, // transfer bisa positif/negatif
+            default => $quantity,
+        };
+
         $movement = $this->stockMovements()->create([
             'user_id' => $userId,
             'type' => $type,
-            'quantity' => $quantity,
+            'quantity' => $movementQuantity,
             'stock_before' => $stockBefore,
             'stock_after' => $newStock,
             'unit_price' => $unitPrice,

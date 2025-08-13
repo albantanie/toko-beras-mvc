@@ -142,47 +142,23 @@ class StockMovementController extends Controller
         ]);
 
         DB::transaction(function() use ($request, $barang) {
-            $stockBefore = $barang->stok;
-
-            // Hitung stok baru berdasarkan tipe
-            $quantity = $request->quantity;
-            if (in_array($request->type, ['out', 'damage'])) {
-                $quantity = -$quantity;
-            }
-
-            $stockAfter = $stockBefore + $quantity;
-
-            // Validasi stok tidak boleh negatif
-            if ($stockAfter < 0) {
-                throw new \Exception('Stok tidak boleh kurang dari 0');
-            }
-
-            // Update stok barang
-            $barang->update([
-                'stok' => $stockAfter,
-                'updated_by' => auth()->id(),
-            ]);
-
-            // Catat stock movement dengan perhitungan nilai yang tepat
-            $movement = StockMovement::create([
-                'barang_id' => $barang->id,
-                'user_id' => auth()->id(),
-                'type' => $request->type,
-                'quantity' => $quantity,
-                'stock_before' => $stockBefore,
-                'stock_after' => $stockAfter,
-                'unit_price' => $request->unit_price,
-                'unit_cost' => $barang->harga_beli,
-                'purchase_price' => $request->type === 'in' ? $request->unit_price : null,
-                'selling_price' => $request->type === 'out' ? $request->unit_price : null,
-                'description' => $request->description,
-                'reference_type' => null,
-                'reference_id' => null,
-            ]);
-
-            // Calculate stock values
-            $movement->calculateStockValues();
-            $movement->save();
+            // Gunakan method recordStockMovement dari model Barang
+            // untuk memastikan konsistensi dengan sistem lain
+            $movement = $barang->recordStockMovement(
+                type: $request->type,
+                quantity: $request->quantity,
+                description: $request->description,
+                userId: auth()->id(),
+                referenceType: null,
+                referenceId: null,
+                unitPrice: $request->unit_price,
+                metadata: [
+                    'purchase_price' => $request->type === 'in' ? $request->unit_price : null,
+                    'selling_price' => $request->type === 'out' ? $request->unit_price : null,
+                    'manual_entry' => true,
+                    'entry_source' => 'warehouse_staff',
+                ]
+            );
         });
 
         return redirect()->route('stock-movements.history', $barang->id)

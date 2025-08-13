@@ -276,8 +276,27 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                         </div>
                     </div>
 
+                    {/* Explanation Panel */}
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="text-sm text-blue-800">
+                            <div className="font-semibold mb-2">📊 Penjelasan Data Laporan Penjualan:</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                <ul className="space-y-1">
+                                    <li>• <strong>Total Transaksi:</strong> Jumlah transaksi yang selesai (status: selesai)</li>
+                                    <li>• <strong>Total Penjualan:</strong> Jumlah rupiah dari semua transaksi selesai</li>
+                                    <li>• <strong>Item Terjual:</strong> Total karung beras yang terjual</li>
+                                </ul>
+                                <ul className="space-y-1">
+                                    <li>• <strong>Total Profit:</strong> Keuntungan = Harga Jual - Harga Beli</li>
+                                    <li>• <strong>Data Balance:</strong> Harus sama dengan laporan kasir</li>
+                                    <li>• <strong>Filter Periode:</strong> Berdasarkan tanggal transaksi</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-6">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
                         <div className="bg-white overflow-hidden shadow rounded-lg">
                             <div className="p-5">
                                 <div className="flex items-center">
@@ -327,15 +346,15 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                             <div className="p-5">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <Icons.chart className="h-6 w-6 text-gray-400" />
+                                        <Icons.package className="h-6 w-6 text-gray-400" />
                                     </div>
                                     <div className="ml-5 w-0 flex-1">
                                         <dl>
                                             <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Rata-rata Transaksi
+                                                Item Terjual
                                             </dt>
                                             <dd className="text-lg font-medium text-gray-900">
-                                                {formatCurrency(summary.average_transaction)}
+                                                {summary.total_items_sold} karung
                                             </dd>
                                         </dl>
                                     </div>

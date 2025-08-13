@@ -322,18 +322,43 @@ export default function KaryawanDailyReports({ reports, filters = {} }: Props) {
                                                         {statusLabels[report.status]}
                                                     </Badge>
                                                 </div>
-                                                <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
-                                                    <div>
-                                                        <span className="font-medium">Pergerakan Stok:</span> {report.total_stock_movements}
+                                                <div className="space-y-3">
+                                                    {/* Summary Cards */}
+                                                    <div className="grid grid-cols-3 gap-4 text-sm">
+                                                        <div className="bg-blue-50 p-3 rounded border">
+                                                            <div className="font-medium text-blue-800">Pergerakan Stok</div>
+                                                            <div className="text-xl font-bold text-blue-600">{report.total_stock_movements}</div>
+                                                            <div className="text-xs text-blue-600">kali pergerakan</div>
+                                                        </div>
+                                                        <div className={`p-3 rounded border ${formatStockValue(report.total_stock_value || 0).isNegative ? 'bg-red-50' : 'bg-green-50'}`}>
+                                                            <div className={`font-medium ${formatStockValue(report.total_stock_value || 0).isNegative ? 'text-red-800' : 'text-green-800'}`}>
+                                                                Nilai Pergerakan
+                                                            </div>
+                                                            <div className={`text-xl font-bold ${formatStockValue(report.total_stock_value || 0).isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                                                                {formatStockValue(report.total_stock_value || 0).formatted}
+                                                            </div>
+                                                            <div className={`text-xs ${formatStockValue(report.total_stock_value || 0).isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                                                                total nilai pergerakan
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-purple-50 p-3 rounded border">
+                                                            <div className="font-medium text-purple-800">Status</div>
+                                                            <div className="text-sm font-bold text-purple-600">{statusLabels[report.status]}</div>
+                                                            <div className="text-xs text-purple-600">status laporan</div>
+                                                        </div>
                                                     </div>
-                                                    <div title={formatStockValue(report.total_stock_value || 0).explanation}>
-                                                        <span className="font-medium">Nilai Stok:</span>
-                                                        <span className={formatStockValue(report.total_stock_value || 0).isNegative ? 'text-red-600' : 'text-green-600'}>
-                                                            {formatStockValue(report.total_stock_value || 0).formatted}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-medium">Status:</span> {statusLabels[report.status]}
+
+                                                    {/* Explanation Panel */}
+                                                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                                                        <div className="text-xs text-yellow-800">
+                                                            <div className="font-semibold mb-1">💡 Penjelasan Angka:</div>
+                                                            <ul className="space-y-1">
+                                                                <li>• <strong>Pergerakan Stok:</strong> Jumlah kali barang masuk/keluar/disesuaikan</li>
+                                                                <li>• <strong>Nilai Pergerakan:</strong> Total nilai rupiah dari semua pergerakan stok</li>
+                                                                <li>• <strong>Positif:</strong> Lebih banyak barang masuk, <strong>Negatif:</strong> Lebih banyak barang keluar</li>
+                                                                <li>• <strong>Balance dengan Kasir:</strong> Harus sama dengan transaksi penjualan kasir</li>
+                                                            </ul>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="mt-2 text-xs text-gray-500">

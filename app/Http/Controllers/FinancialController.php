@@ -623,9 +623,10 @@ class FinancialController extends Controller
             ->get();
         $totalExpenses = $expenses->sum('amount');
 
-        // Calculate total gross profit
+        // Calculate total gross profit (harga jual - harga beli)
         $totalGrossProfit = $this->calculateTotalGrossProfitForController($startDate, $endDate);
-        $netProfit = $totalSales - $totalGrossProfit - $totalExpenses;
+        // Correct calculation: Gross Profit - Operating Expenses = Net Profit
+        $netProfit = $totalGrossProfit - $totalExpenses;
 
         $reportData = [
             'period' => [
@@ -848,9 +849,10 @@ class FinancialController extends Controller
                 ];
             })->values();
 
-            // Calculate total gross profit for PDF
+            // Calculate total gross profit for PDF (harga jual - harga beli)
             $totalGrossProfit = $this->calculateTotalGrossProfitForController($startDate, $endDate);
-            $netProfit = $totalSales - $totalGrossProfit - $totalExpenses;
+            // Correct calculation: Gross Profit - Operating Expenses = Net Profit
+            $netProfit = $totalGrossProfit - $totalExpenses;
 
             $reportData = [
                 'period' => [

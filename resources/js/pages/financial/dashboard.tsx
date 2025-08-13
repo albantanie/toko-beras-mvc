@@ -413,8 +413,14 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                 {formatNumber(dashboardData.rice_inventory_details.total_products)} jenis beras |
                                 Stok rendah: {formatNumber(dashboardData.rice_inventory_details.low_stock_count)}
                             </p>
-                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                                <strong>Penjelasan:</strong> Total kuantitas semua jenis beras yang tersedia di gudang.
+                            <div className="mt-2 p-2 bg-purple-50 rounded text-xs text-purple-700">
+                                <div className="font-semibold mb-1">📊 Cara Hitung Stok:</div>
+                                <ul className="space-y-1">
+                                    <li>• Data diambil real-time dari database</li>
+                                    <li>• 1 karung = 25 kg beras</li>
+                                    <li>• Total = Jumlah karung × 25 kg</li>
+                                    <li>• Update otomatis setiap transaksi</li>
+                                </ul>
                             </div>
                         </CardContent>
                     </Card>
@@ -477,25 +483,56 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                             <CardDescription>Distribusi pengeluaran berdasarkan kategori</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={dashboardData.expense_summary.expense_categories}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ category, percentage }) => `${category} (${percentage.toFixed(1)}%)`}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="total"
-                                    >
-                                        {dashboardData.expense_summary.expense_categories.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                                </PieChart>
-                            </ResponsiveContainer>
+                            {dashboardData.expense_summary.expense_categories.length > 0 ? (
+                                <>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={dashboardData.expense_summary.expense_categories}
+                                                cx="50%"
+                                                cy="50%"
+                                                labelLine={false}
+                                                label={({ category, percentage }) => `${category} (${percentage.toFixed(1)}%)`}
+                                                outerRadius={80}
+                                                fill="#8884d8"
+                                                dataKey="total"
+                                            >
+                                                {dashboardData.expense_summary.expense_categories.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+
+                                    {/* Expense Explanation */}
+                                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded">
+                                        <div className="text-xs text-orange-800">
+                                            <div className="font-semibold mb-1">💰 Sumber Data Pengeluaran:</div>
+                                            <ul className="space-y-1">
+                                                <li>• Data dari transaksi keuangan yang sudah completed</li>
+                                                <li>• Kategori: gaji, listrik, operasional, dll</li>
+                                                <li>• Total: Rp {formatCurrency(dashboardData.expense_summary.total_expenses)}</li>
+                                                <li>• Jika kosong = belum ada pengeluaran tercatat</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <div className="text-gray-400 mb-2">📊</div>
+                                    <p className="text-gray-500 font-medium">Belum Ada Data Pengeluaran</p>
+                                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                                        <div className="font-semibold mb-1">🤔 Mengapa Kosong?</div>
+                                        <ul className="text-left space-y-1">
+                                            <li>• Belum ada transaksi pengeluaran yang dicatat</li>
+                                            <li>• Semua pengeluaran masih status pending</li>
+                                            <li>• Filter periode tidak ada data</li>
+                                            <li>• Perlu input pengeluaran di menu Transaksi</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -506,20 +543,41 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                     <Card>
                         <CardHeader>
                             <CardTitle>Ringkasan Arus Kas</CardTitle>
-                            <CardDescription>Arus kas berdasarkan aktivitas</CardDescription>
+                            <CardDescription>Pergerakan uang masuk dan keluar dari operasional toko</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm">Kas Masuk</span>
-                                <span className="font-medium text-green-600">
-                                    {formatCurrency(dashboardData.cash_flow_summary.operating.inflow)}
-                                </span>
+                            {/* Explanation Panel */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-blue-700">
+                                    <p className="font-semibold mb-1">💡 Penjelasan Arus Kas:</p>
+                                    <ul className="text-xs space-y-1">
+                                        <li>• <strong>Kas Masuk:</strong> Uang dari penjualan beras (tunai & transfer)</li>
+                                        <li>• <strong>Kas Keluar:</strong> Pengeluaran operasional (gaji, listrik, dll)</li>
+                                        <li>• <strong>Arus Kas Bersih:</strong> Selisih kas masuk dikurangi kas keluar</li>
+                                        <li>• <strong>Positif:</strong> Toko untung, <strong>Negatif:</strong> Toko rugi</li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm">Kas Keluar</span>
-                                <span className="font-medium text-red-600">
-                                    {formatCurrency(dashboardData.cash_flow_summary.operating.outflow)}
-                                </span>
+
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                                    <div>
+                                        <span className="text-sm font-medium">💰 Kas Masuk (Penjualan)</span>
+                                        <div className="text-xs text-green-600">Dari transaksi penjualan beras</div>
+                                    </div>
+                                    <span className="font-bold text-green-600">
+                                        {formatCurrency(dashboardData.cash_flow_summary.operating.inflow)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-red-50 rounded">
+                                    <div>
+                                        <span className="text-sm font-medium">💸 Kas Keluar (Pengeluaran)</span>
+                                        <div className="text-xs text-red-600">Gaji, listrik, operasional, dll</div>
+                                    </div>
+                                    <span className="font-bold text-red-600">
+                                        {formatCurrency(dashboardData.cash_flow_summary.operating.outflow)}
+                                    </span>
+                                </div>
                             </div>
                             <hr />
                             <div className="flex justify-between items-center font-bold">
@@ -909,7 +967,7 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span>Total Keuntungan Kotor (Harga Jual - Harga Beli)</span>
-                                        <span className="font-bold text-orange-600">- {dashboardData.profit_details?.formatted.total_gross_profit}</span>
+                                        <span className="font-bold text-green-600">{dashboardData.profit_details?.formatted.total_gross_profit}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span>Total Pengeluaran (Operasional + Gaji)</span>
@@ -921,6 +979,9 @@ export default function FinancialDashboard({ dashboardData, period }: Props) {
                                         <span className={`font-bold ${dashboardData.profit_details?.calculation.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             {dashboardData.profit_details?.formatted.net_profit}
                                         </span>
+                                    </div>
+                                    <div className="text-center text-sm text-gray-600">
+                                        Rumus: Keuntungan Kotor - Pengeluaran = Keuntungan Bersih
                                     </div>
                                     <div className="text-center text-sm text-gray-600">
                                         Margin Keuntungan: {dashboardData.profit_details?.formatted.profit_margin}

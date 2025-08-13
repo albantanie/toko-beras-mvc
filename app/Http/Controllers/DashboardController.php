@@ -560,9 +560,9 @@ class DashboardController extends Controller
 
             $profitMargin = $monthRevenue > 0 ? ($monthProfit / $monthRevenue) * 100 : 0;
 
-            $data['month_profit'] = (float) $monthProfit;
-            $data['month_expenses'] = (float) ($monthRevenue - $monthProfit);
-            $data['profit_margin'] = (float) $profitMargin;
+            $data['month_gross_profit'] = (float) $monthProfit;
+            $data['month_profit_margin'] = (float) $profitMargin;
+            // Note: month_expenses should be calculated separately from financial transactions
         }
 
         return $data;
@@ -804,19 +804,21 @@ class DashboardController extends Controller
      */
     private function getInventorySummary(): array
     {
-        $totalProducts = Barang::count();
-        $lowStockCount = Barang::where('stok', '<=', 10)->count();
-        $outOfStockCount = Barang::where('stok', '<=', 0)->count();
+        $totalProducts = Barang::where('is_active', true)->count();
+        $lowStockCount = Barang::where('is_active', true)->where('stok', '<=', 10)->where('stok', '>', 0)->count();
+        $outOfStockCount = Barang::where('is_active', true)->where('stok', '<=', 0)->count();
 
-        // Calculate stock value dengan validasi tidak minus
-        $totalStockValue = Barang::selectRaw('SUM(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as total_value')->first();
+        // Calculate stock value dengan validasi tidak minus dan hanya barang aktif
+        $totalStockValue = Barang::where('is_active', true)
+            ->selectRaw('SUM(CASE WHEN stok >= 0 AND harga_beli >= 0 THEN stok * harga_beli ELSE 0 END) as total_value')
+            ->first();
 
         return [
             'total_products' => $totalProducts,
             'low_stock_items' => $lowStockCount,
             'out_of_stock_items' => $outOfStockCount,
             'total_stock_value' => max(0, (float) ($totalStockValue->total_value ?? 0)), // Pastikan tidak minus
-            'categories_count' => Barang::distinct('kategori')->count(),
+            'categories_count' => Barang::where('is_active', true)->distinct('kategori')->count(),
         ];
     }
 
@@ -1090,8 +1092,8 @@ class DashboardController extends Controller
                     });
                 });
 
-                $data['profit'] = $profit;
-                $data['expenses'] = $revenue - $profit; // Simplified calculation
+                $data['gross_profit'] = $profit;
+                // Note: expenses should be calculated separately from financial transactions
             }
 
             $chartData[] = $data;

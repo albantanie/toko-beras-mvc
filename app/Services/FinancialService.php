@@ -301,17 +301,38 @@ class FinancialService
      */
     public function getExpenseSummary($dateRange)
     {
+        // Only get actual expense transactions, not other types
         $expenses = FinancialTransaction::where('transaction_type', 'expense')
             ->where('status', 'completed')
             ->whereBetween('transaction_date', [$dateRange['start'], $dateRange['end']])
+            ->whereNotNull('category') // Ensure category is set
             ->get();
 
         $totalExpenses = $expenses->sum('amount');
 
+        // Group by category for better visibility
+        $expenseCategories = $expenses->groupBy('category')->map(function ($categoryExpenses, $category) {
+            $total = $categoryExpenses->sum('amount');
+            return [
+                'category' => $category,
+                'total' => $total,
+                'count' => $categoryExpenses->count(),
+                'percentage' => 0, // Will be calculated below
+            ];
+        })->values();
+
+        // Calculate percentages
+        if ($totalExpenses > 0) {
+            $expenseCategories = $expenseCategories->map(function ($category) use ($totalExpenses) {
+                $category['percentage'] = ($category['total'] / $totalExpenses) * 100;
+                return $category;
+            });
+        }
+
         $summary = [
             'total' => $totalExpenses, // Add this key for compatibility
             'total_expenses' => $totalExpenses,
-            'expense_categories' => [],
+            'expense_categories' => $expenseCategories->toArray(),
         ];
 
         // Group by category
@@ -331,18 +352,18 @@ class FinancialService
 
     /**
      * Get profit summary
-     * Updated calculation: Net Profit = Total Sales Revenue - Total Gross Profit - Total Expenses
+     * Correct calculation: Net Profit = Gross Profit - Operating Expenses
      */
     public function getProfitSummary($dateRange)
     {
         $revenue = $this->getRevenueSummary($dateRange);
         $expenses = $this->getExpenseSummary($dateRange);
 
-        // Calculate total gross profit from sales
+        // Calculate total gross profit from sales (harga jual - harga beli)
         $totalGrossProfit = $this->calculateTotalGrossProfit($dateRange);
 
-        // New calculation: Revenue - Gross Profit - Operating Expenses = Net Profit
-        $netProfit = $revenue['total_sales'] - $totalGrossProfit - $expenses['total_expenses'];
+        // Correct calculation: Gross Profit - Operating Expenses = Net Profit
+        $netProfit = $totalGrossProfit - $expenses['total_expenses'];
 
         return [
             'gross_revenue' => $revenue['total_sales'],
@@ -462,9 +483,9 @@ class FinancialService
         $expenses = $this->getExpenseSummary($dateRange);
         $expenseDetails = $this->getExpenseDetails($dateRange);
 
-        // Calculate total gross profit
+        // Calculate total gross profit (harga jual - harga beli)
         $totalGrossProfit = $this->calculateTotalGrossProfit($dateRange);
-        $netProfit = $revenue['total_sales'] - $totalGrossProfit - $expenses['total_expenses'];
+        $netProfit = $totalGrossProfit - $expenses['total_expenses'];
 
         $details = [
             'calculation' => [
@@ -574,28 +595,42 @@ class FinancialService
      */
     public function getRiceInventoryDetails()
     {
-        // Get all rice products with stock > 0, ordered by stock level (highest first)
-        $riceProducts = Barang::where('stok', '>', 0)
-            ->orderBy('stok', 'desc')
+        // Force refresh stock data by clearing any cache
+        \Cache::forget('rice_inventory_details');
+
+        // Get all rice products, including those with 0 stock for complete view
+        $riceProducts = Barang::orderBy('stok', 'desc')
             ->get()
             ->map(function ($barang) {
+                // Get real-time stock from database
+                $currentStock = $barang->fresh()->stok ?? 0;
+
                 return [
                     'id' => $barang->id,
                     'nama' => $barang->nama,
                     'kategori' => $barang->kategori,
                     'kode_barang' => $barang->kode_barang,
-                    'stok' => $barang->stok,
+                    'stok' => $currentStock,
                     'stok_minimum' => $barang->stok_minimum,
-                    'is_low_stock' => $barang->stok <= $barang->stok_minimum,
-                    'stock_status' => $this->getStockStatus($barang->stok, $barang->stok_minimum),
-                    'formatted_stok' => number_format($barang->stok, 0, ',', '.') . ' kg',
+                    'is_low_stock' => $currentStock <= $barang->stok_minimum,
+                    'stock_status' => $this->getStockStatus($currentStock, $barang->stok_minimum),
+                    'formatted_stok' => number_format($currentStock, 0, ',', '.') . ' karung',
                 ];
+            })
+            ->filter(function ($product) {
+                // Only show products with stock > 0 for the main view
+                return $product['stok'] > 0;
             });
 
+        // Calculate totals with real-time data
+        $totalStockKg = $riceProducts->sum(function ($product) {
+            return $product['stok'] * 25; // Convert karung to kg (1 karung = 25kg)
+        });
+
         return [
-            'products' => $riceProducts,
+            'products' => $riceProducts->values(),
             'total_products' => $riceProducts->count(),
-            'total_stock_kg' => $riceProducts->sum('stok'),
+            'total_stock_kg' => $totalStockKg,
             'low_stock_count' => $riceProducts->where('is_low_stock', true)->count(),
         ];
     }

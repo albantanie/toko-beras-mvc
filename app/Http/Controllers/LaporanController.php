@@ -1104,21 +1104,28 @@ class LaporanController extends Controller
 
     /**
      * Hitung total profit penjualan pada periode tertentu
+     * Menggunakan rumus: Gross Profit (harga jual - harga beli) saja, tanpa dikurangi expenses
      */
     public function calculateProfit($dateFrom, $dateTo)
     {
-        // Contoh perhitungan profit sederhana: total penjualan - total harga beli barang terjual
-        $totalPenjualan = Penjualan::where('status', 'selesai')
+        // Hitung gross profit: (harga jual - harga beli) * jumlah
+        $grossProfit = 0;
+
+        $penjualans = Penjualan::where('status', 'selesai')
             ->whereDate('tanggal_transaksi', '>=', $dateFrom)
             ->whereDate('tanggal_transaksi', '<=', $dateTo)
-            ->sum('total');
-        $totalModal = DetailPenjualan::whereHas('penjualan', function ($q) use ($dateFrom, $dateTo) {
-                $q->where('status', 'selesai')
-                  ->whereDate('tanggal_transaksi', '>=', $dateFrom)
-                  ->whereDate('tanggal_transaksi', '<=', $dateTo);
-            })
-            ->join('produk', 'rekap.barang_id', '=', 'produk.id')
-            ->sum(DB::raw('rekap.jumlah * produk.harga_beli'));
-        return $totalPenjualan - $totalModal;
+            ->with(['detailPenjualans.barang'])
+            ->get();
+
+        foreach ($penjualans as $penjualan) {
+            foreach ($penjualan->detailPenjualans as $detail) {
+                if ($detail->barang) {
+                    $profitPerUnit = $detail->harga_satuan - $detail->barang->harga_beli;
+                    $grossProfit += $profitPerUnit * $detail->jumlah;
+                }
+            }
+        }
+
+        return $grossProfit;
     }
 }

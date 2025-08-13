@@ -235,18 +235,20 @@ class CartController extends Controller
             'telepon_pelanggan' => 'required|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'alamat_pelanggan' => 'required|string',
             'metode_pembayaran' => 'required|in:tunai,transfer_bca',
-            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'pickup_method' => 'required|in:self,grab,gojek,other',
             'pickup_person_name' => 'nullable|string|max:255',
             'pickup_person_phone' => 'nullable|string|max:20|regex:/^[0-9+\-\s()]+$/',
             'pickup_notes' => 'nullable|string|max:500',
             'catatan' => 'nullable|string|max:500',
         ], [
+            'metode_pembayaran.required' => 'Metode pembayaran wajib dipilih',
+            'metode_pembayaran.in' => 'Metode pembayaran yang dipilih tidak valid. Pilih: Tunai atau Transfer BCA',
             'telepon_pelanggan.regex' => 'Nomor HP pelanggan hanya boleh berisi angka, spasi, +, -, dan tanda kurung.',
             'pickup_person_phone.regex' => 'Nomor HP pengambil hanya boleh berisi angka, spasi, +, -, dan tanda kurung.',
             'payment_proof.file' => 'File bukti pembayaran tidak valid',
             'payment_proof.mimes' => 'Format file harus JPG, PNG, atau PDF',
-            'payment_proof.max' => 'Ukuran file maksimal 5MB',
+            'payment_proof.max' => 'Ukuran file maksimal 2MB',
         ]);
 
         // Validasi tambahan untuk pickup person jika bukan self
@@ -270,10 +272,10 @@ class CartController extends Controller
             }
         }
 
-        // Validasi payment proof untuk transfer
+        // Validasi payment proof untuk transfer BCA
         if ($request->metode_pembayaran === 'transfer_bca' && !$request->hasFile('payment_proof')) {
             return redirect()->back()
-                ->withErrors(['payment_proof' => 'Bukti pembayaran wajib diupload untuk pembayaran transfer'])
+                ->withErrors(['payment_proof' => 'Bukti pembayaran wajib diupload untuk pembayaran transfer BCA'])
                 ->withInput();
         }
 
@@ -408,8 +410,8 @@ class CartController extends Controller
 
             // Redirect dengan pesan sukses
             $message = $request->metode_pembayaran === 'tunai'
-                ? "Pesanan berhasil dibuat! Silakan datang ke toko untuk mengambil pesanan Anda."
-                : "Pesanan berhasil dibuat! Silakan lakukan pembayaran transfer dan upload bukti pembayaran.";
+                ? "Pesanan berhasil dibuat! Silakan datang ke toko untuk mengambil pesanan dan bayar di tempat."
+                : "Pesanan berhasil dibuat! Transfer BCA sudah diterima. Silakan datang ke toko untuk mengambil pesanan.";
 
             return redirect()->route('user.orders')
                 ->with('success', $message);

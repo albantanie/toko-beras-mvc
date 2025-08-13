@@ -88,6 +88,22 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Check file size (2MB = 2 * 1024 * 1024 bytes)
+            const maxSize = 2 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert(`File terlalu besar! Maksimal 2MB. File Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                e.target.value = ''; // Clear the input
+                return;
+            }
+
+            // Check file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Format file tidak didukung! Gunakan JPG, PNG, atau PDF');
+                e.target.value = ''; // Clear the input
+                return;
+            }
+
             setData('payment_proof', file);
         }
     };
@@ -210,6 +226,19 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                                     Metode Pembayaran *
                                                 </label>
+
+                                                {/* Penjelasan Metode Pembayaran */}
+                                                <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                    <div className="text-xs text-yellow-800">
+                                                        <div className="font-semibold mb-1">💡 Pilihan Pembayaran:</div>
+                                                        <ul className="space-y-1">
+                                                            <li>• <strong>Cash:</strong> Bayar langsung di toko saat ambil pesanan</li>
+                                                            <li>• <strong>Transfer BCA:</strong> Upload bukti transfer, lalu ambil pesanan</li>
+                                                            <li>• <strong>Catatan:</strong> Pesanan akan diproses setelah konfirmasi</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
                                                 <div className="space-y-3">
                                             <label className="flex items-center">
                                                 <input
@@ -241,7 +270,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
 
                                     {data.metode_pembayaran === 'transfer_bca' && (
                                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                            <h4 className="font-medium text-blue-900 mb-3">Informasi Transfer Bank</h4>
+                                            <h4 className="font-medium text-blue-900 mb-3">Informasi Transfer Bank BCA</h4>
                                             <div className="space-y-2 text-sm mb-4">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Bank:</span>
@@ -256,8 +285,8 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                     <span className="font-medium">Toko Beras Sejahtera</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Jumlah Transfer:</span>
-                                                    <span className="font-medium text-green-600">
+                                                    <span className="text-gray-600">Total Transfer:</span>
+                                                    <span className="font-bold text-lg text-green-600">
                                                         {formatCurrency(total)}
                                                     </span>
                                                 </div>
@@ -267,6 +296,18 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                                     Upload Bukti Transfer *
                                                 </label>
+
+                                                {/* File Size Warning */}
+                                                <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                                    <div className="text-xs text-orange-700">
+                                                        <div className="font-semibold mb-1">⚠️ Penting:</div>
+                                                        <ul className="space-y-1">
+                                                            <li>• Ukuran file maksimal <strong>2MB</strong></li>
+                                                            <li>• Format: JPG, PNG, atau PDF</li>
+                                                            <li>• File terlalu besar akan menyebabkan error "POST data too large"</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
                                                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                                                     <label htmlFor="payment_proof_upload" className="w-full cursor-pointer">
                                                         <div className="space-y-1 text-center">
@@ -298,7 +339,7 @@ export default function Checkout({ auth, cartItems, total, user, cartCount }: Ch
                                                                     <p className="mb-2 text-sm text-gray-500">
                                                                         <span className="font-semibold">Klik untuk upload</span> atau drag and drop
                                                                     </p>
-                                                                    <p className="text-xs text-gray-500">PNG, JPG, PDF (MAX. 5MB)</p>
+                                                                    <p className="text-xs text-gray-500">PNG, JPG, PDF (MAX. 2MB)</p>
                                                                 </>
                                                             )}
                                                         </div>

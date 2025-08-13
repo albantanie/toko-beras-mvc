@@ -212,10 +212,16 @@ class DailyReport extends Model
             ->get();
 
         // Get all transactions for the date to check consistency
+        // Include both offline and online transactions that are completed
         $transactions = Penjualan::whereDate('tanggal_transaksi', $date)
             ->where('status', 'selesai')
             ->with('detailPenjualans.barang')
             ->get();
+
+        // Count total quantity sold (for consistency with kasir reports)
+        $totalQuantitySold = $transactions->sum(function ($transaction) {
+            return $transaction->detailPenjualans->sum('jumlah');
+        });
 
         // Check for inconsistencies: transactions without corresponding stock movements
         $inconsistencies = [];
@@ -243,9 +249,13 @@ class DailyReport extends Model
 
         // Calculate totals
         $totalMovements = $stockMovements->count();
-        // Gunakan stock_value_change untuk perhitungan yang benar
-        // Nilai negatif menunjukkan stock keluar, positif menunjukkan stock masuk
-        $totalStockValue = $stockMovements->sum('stock_value_change');
+
+        // Hitung nilai stok dengan benar - gunakan nilai absolut untuk total value
+        // Karena ini adalah laporan nilai pergerakan, bukan saldo
+        $totalStockValue = $stockMovements->sum(function ($movement) {
+            // Gunakan nilai absolut dari stock_value_change untuk menghitung total nilai pergerakan
+            return abs($movement->stock_value_change ?? 0);
+        });
 
         // Prepare detailed data
         $data = [
@@ -265,8 +275,29 @@ class DailyReport extends Model
             'summary' => [
                 'total_movements' => $totalMovements,
                 'total_stock_value' => $totalStockValue,
+                'total_quantity_sold' => $totalQuantitySold,
+                'total_transactions' => $transactions->count(),
                 'movement_types' => $stockMovements->groupBy('type')->map->count(),
                 'items_affected' => $stockMovements->groupBy('barang_id')->count(),
+            ],
+            'explanations' => [
+                'total_movements_explanation' => "Jumlah pergerakan stok hari ini: {$totalMovements} kali pergerakan (masuk/keluar/adjustment)",
+                'total_stock_value_explanation' => "Total nilai pergerakan stok: Rp " . number_format($totalStockValue, 0, ',', '.') . " (dihitung dari semua pergerakan × harga)",
+                'total_quantity_explanation' => "Total barang terjual: {$totalQuantitySold} karung (dari {$transactions->count()} transaksi kasir)",
+                'balance_check' => [
+                    'is_balanced' => count($inconsistencies) === 0,
+                    'message' => count($inconsistencies) === 0
+                        ? "✅ SEIMBANG: Semua transaksi kasir sudah tercatat di pergerakan stok"
+                        : "⚠️ TIDAK SEIMBANG: Ada " . count($inconsistencies) . " transaksi kasir yang belum tercatat di pergerakan stok",
+                    'detail' => count($inconsistencies) === 0
+                        ? "Semua {$transactions->count()} transaksi kasir sudah memiliki catatan pergerakan stok yang sesuai"
+                        : "Dari {$transactions->count()} transaksi kasir, " . count($inconsistencies) . " transaksi belum tercatat di pergerakan stok"
+                ],
+                'calculation_breakdown' => [
+                    'stock_in' => $stockMovements->where('type', 'in')->sum(function($m) { return abs($m->stock_value_change ?? 0); }),
+                    'stock_out' => $stockMovements->where('type', 'out')->sum(function($m) { return abs($m->stock_value_change ?? 0); }),
+                    'adjustments' => $stockMovements->whereNotIn('type', ['in', 'out'])->sum(function($m) { return abs($m->stock_value_change ?? 0); }),
+                ]
             ],
             'inconsistencies' => $inconsistencies,
             'consistency_check' => [
