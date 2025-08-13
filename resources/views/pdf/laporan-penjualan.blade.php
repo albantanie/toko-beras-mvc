@@ -113,10 +113,6 @@
                 <th>Jumlah Transaksi</th>
                 <td class="text-right">{{ number_format($summary['total_transaksi'], 0, ',', '.') }}</td>
             </tr>
-            <tr>
-                <th>Rata-rata Nilai Transaksi</th>
-                <td class="text-right">Rp {{ number_format($summary['rata_rata_transaksi'], 0, ',', '.') }}</td>
-            </tr>
         </table>
     </div>
 

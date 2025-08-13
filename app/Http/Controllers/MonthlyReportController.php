@@ -44,6 +44,19 @@ class MonthlyReportController extends Controller
             return response()->json(['error' => 'Only karyawan can generate stock reports'], 403);
         }
 
+        // Check if monthly report already exists for this user, month, and type
+        $existingReport = PdfReport::where('type', $type === 'transaction' ? 'penjualan' : 'stok')
+            ->where('generated_by', $user->id)
+            ->whereYear('period_from', $month->year)
+            ->whereMonth('period_from', $month->month)
+            ->first();
+
+        if ($existingReport) {
+            return response()->json([
+                'error' => 'Laporan bulanan untuk bulan ' . $month->format('F Y') . ' sudah pernah dibuat. Setiap bulan hanya boleh generate sekali untuk mencegah duplikasi data.'
+            ], 400);
+        }
+
         // Check if monthly report already exists for this month and user
         $reportType = $type === 'transaction' ? 'sales' : 'stock';
         $existingReport = PdfReport::where('generated_by', $user->id)

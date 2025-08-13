@@ -274,15 +274,21 @@ class LaporanController extends Controller
 
         $totalTransactions = $summaryQuery->count();
 
+        // Calculate total items sold with proper filtering
+        $totalItemsSold = DetailPenjualan::whereHas('penjualan', function ($q) use ($dateFrom, $dateTo, $isKasir, $user) {
+            $q->where('status', 'selesai')
+              ->whereBetween('tanggal_transaksi', [$dateFrom, $dateTo]);
+
+            // Apply same user filtering as summary query
+            if ($isKasir) {
+                $q->where('user_id', $user->id);
+            }
+        })->sum('jumlah');
+
         $summary = [
             'total_transactions' => $totalTransactions,
             'total_sales' => $summaryQuery->sum('total'),
-            'average_transaction' => $summaryQuery->avg('total') ?: 0,
-            'total_items_sold' => DetailPenjualan::whereHas('penjualan', function ($q) use ($dateFrom, $dateTo) {
-                $q->where('status', 'selesai')
-                  ->whereDate('tanggal_transaksi', '>=', $dateFrom)
-                  ->whereDate('tanggal_transaksi', '<=', $dateTo);
-            })->sum('jumlah'),
+            'total_items_sold' => $totalItemsSold,
         ];
 
         // Only include profit for admin/owner
@@ -419,11 +425,15 @@ class LaporanController extends Controller
             'in_stock_items' => Barang::where('stok', '>', 0)->count(),
         ];
 
-        // Get stock movement activity for current month
+        // Get stock movement activity for current month only (not future dates)
         $currentMonth = Carbon::now()->startOfMonth();
-        $nextMonth = Carbon::now()->addMonth()->startOfMonth();
+        $endOfCurrentMonth = Carbon::now()->endOfMonth();
+        $today = Carbon::now()->endOfDay(); // Don't include future dates
 
-        $stockMovementDays = \App\Models\StockMovement::whereBetween('created_at', [$currentMonth, $nextMonth])
+        // Use the earlier of end of month or today to avoid counting future dates
+        $endDate = $today->lt($endOfCurrentMonth) ? $today : $endOfCurrentMonth;
+
+        $stockMovementDays = \App\Models\StockMovement::whereBetween('created_at', [$currentMonth, $endDate])
             ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
             ->groupBy('date', 'type')
             ->get()
@@ -1051,11 +1061,10 @@ class LaporanController extends Controller
             ->whereBetween('tanggal_transaksi', [$fromDate, $toDate])
             ->get();
         
-        // Kalkulasi summary
+        // Kalkulasi summary - pastikan konsisten dengan web view
         $summary = [
             'total_penjualan' => $penjualans->sum('total'),
             'total_transaksi' => $penjualans->count(),
-            'rata_rata_transaksi' => $penjualans->avg('total') ?: 0,
             'periode_dari' => $dateFrom,
             'periode_sampai' => $dateTo,
         ];
