@@ -390,25 +390,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                             </div>
                         )}
 
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="p-5">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <Icons.package className="h-6 w-6 text-gray-400" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500 truncate">
-                                                Items Terjual
-                                            </dt>
-                                            <dd className="text-lg font-medium text-gray-900">
-                                                {summary.total_items_sold}
-                                            </dd>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
 
                     <div className="flex items-center gap-2 mb-4">
