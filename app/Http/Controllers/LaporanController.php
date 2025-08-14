@@ -277,7 +277,8 @@ class LaporanController extends Controller
         // Calculate total items sold with proper filtering
         $totalItemsSold = DetailPenjualan::whereHas('penjualan', function ($q) use ($dateFrom, $dateTo, $isKasir, $user) {
             $q->where('status', 'selesai')
-              ->whereBetween('tanggal_transaksi', [$dateFrom, $dateTo]);
+              ->whereDate('tanggal_transaksi', '>=', $dateFrom)
+              ->whereDate('tanggal_transaksi', '<=', $dateTo);
 
             // Apply same user filtering as summary query
             if ($isKasir) {
