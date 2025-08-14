@@ -637,7 +637,6 @@ class FinancialController extends Controller
                 'total' => $totalSales,
                 'total_sales' => $totalSales,
                 'total_transactions' => $totalTransactions,
-                'average_transaction' => $totalTransactions > 0 ? $totalSales / $totalTransactions : 0,
             ],
             'expenses' => [
                 'total' => $totalExpenses,
@@ -864,7 +863,6 @@ class FinancialController extends Controller
                     'total_sales' => $totalSales,
                     'total_transactions' => $totalTransactions,
                     'total_items_sold' => $totalItemsSold,
-                    'average_transaction' => $totalTransactions > 0 ? $totalSales / $totalTransactions : 0,
                 ],
                 'expenses' => [
                     'total' => $totalExpenses,

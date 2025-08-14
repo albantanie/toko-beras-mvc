@@ -58,7 +58,6 @@ class PdfReportService
             'total_cost' => $totalCost,
             'profit' => $profit,
             'total_transactions' => $totalTransactions,
-            'average_transaction' => $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0,
         ];
 
         // Generate filename and path
@@ -368,7 +367,6 @@ class PdfReportService
             'period_to' => $toDate->format('Y-m-d'),
             'total_revenue' => $totalRevenue,
             'total_transactions' => $totalTransactions,
-            'average_transaction' => $averageTransaction,
             'payment_methods' => $paymentMethods,
             'top_products' => $topProducts,
             'daily_sales' => $dailySales,

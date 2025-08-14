@@ -15,7 +15,6 @@ interface LaporanPenjualanProps extends PageProps {
     summary: {
         total_transactions: number;
         total_sales: number;
-        average_transaction: number;
         total_profit: number | null;
         total_items_sold: number;
     };
@@ -361,6 +360,7 @@ export default function LaporanPenjualan({ auth, penjualans, summary, sales_char
                                 </div>
                             </div>
                         </div>
+
 
                         {/* Only show profit card for admin/owner */}
                         {user_role?.is_admin_or_owner && summary.total_profit !== null && (

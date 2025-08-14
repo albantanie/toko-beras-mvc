@@ -574,14 +574,12 @@ class LaporanController extends Controller
         // Calculate summary
         $totalTransactions = $query->count();
         $totalSales = $query->sum('total');
-        $averageTransaction = $totalTransactions > 0 ? $totalSales / $totalTransactions : 0;
 
         return Inertia::render('laporan/history-transaction', [
             'penjualans' => $penjualans,
             'summary' => [
                 'total_transactions' => $totalTransactions,
                 'total_sales' => $totalSales,
-                'average_transaction' => $averageTransaction,
             ],
             'filters' => $filters,
         ]);

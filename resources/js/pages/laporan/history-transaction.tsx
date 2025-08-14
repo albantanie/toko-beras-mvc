@@ -12,7 +12,6 @@ interface HistoryTransactionReportProps extends PageProps {
         total_transactions: number;
         total_sales: number;
         total_profit: number;
-        average_transaction: number;
         total_items_sold: number;
         pending_transactions: number;
         completed_transactions: number;
